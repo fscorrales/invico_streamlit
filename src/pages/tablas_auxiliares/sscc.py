@@ -15,8 +15,7 @@ def main() -> None:
         label_visibility="collapsed",
     )
     
-    st.sidebar.divider()
-    
+
     # Render selected sub-page
     if menu_selection == "Banco INVICO":
         sscc_banco_invico.render()

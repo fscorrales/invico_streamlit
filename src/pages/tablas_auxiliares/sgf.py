@@ -15,8 +15,7 @@ def main() -> None:
         label_visibility="collapsed",
     )
     
-    st.sidebar.divider()
-    
+
     # Render selected sub-page
     if menu_selection == "Resumen Rendiciones Proveedores":
         sgf_resumen_rend_prov.render()

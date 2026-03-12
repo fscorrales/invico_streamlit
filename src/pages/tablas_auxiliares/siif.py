@@ -16,9 +16,7 @@ def main() -> None:
         label_visibility="collapsed",
     )
     
-    # Divider for visual separation if needed
-    st.sidebar.divider()
-    
+
     # Render selected sub-page
     if menu_selection == "RF602":
         siif_rf602.render()
