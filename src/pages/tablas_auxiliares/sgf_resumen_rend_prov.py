@@ -24,27 +24,30 @@ def render() -> None:
         "retenciones. Datos del Sistema de Gestión Financiera (SGF)."
     )
 
-    # --- Filtros ---
-    ejercicio = st.sidebar.number_input(
-        "Ejercicio",
-        min_value=2010,
-        max_value=2030,
-        value=2025,
-        step=1,
-    )
-
-    origen = st.sidebar.selectbox(
-        "Origen",
-        options=ORIGENES,
-        format_func=lambda x: "Todos" if x is None else x,
-    )
-
-    # --- Botón de actualización ---
-    if st.sidebar.button("🔄 Actualizar desde SGF"):
-        st.sidebar.info(
-            "Automatización no implementada aún. "
-            "Se lanzará el script correspondiente del SGF."
+    # --- Filtros y Actualización ---
+    col1, col2, col3 = st.columns([1, 1, 2])
+    with col1:
+        ejercicio = st.number_input(
+            "Ejercicio",
+            min_value=2010,
+            max_value=2030,
+            value=2025,
+            step=1,
         )
+    with col2:
+        origen = st.selectbox(
+            "Origen",
+            options=ORIGENES,
+            format_func=lambda x: "Todos" if x is None else x,
+        )
+    with col3:
+        st.write("")
+        st.write("")
+        if st.button("🔄 Actualizar desde SGF"):
+            st.info(
+                "Automatización no implementada aún. "
+                "Se lanzará el script correspondiente del SGF."
+            )
 
     # --- Carga y visualización de datos ---
     try:

@@ -142,18 +142,19 @@ def build_navigation() -> None:
 
     pg = st.navigation(pages)
 
+    pg.run()
+
     # ── Sidebar inferior: info de usuario y logout ──
     with st.sidebar:
         st.divider()
         username = st.session_state["user"]["username"]
         st.caption(f"👤 {username} ({role})")
 
-        if st.button("Cerrar Sesión"):
+        if st.button("Cerrar Sesión", use_container_width=True):
             st.session_state["token"] = None
             st.session_state["user"] = None
             st.rerun()
 
-    pg.run()
 
 
 # ──────────────────────────────────────────────

@@ -15,28 +15,30 @@ from src.services.api_client import (
 ENDPOINT = "/control/controlRecursos/"
 
 
-st.sidebar.header("Control Recursos")
 st.markdown("# Control Recursos")
 st.write(
     "Cruce de recursos SIIF vs depósitos bancarios. "
     "Permite filtrar por ejercicio fiscal y actualizar los datos."
 )
 
-# --- Filtros ---
-ejercicio = st.sidebar.number_input(
-    "Ejercicio",
-    min_value=2010,
-    max_value=2030,
-    value=2025,
-    step=1,
-)
-
-# --- Botón de actualización ---
-if st.sidebar.button("🔄 Actualizar desde fuentes"):
-    st.sidebar.info(
-        "Automatización no implementada aún. "
-        "Se lanzará el script correspondiente."
+# --- Filtros y Actualización ---
+col1, col2 = st.columns([1, 3])
+with col1:
+    ejercicio = st.number_input(
+        "Ejercicio",
+        min_value=2010,
+        max_value=2030,
+        value=2025,
+        step=1,
     )
+with col2:
+    st.write("")
+    st.write("")
+    if st.button("🔄 Actualizar desde fuentes"):
+        st.info(
+            "Automatización no implementada aún. "
+            "Se lanzará el script correspondiente."
+        )
 
 # --- Carga y visualización de datos ---
 try:

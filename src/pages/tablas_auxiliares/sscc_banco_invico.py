@@ -23,27 +23,30 @@ def render() -> None:
         "de Cuentas Corrientes (SSCC)."
     )
 
-    # --- Filtros ---
-    ejercicio = st.sidebar.number_input(
-        "Ejercicio",
-        min_value=2010,
-        max_value=2030,
-        value=2025,
-        step=1,
-    )
-
-    cta_cte = st.sidebar.text_input(
-        "Cuenta Corriente (opcional)",
-        value="",
-        help="Filtrar por número de cuenta corriente.",
-    )
-
-    # --- Botón de actualización ---
-    if st.sidebar.button("🔄 Actualizar desde SSCC"):
-        st.sidebar.info(
-            "Automatización Pywinauto no implementada aún. "
-            "Se lanzará el script de escritorio del SSCC."
+    # --- Filtros y Actualización ---
+    col1, col2, col3 = st.columns([1, 1, 2])
+    with col1:
+        ejercicio = st.number_input(
+            "Ejercicio",
+            min_value=2010,
+            max_value=2030,
+            value=2025,
+            step=1,
         )
+    with col2:
+        cta_cte = st.text_input(
+            "Cuenta Corriente (opcional)",
+            value="",
+            help="Filtrar por número de cuenta corriente.",
+        )
+    with col3:
+        st.write("")
+        st.write("")
+        if st.button("🔄 Actualizar desde SSCC"):
+            st.info(
+                "Automatización Pywinauto no implementada aún. "
+                "Se lanzará el script de escritorio del SSCC."
+            )
 
     # --- Carga y visualización de datos ---
     try:

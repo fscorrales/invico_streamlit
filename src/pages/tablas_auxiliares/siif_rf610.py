@@ -22,21 +22,24 @@ def render() -> None:
         "subprogramas, proyectos y actividades. Datos del SIIF."
     )
 
-    # --- Filtros ---
-    ejercicio = st.sidebar.number_input(
-        "Ejercicio",
-        min_value=2010,
-        max_value=2030,
-        value=2025,
-        step=1,
-    )
-
-    # --- Botón de actualización ---
-    if st.sidebar.button("🔄 Actualizar desde SIIF"):
-        st.sidebar.info(
-            "Automatización Playwright no implementada aún. "
-            "Se lanzará el script de scraping del SIIF."
+    # --- Filtros y Actualización ---
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        ejercicio = st.number_input(
+            "Ejercicio",
+            min_value=2010,
+            max_value=2030,
+            value=2025,
+            step=1,
         )
+    with col2:
+        st.write("")  # Espaciado para alinear con el input
+        st.write("")
+        if st.button("🔄 Actualizar desde SIIF"):
+            st.info(
+                "Automatización Playwright no implementada aún. "
+                "Se lanzará el script de scraping del SIIF."
+            )
 
     # --- Carga y visualización de datos ---
     try:
