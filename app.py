@@ -1,0 +1,190 @@
+"""
+INVICO Control Presupuestario — Entrypoint principal.
+
+Usa st.navigation() con secciones agrupadas para construir
+el sidebar de navegación MPA. La sección "Administración"
+solo es visible para usuarios con rol admin.
+"""
+
+import streamlit as st
+
+from src.services import auth_service
+
+st.set_page_config(
+    page_title="INVICO Control Presupuestario",
+    page_icon="📊",
+    layout="wide",
+)
+
+
+# ──────────────────────────────────────────────
+# Inicialización del estado de sesión
+# ──────────────────────────────────────────────
+def initialize_state() -> None:
+    """Inicializa las claves mínimas en session_state."""
+    if "token" not in st.session_state:
+        st.session_state["token"] = None
+    if "user" not in st.session_state:
+        st.session_state["user"] = None
+
+
+# ──────────────────────────────────────────────
+# Login
+# ──────────────────────────────────────────────
+def render_login() -> None:
+    """Renderiza el formulario de login."""
+    st.title("Inicio de Sesión")
+    st.info(
+        "Por favor, inicie sesión utilizando el formulario "
+        "de abajo."
+    )
+
+    with st.form("login_form"):
+        username = st.text_input("Usuario")
+        password = st.text_input("Contraseña", type="password")
+        submitted = st.form_submit_button("Ingresar")
+
+        if submitted:
+            with st.spinner("Autenticando en el Sistema..."):
+                try:
+                    token = auth_service.login(username, password)
+                    st.session_state["token"] = token
+
+                    user_data = auth_service.get_current_user(token)
+                    st.session_state["user"] = {
+                        "role": user_data.role.value,
+                        "username": user_data.username,
+                        "id": user_data.id,
+                    }
+                    st.rerun()
+
+                except auth_service.AuthenticationError as e:
+                    st.error(f"Error de acceso: {e}")
+                except auth_service.APIError as e:
+                    st.error(f"Error en el servidor: {e}")
+                except Exception as e:
+                    st.error(
+                        "Ocurrió un error inesperado. "
+                        f"Intente luego. {e}"
+                    )
+
+
+# ──────────────────────────────────────────────
+# Navegación MPA
+# ──────────────────────────────────────────────
+def build_navigation() -> None:
+    """Construye la navegación con st.navigation y ejecuta la página."""
+    role = st.session_state["user"]["role"]
+
+    pages: dict[str, list] = {
+        "Controles": [
+            st.Page(
+                "src/pages/controles/control_recursos.py",
+                title="Control Recursos",
+                icon="💰",
+            ),
+            st.Page(
+                "src/pages/controles/control_icaro.py",
+                title="Control Icaro",
+                icon="🏗️",
+            ),
+            st.Page(
+                "src/pages/controles/control_obras.py",
+                title="Control Obras",
+                icon="🔨",
+            ),
+            st.Page(
+                "src/pages/controles/control_honorarios.py",
+                title="Control Honorarios",
+                icon="📋",
+            ),
+            st.Page(
+                "src/pages/controles/control_haberes.py",
+                title="Control Haberes",
+                icon="👤",
+            ),
+        ],
+        "Tablas Auxiliares — SIIF": [
+            st.Page(
+                "src/pages/tablas_auxiliares/siif_rf602.py",
+                title="RF602",
+                icon="📊",
+            ),
+            st.Page(
+                "src/pages/tablas_auxiliares/siif_rf610.py",
+                title="RF610",
+                icon="📊",
+            ),
+        ],
+        "Tablas Auxiliares — SSCC": [
+            st.Page(
+                "src/pages/tablas_auxiliares/sscc_banco_invico.py",
+                title="Banco INVICO",
+                icon="🏦",
+            ),
+        ],
+        "Tablas Auxiliares — SGF": [
+            st.Page(
+                "src/pages/tablas_auxiliares/sgf_resumen_rend_prov.py",
+                title="Resumen Rend. Prov.",
+                icon="📑",
+            ),
+        ],
+        "Reportes": [
+            st.Page(
+                "src/pages/reportes/reportes_home.py",
+                title="Reportes",
+                icon="📈",
+            ),
+        ],
+    }
+
+    # Sección de admin solo visible para rol admin
+    if role == "admin":
+        pages["Administración"] = [
+            st.Page(
+                "src/pages/admin/gestion_usuarios.py",
+                title="Gestión de Usuarios",
+                icon="👥",
+            ),
+        ]
+
+    pg = st.navigation(pages)
+
+    # ── Sidebar inferior: info de usuario y logout ──
+    with st.sidebar:
+        st.divider()
+        username = st.session_state["user"]["username"]
+        st.caption(f"👤 {username} ({role})")
+
+        if st.button("Cerrar Sesión"):
+            st.session_state["token"] = None
+            st.session_state["user"] = None
+            st.rerun()
+
+    pg.run()
+
+
+# ──────────────────────────────────────────────
+# Main
+# ──────────────────────────────────────────────
+def main() -> None:
+    initialize_state()
+
+    # TEMPORARY: Bypass Login para desarrollo
+    if not st.session_state.get("token"):
+        st.session_state["token"] = "dev-bypass-token"
+        st.session_state["user"] = {
+            "role": "admin",
+            "username": "developer",
+            "id": "1",
+        }
+
+    if not st.session_state["token"]:
+        render_login()
+    else:
+        build_navigation()
+
+
+if __name__ == "__main__":
+    main()
