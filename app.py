@@ -104,30 +104,21 @@ def build_navigation() -> None:
                 icon="👤",
             ),
         ],
-        "Tablas Auxiliares — SIIF": [
+        "Tablas Auxiliares": [
             st.Page(
-                "src/pages/tablas_auxiliares/siif_rf602.py",
-                title="RF602",
+                "src/pages/tablas_auxiliares/siif.py",
+                title="SIIF",
                 icon="📊",
             ),
             st.Page(
-                "src/pages/tablas_auxiliares/siif_rf610.py",
-                title="RF610",
-                icon="📊",
-            ),
-        ],
-        "Tablas Auxiliares — SSCC": [
-            st.Page(
-                "src/pages/tablas_auxiliares/sscc_banco_invico.py",
-                title="Banco INVICO",
-                icon="🏦",
-            ),
-        ],
-        "Tablas Auxiliares — SGF": [
-            st.Page(
-                "src/pages/tablas_auxiliares/sgf_resumen_rend_prov.py",
-                title="Resumen Rend. Prov.",
+                "src/pages/tablas_auxiliares/sgf.py",
+                title="SGF",
                 icon="📑",
+            ),
+            st.Page(
+                "src/pages/tablas_auxiliares/sscc.py",
+                title="SSCC",
+                icon="🏦",
             ),
         ],
         "Reportes": [

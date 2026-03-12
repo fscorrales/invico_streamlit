@@ -17,57 +17,57 @@ ENDPOINT = "/sgf/resumenRendProv/"
 ORIGENES = [None, "EPAM", "OBRAS", "FUNCIONAMIENTO"]
 
 
-st.sidebar.header("Resumen Rend. Prov.")
-st.markdown("# SGF - Resumen Rendiciones Proveedores")
-st.write(
-    "Resumen de rendiciones a proveedores con detalle de "
-    "retenciones. Datos del Sistema de Gestión Financiera (SGF)."
-)
-
-# --- Filtros ---
-ejercicio = st.sidebar.number_input(
-    "Ejercicio",
-    min_value=2010,
-    max_value=2030,
-    value=2025,
-    step=1,
-)
-
-origen = st.sidebar.selectbox(
-    "Origen",
-    options=ORIGENES,
-    format_func=lambda x: "Todos" if x is None else x,
-)
-
-# --- Botón de actualización ---
-if st.sidebar.button("🔄 Actualizar desde SGF"):
-    st.sidebar.info(
-        "Automatización no implementada aún. "
-        "Se lanzará el script correspondiente del SGF."
+def render() -> None:
+    st.markdown("# SGF - Resumen Rendiciones Proveedores")
+    st.write(
+        "Resumen de rendiciones a proveedores con detalle de "
+        "retenciones. Datos del Sistema de Gestión Financiera (SGF)."
     )
 
-# --- Carga y visualización de datos ---
-try:
-    with st.spinner("Cargando datos de Rendiciones..."):
-        df = fetch_dataframe(
-            ENDPOINT,
-            params={
-                "ejercicio": ejercicio,
-                "origen": origen,
-                "limit": None,
-            },
+    # --- Filtros ---
+    ejercicio = st.sidebar.number_input(
+        "Ejercicio",
+        min_value=2010,
+        max_value=2030,
+        value=2025,
+        step=1,
+    )
+
+    origen = st.sidebar.selectbox(
+        "Origen",
+        options=ORIGENES,
+        format_func=lambda x: "Todos" if x is None else x,
+    )
+
+    # --- Botón de actualización ---
+    if st.sidebar.button("🔄 Actualizar desde SGF"):
+        st.sidebar.info(
+            "Automatización no implementada aún. "
+            "Se lanzará el script correspondiente del SGF."
         )
 
-    if df.empty:
-        st.info(
-            f"No se encontraron rendiciones para el "
-            f"ejercicio {ejercicio}."
-        )
-    else:
-        st.write(f"### Registros encontrados: {len(df)}")
-        st.dataframe(df, use_container_width=True)
+    # --- Carga y visualización de datos ---
+    try:
+        with st.spinner("Cargando datos de Rendiciones..."):
+            df = fetch_dataframe(
+                ENDPOINT,
+                params={
+                    "ejercicio": ejercicio,
+                    "origen": origen,
+                    "limit": None,
+                },
+            )
 
-except APIConnectionError as e:
-    st.error(f"⚠️ Error de conexión: {e}")
-except APIResponseError as e:
-    st.error(f"⚠️ Error de API: {e}")
+        if df.empty:
+            st.info(
+                f"No se encontraron rendiciones para el "
+                f"ejercicio {ejercicio}."
+            )
+        else:
+            st.write(f"### Registros encontrados: {len(df)}")
+            st.dataframe(df, use_container_width=True)
+
+    except APIConnectionError as e:
+        st.error(f"⚠️ Error de conexión: {e}")
+    except APIResponseError as e:
+        st.error(f"⚠️ Error de API: {e}")
