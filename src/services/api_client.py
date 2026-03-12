@@ -12,17 +12,21 @@ import httpx
 import pandas as pd
 import streamlit as st
 
-BASE_URL = "https://invico-back.onrender.com"
+from ..config import settings
+
+BASE_URL = settings.BASE_URL
 DEFAULT_TIMEOUT = 30.0
 
 
 class APIConnectionError(Exception):
     """Error de conexión con el servidor."""
+
     pass
 
 
 class APIResponseError(Exception):
     """Error en la respuesta del servidor."""
+
     pass
 
 
@@ -30,9 +34,7 @@ def _get_headers() -> dict[str, str]:
     """Construye headers de autorización desde session_state."""
     token = st.session_state.get("token")
     if not token:
-        raise APIConnectionError(
-            "No hay token de sesión. Inicie sesión nuevamente."
-        )
+        raise APIConnectionError("No hay token de sesión. Inicie sesión nuevamente.")
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -56,9 +58,7 @@ def fetch_data(
     """
     headers = _get_headers()
     clean_params = (
-        {k: v for k, v in params.items() if v is not None}
-        if params
-        else None
+        {k: v for k, v in params.items() if v is not None} if params else None
     )
 
     try:
@@ -69,14 +69,10 @@ def fetch_data(
             timeout=DEFAULT_TIMEOUT,
         )
     except httpx.RequestError as e:
-        raise APIConnectionError(
-            f"Error de conexión con el servidor: {e}"
-        ) from e
+        raise APIConnectionError(f"Error de conexión con el servidor: {e}") from e
 
     if response.status_code == 401:
-        raise APIResponseError(
-            "Token expirado o inválido. Inicie sesión nuevamente."
-        )
+        raise APIResponseError("Token expirado o inválido. Inicie sesión nuevamente.")
     if response.status_code != 200:
         raise APIResponseError(
             f"Error de API ({response.status_code}): {response.text}"
@@ -124,14 +120,10 @@ def patch_request(
             timeout=DEFAULT_TIMEOUT,
         )
     except httpx.RequestError as e:
-        raise APIConnectionError(
-            f"Error de conexión con el servidor: {e}"
-        ) from e
+        raise APIConnectionError(f"Error de conexión con el servidor: {e}") from e
 
     if response.status_code == 401:
-        raise APIResponseError(
-            "Token expirado o inválido. Inicie sesión nuevamente."
-        )
+        raise APIResponseError("Token expirado o inválido. Inicie sesión nuevamente.")
     if response.status_code != 200:
         raise APIResponseError(
             f"Error de API ({response.status_code}): {response.text}"
