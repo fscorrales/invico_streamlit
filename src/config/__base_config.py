@@ -11,7 +11,7 @@ class BaseAppSettings(BaseSettings):
         extra="allow",  # Permitir claves adicionales
     )
     APP_ENV: str = "dev"
-    ADMIN_EMAIL: str | None = None
+    ADMIN_USERNAME: str | None = None
     ADMIN_PASSWORD: str | None = None
     BASE_URL: str | None = None
     GOOGLE_CREDENTIALS: str | None = None  # JSON credentials for Google Sheets

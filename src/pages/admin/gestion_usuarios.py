@@ -34,7 +34,7 @@ try:
         st.info("No se encontraron usuarios.")
     else:
         st.write(f"### Usuarios registrados: {len(df)}")
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, width="stretch")
 
         st.divider()
 
@@ -55,9 +55,7 @@ try:
 
             if st.button("✅ Aprobar usuario"):
                 try:
-                    patch_request(
-                        f"/users/{user_to_approve}/approve"
-                    )
+                    patch_request(f"/users/{user_to_approve}/approve")
                     st.success("Usuario aprobado exitosamente.")
                     st.rerun()
                 except (APIConnectionError, APIResponseError) as e:
@@ -70,9 +68,7 @@ try:
         user_to_change = st.selectbox(
             "Seleccionar usuario",
             options=df["id"].tolist(),
-            format_func=lambda uid: df.loc[
-                df["id"] == uid, "username"
-            ].iloc[0],
+            format_func=lambda uid: df.loc[df["id"] == uid, "username"].iloc[0],
             key="role_change_user",
         )
 
