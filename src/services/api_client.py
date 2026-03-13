@@ -33,7 +33,7 @@ class APIResponseError(Exception):
 
 
 # --------------------------------------------------
-def _get_headers() -> dict[str, str]:
+def _get_headers(token: Optional[str] = None) -> dict[str, str]:
     """Construye headers de autorización desde session_state."""
     token = st.session_state.get("token")
     if not token:
@@ -41,6 +41,19 @@ def _get_headers() -> dict[str, str]:
         raise APIConnectionError("No hay token de sesión. Inicie sesión nuevamente.")
     return {"Authorization": f"Bearer {token}"}
 
+    """
+    Obtiene headers. Si se pasa un token, lo usa. 
+    Si no, intenta sacarlo de Streamlit.
+    """
+    if token:
+        return {"Authorization": f"Bearer {token}"}
+    
+    # Intento obtenerlo de Streamlit solo si estamos en un contexto de app
+    st_token = st.session_state.get("token")
+    if not st_token:
+        # Nota: En lugar de error, podrías redirigir a login
+        raise APIConnectionError("No hay token de sesión. Inicie sesión nuevamente.")
+    return {"Authorization": f"Bearer {token}"}
 
 # --------------------------------------------------
 def fetch_data(
@@ -136,12 +149,13 @@ def patch_request(
 def post_request(
     endpoint: str,
     json_body: Optional[Any] = None,
+    token: Optional[str] = None,
 ) -> dict[str, Any]:
     """
     Realiza un POST genérico a la API. Útil para actualizar base de datos
     tras ejecuciones de Playwright/Pywinauto.
     """
-    headers = _get_headers()
+    headers = _get_headers(token=token)
     try:
         response = httpx.post(
             f"{BASE_URL}{endpoint}",

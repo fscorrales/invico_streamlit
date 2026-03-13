@@ -5,6 +5,7 @@ from src.services.models import PublicStoredUser
 from ..config import settings
 
 BASE_URL = settings.BASE_URL
+DEFAULT_TIMEOUT = 60.0
 
 
 class AuthenticationError(Exception):
@@ -29,7 +30,7 @@ def login(username: str, password: str) -> str:
     data = {"username": username, "password": password}
 
     try:
-        response = httpx.post(f"{BASE_URL}/auth/login", data=data)
+        response = httpx.post(f"{BASE_URL}/auth/login", data=data, timeout=DEFAULT_TIMEOUT)
         if response.status_code == 401 or response.status_code == 404:
             raise AuthenticationError("Credenciales incorrectas")
         if response.status_code != 200:

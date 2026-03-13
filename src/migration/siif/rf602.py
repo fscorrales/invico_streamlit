@@ -13,11 +13,12 @@ import os
 import pandas as pd
 
 from ...services.api_client import post_request
+from ..migration_client import MigrationClient
 from ...utils import (
     get_df_from_sql_table,
 )
 
-ENDPOINT = "/siif/rf602"
+ENDPOINT = "/siif/rf602/"
 
 
 # --------------------------------------------------
@@ -29,14 +30,23 @@ def get_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    # parser.add_argument(
-    #     "-u",
-    #     "--base_url",
-    #     metavar="base_url",
-    #     default=None,
-    #     type=str,
-    #     help="API's Base URL (also can be set with the environment variable BASE_URL)",
-    # )
+    parser.add_argument(
+        "-u",
+        "--username",
+        help="Username for SIIF access",
+        metavar="username",
+        type=str,
+        default=None,
+    )
+
+    parser.add_argument(
+        "-p",
+        "--password",
+        help="Password for SIIF access",
+        metavar="password",
+        type=str,
+        default=None,
+    )
 
     parser.add_argument(
         "-s",
@@ -57,6 +67,14 @@ def get_args():
         if args.sqlite_path is None:
             parser.error("--sqlite_path is required.")
 
+    if args.username is None or args.password is None:
+        from ...config import settings
+
+        args.username = settings.ADMIN_USERNAME
+        args.password = settings.ADMIN_PASSWORD
+        if args.username is None or args.password is None:
+            parser.error("Both --username and --password are required.")
+
     return args
 
 
@@ -67,8 +85,8 @@ def get_df_from_sqlite(sqlite_path: str) -> pd.DataFrame:
         df = get_df_from_sql_table(sqlite_path, table="ppto_gtos_fte_rf602")
         df.drop(columns=["id"], inplace=True)
         df["ejercicio"] = pd.to_numeric(df["ejercicio"], errors="coerce")
-        # df = df.loc[df["ejercicio"] < 2025]
-        df = df.loc[df["ejercicio"] == 2025]
+        df = df.loc[df["ejercicio"] < 2025]
+        # df = df.loc[df["ejercicio"] == 2025]
 
         return df
 
@@ -79,10 +97,13 @@ def get_df_from_sqlite(sqlite_path: str) -> pd.DataFrame:
 # --------------------------------------------------
 def migrate_df_to_mongodb(endpoint: str, df: pd.DataFrame) -> None:
     """Migrate DataFrame to MongoDB."""
+    client = MigrationClient(token = "token_bypassed")
     try:
         records = df.to_dict(orient="records")
-        post_request(endpoint=endpoint, json_body=records)
-        print(f"Successfully migrated {len(records)} records to MongoDB.")
+        # El cliente maneja internamente el login y el POST
+        result = client.post_batch(endpoint=endpoint, records=records)
+        # post_request(endpoint=endpoint, json_body=records, token=token)
+        print(f"Successfully migrated Rf602's {len(records)} records to MongoDB.")
 
     except Exception as e:
         print(f"Error migrar el DataFrame a MongoDB: {e}")
@@ -108,41 +129,16 @@ def main():
 
     args = get_args()
 
-    print(f"SQLite Path: {args.sqlite_path}")
+    # 1. Obtener token (puedes usar variables de entorno para seguridad)
+    print("🔐 Autenticando con la API en Koyeb...")
+    # token = login(args.username, args.password)
 
+    
+    # 2. Ejecutar migración pasando el token explícitamente
     sync_rf602_to_mongodb(
         sqlite_path=args.sqlite_path,
         endpoint=ENDPOINT,
     )
-
-    # save_path = os.path.dirname(
-    #     os.path.abspath(inspect.getfile(inspect.currentframe()))
-    # )
-
-    # async with async_playwright() as p:
-    #     connect_siif = await login(
-    #         args.username, args.password, playwright=p, headless=False
-    #     )
-    #     try:
-    #         rf602 = Rf602(siif=connect_siif)
-    #         await rf602.go_to_reports()
-    #         await rf602.go_to_specific_report()
-    #         for ejercicio in args.ejercicios:
-    #             if args.download:
-    #                 await rf602.download_report(ejercicio=str(ejercicio))
-    #                 await rf602.save_xls_file(
-    #                     save_path=save_path,
-    #                     file_name=str(ejercicio) + "-rf602.xls",
-    #                 )
-    #             await rf602.read_xls_file(args.file)
-    #             print(rf602.df)
-    #             await rf602.process_dataframe()
-    #             print(rf602.clean_df)
-    #     except Exception as e:
-    #         print(f"Error al iniciar sesión: {e}")
-    #     finally:
-    # await rf602.logout()
-
 
 # --------------------------------------------------
 if __name__ == "__main__":
