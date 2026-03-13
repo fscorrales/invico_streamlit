@@ -12,11 +12,10 @@ import os
 
 import pandas as pd
 
-from ...services.api_client import post_request
-from ..migration_client import MigrationClient
 from ...utils import (
     get_df_from_sql_table,
 )
+from ..migration_client import MigrationClient
 
 ENDPOINT = "/siif/rf602/"
 
@@ -97,7 +96,7 @@ def get_df_from_sqlite(sqlite_path: str) -> pd.DataFrame:
 # --------------------------------------------------
 def migrate_df_to_mongodb(endpoint: str, df: pd.DataFrame) -> None:
     """Migrate DataFrame to MongoDB."""
-    client = MigrationClient(token = "token_bypassed")
+    client = MigrationClient(token="token_bypassed")
     try:
         records = df.to_dict(orient="records")
         # El cliente maneja internamente el login y el POST
@@ -133,12 +132,12 @@ def main():
     print("🔐 Autenticando con la API en Koyeb...")
     # token = login(args.username, args.password)
 
-    
     # 2. Ejecutar migración pasando el token explícitamente
     sync_rf602_to_mongodb(
         sqlite_path=args.sqlite_path,
         endpoint=ENDPOINT,
     )
+
 
 # --------------------------------------------------
 if __name__ == "__main__":
