@@ -34,10 +34,7 @@ def initialize_state() -> None:
 def render_login() -> None:
     """Renderiza el formulario de login."""
     st.title("Inicio de Sesión")
-    st.info(
-        "Por favor, inicie sesión utilizando el formulario "
-        "de abajo."
-    )
+    st.info("Por favor, inicie sesión utilizando el formulario de abajo.")
 
     with st.form("login_form"):
         username = st.text_input("Usuario")
@@ -63,10 +60,7 @@ def render_login() -> None:
                 except auth_service.APIError as e:
                     st.error(f"Error en el servidor: {e}")
                 except Exception as e:
-                    st.error(
-                        "Ocurrió un error inesperado. "
-                        f"Intente luego. {e}"
-                    )
+                    st.error(f"Ocurrió un error inesperado. Intente luego. {e}")
 
 
 # ──────────────────────────────────────────────
@@ -150,11 +144,10 @@ def build_navigation() -> None:
         username = st.session_state["user"]["username"]
         st.caption(f"👤 {username} ({role})")
 
-        if st.button("Cerrar Sesión", use_container_width=True):
+        if st.button("Cerrar Sesión", width="stretch"):
             st.session_state["token"] = None
             st.session_state["user"] = None
             st.rerun()
-
 
 
 # ──────────────────────────────────────────────

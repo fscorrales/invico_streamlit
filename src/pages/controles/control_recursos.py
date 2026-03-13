@@ -36,8 +36,7 @@ with col2:
     st.write("")
     if st.button("🔄 Actualizar desde fuentes"):
         st.info(
-            "Automatización no implementada aún. "
-            "Se lanzará el script correspondiente."
+            "Automatización no implementada aún. Se lanzará el script correspondiente."
         )
 
 # --- Carga y visualización de datos ---
@@ -49,14 +48,10 @@ try:
         )
 
     if df.empty:
-        st.info(
-            f"No se encontraron datos para el ejercicio {ejercicio}."
-        )
+        st.info(f"No se encontraron datos para el ejercicio {ejercicio}.")
     else:
-        st.write(
-            f"### Registros encontrados: {len(df)}"
-        )
-        st.dataframe(df, use_container_width=True)
+        st.write(f"### Registros encontrados: {len(df)}")
+        st.dataframe(df, width="stretch")
 
 except APIConnectionError as e:
     st.error(f"⚠️ Error de conexión: {e}")

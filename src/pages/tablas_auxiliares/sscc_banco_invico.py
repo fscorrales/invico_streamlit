@@ -64,7 +64,7 @@ def render() -> None:
             )
         else:
             st.write(f"### Registros encontrados: {len(df)}")
-            st.dataframe(df, use_container_width=True)
+            st.dataframe(df, width="stretch")
 
     except APIConnectionError as e:
         st.error(f"⚠️ Error de conexión: {e}")

@@ -50,13 +50,10 @@ def render() -> None:
             )
 
         if df.empty:
-            st.info(
-                f"No se encontraron datos RF610 para el "
-                f"ejercicio {ejercicio}."
-            )
+            st.info(f"No se encontraron datos RF610 para el ejercicio {ejercicio}.")
         else:
             st.write(f"### Registros encontrados: {len(df)}")
-            st.dataframe(df, use_container_width=True)
+            st.dataframe(df, width="stretch")
 
     except APIConnectionError as e:
         st.error(f"⚠️ Error de conexión: {e}")
