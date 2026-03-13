@@ -11,7 +11,7 @@
     ],
     "python.envFile": "${workspaceFolder}/.env",
     "python.terminal.activateEnvironment": true,
-    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+    // "python.defaultInterpreterPath": ".venv/Scripts/python.exe",
     // Test settings
     "python.testing.pytestEnabled": true,
     "python.testing.unittestEnabled": false,
