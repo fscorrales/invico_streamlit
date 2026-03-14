@@ -9,6 +9,9 @@ import datetime as dt
 import pandas as pd
 import streamlit as st
 
+from src.components.buttons import button_export, button_update
+from src.components.multiselects import multiselect_filter
+from src.components.text_inputs import text_input_advance_filter
 from src.services.api_client import (
     APIConnectionError,
     APIResponseError,
@@ -28,20 +31,18 @@ def render() -> None:
 
     # --- Filtros y Actualización ---
     with st.container(horizontal=True, vertical_alignment="bottom"):
-        ejercicios = st.multiselect(
+        ejercicios = multiselect_filter(
             "Elija los ejercicios a consultar",
             list(range(2010, dt.date.today().year + 1)),
             dt.date.today().year,
         )
-        filtro_avanzado = st.text_input("Filtro avanzado", value="")
-        if st.button("🔄 Actualizar desde SIIF"):
-            pass
-            # st.info(
-            #     "Automatización Playwright no implementada aún. "
-            #     "Se lanzará el script de scraping del SIIF."
-            # )
-        if st.button("🔄 Exportar a Excel y GS"):
-            pass
+        filtro_avanzado = text_input_advance_filter()
+        button_update("Actualizar desde SIIF")
+        # st.info(
+        #     "Automatización Playwright no implementada aún. "
+        #     "Se lanzará el script de scraping del SIIF."
+        # )
+        button_export("Exportar a Excel y GS")
 
     # --- Carga y visualización de datos ---
     try:
