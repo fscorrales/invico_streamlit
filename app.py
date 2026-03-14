@@ -100,7 +100,7 @@ def build_navigation() -> None:
         ],
         "Tablas Auxiliares": [
             st.Page(
-                "src/pages/tablas_auxiliares/siif.py",
+                "src/pages/tablas_auxiliares/siif/siif.py",
                 title="SIIF",
                 icon="📊",
             ),
@@ -136,18 +136,36 @@ def build_navigation() -> None:
 
     pg = st.navigation(pages)
 
+    # 2. Crear un "Header" en la parte superior de la página
+    with st.container(
+        vertical_alignment="center", height="stretch", gap=None, horizontal=False
+    ):
+        with st.container(
+            horizontal=True, vertical_alignment="bottom", horizontal_alignment="right"
+        ):
+            with st.container(width="content"):
+                st.write(f"👤 **{st.session_state['user']['username']}**")
+            with st.container(width="content"):
+                if st.button("Log out", use_container_width=True):
+                    st.session_state["token"] = None
+                    st.session_state["user"] = None
+                    st.rerun()
+
+        st.divider()
+
+    # 3. Ejecutar la página
     pg.run()
 
-    # ── Sidebar inferior: info de usuario y logout ──
-    with st.sidebar:
-        st.divider()
-        username = st.session_state["user"]["username"]
-        st.caption(f"👤 {username} ({role})")
+    # # ── Sidebar inferior: info de usuario y logout ──
+    # with st.sidebar:
+    #     st.divider()
+    #     username = st.session_state["user"]["username"]
+    #     st.caption(f"👤 {username} ({role})")
 
-        if st.button("Cerrar Sesión", width="stretch"):
-            st.session_state["token"] = None
-            st.session_state["user"] = None
-            st.rerun()
+    #     if st.button("Cerrar Sesión", width="stretch"):
+    #         st.session_state["token"] = None
+    #         st.session_state["user"] = None
+    #         st.rerun()
 
 
 # ──────────────────────────────────────────────
