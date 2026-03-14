@@ -6,13 +6,14 @@ GET /control/controlRecursos/ con filtro por ejercicio fiscal.
 
 import streamlit as st
 
+from src.constants.endpoints import Endpoints
 from src.services.api_client import (
     APIConnectionError,
     APIResponseError,
     fetch_dataframe,
 )
 
-ENDPOINT = "/control/controlRecursos/"
+ENDPOINT = Endpoints.CONTROL_RECURSOS.value
 
 
 st.markdown("# Control Recursos")

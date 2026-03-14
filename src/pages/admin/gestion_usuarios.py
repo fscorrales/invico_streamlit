@@ -7,6 +7,7 @@ y PATCH /users/{id}/role.
 
 import streamlit as st
 
+from src.constants.endpoints import Endpoints
 from src.services.api_client import (
     APIConnectionError,
     APIResponseError,
@@ -14,7 +15,7 @@ from src.services.api_client import (
     patch_request,
 )
 
-ENDPOINT_USERS = "/users/"
+ENDPOINT = Endpoints.USERS.value
 
 
 st.sidebar.header("Gestión de Usuarios")
@@ -28,7 +29,7 @@ st.write(
 # --- Carga de usuarios ---
 try:
     with st.spinner("Cargando lista de usuarios..."):
-        df = fetch_dataframe(ENDPOINT_USERS, params={"limit": None})
+        df = fetch_dataframe(ENDPOINT, params={"limit": None})
 
     if df.empty:
         st.info("No se encontraron usuarios.")

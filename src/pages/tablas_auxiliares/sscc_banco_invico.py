@@ -6,13 +6,14 @@ GET /sscc/bancoINVICO/ con filtros por ejercicio y cuenta corriente.
 
 import streamlit as st
 
+from src.constants.endpoints import Endpoints
 from src.services.api_client import (
     APIConnectionError,
     APIResponseError,
     fetch_dataframe,
 )
 
-ENDPOINT = "/sscc/bancoINVICO/"
+ENDPOINT = Endpoints.SSCC_BANCO_INVICO.value
 
 
 def render() -> None:

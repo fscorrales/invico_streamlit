@@ -12,15 +12,17 @@ import streamlit as st
 from src.components.buttons import button_export, button_update
 from src.components.multiselects import multiselect_filter
 from src.components.text_inputs import text_input_advance_filter
+from src.constants.endpoints import Endpoints
 from src.services.api_client import (
     APIConnectionError,
     APIResponseError,
     fetch_dataframe,
 )
 
-ENDPOINT = "/siif/rf602/"
+ENDPOINT = Endpoints.SIIF_RF602.value
 
 
+# --------------------------------------------------
 def render() -> None:
     st.markdown("# SIIF - Reporte RF602")
     st.write(

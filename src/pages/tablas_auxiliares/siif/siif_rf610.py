@@ -6,13 +6,14 @@ GET /siif/rf610/ con filtro por ejercicio fiscal.
 
 import streamlit as st
 
+from src.constants.endpoints import Endpoints
 from src.services.api_client import (
     APIConnectionError,
     APIResponseError,
     fetch_dataframe,
 )
 
-ENDPOINT = "/siif/rf610/"
+ENDPOINT = Endpoints.SIIF_RF610.value
 
 
 def render() -> None:

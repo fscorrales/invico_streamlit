@@ -6,13 +6,14 @@ GET /sgf/resumenRendProv/ con filtros por ejercicio y origen.
 
 import streamlit as st
 
+from src.constants.endpoints import Endpoints
 from src.services.api_client import (
     APIConnectionError,
     APIResponseError,
     fetch_dataframe,
 )
 
-ENDPOINT = "/sgf/resumenRendProv/"
+ENDPOINT = Endpoints.SGF_RESUMEN_REND_PROV.value
 
 ORIGENES = [None, "EPAM", "OBRAS", "FUNCIONAMIENTO"]
 

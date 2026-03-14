@@ -12,12 +12,13 @@ import os
 
 import pandas as pd
 
+from ...constants.endpoints import Endpoints
 from ...utils import (
     get_df_from_sql_table,
 )
 from ..migration_client import MigrationClient
 
-ENDPOINT = "/siif/rf602/"
+ENDPOINT = Endpoints.SIIF_RF602.value
 
 
 # --------------------------------------------------
