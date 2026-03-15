@@ -4,59 +4,35 @@ Muestra el DataFrame del reporte RF610 del SIIF obtenido vía
 GET /siif/rf610/ con filtro por ejercicio fiscal.
 """
 
-import streamlit as st
-
 from src.constants.endpoints import Endpoints
-from src.services.api_client import (
-    APIConnectionError,
-    APIResponseError,
-    fetch_dataframe,
-)
+from src.constants.options import get_ejercicios_list
+from src.views.aux_tables import report_template
 
 ENDPOINT = Endpoints.SIIF_RF610.value
 
 
 def render() -> None:
-    st.markdown("# SIIF - Reporte RF610")
-    st.write(
-        "Ejecución presupuestaria con descripciones de programas, "
-        "subprogramas, proyectos y actividades. Datos del SIIF."
+    mis_filtros = [
+        {
+            "label": "Elija los ejercicios a consultar",
+            "options": get_ejercicios_list(),
+            "query_param": "ejercicio",
+            "key": "ejercicios_rf610",
+            "default": get_ejercicios_list()[-1],
+        },
+        # {
+        #     "label": "Unidades Ejecutoras",
+        #     "options": ["Educación", "Salud", "Seguridad", "Obras"],
+        #     "query_param": "unidad_id",
+        #     "key": "ms_unidades",
+        #     "default": ["Salud"]
+        # }
+    ]
+
+    report_template(
+        key="rf610",
+        title="SIIF - Reporte RF610",
+        endpoint=Endpoints.SIIF_RF610.value,
+        description="Ejecución presupuestaria con descripciones de programas, subprogramas, proyectos y actividades. Datos del SIIF.",
+        filters_config=mis_filtros,
     )
-
-    # --- Filtros y Actualización ---
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        ejercicio = st.number_input(
-            "Ejercicio",
-            min_value=2010,
-            max_value=2030,
-            value=2025,
-            step=1,
-        )
-    with col2:
-        st.write("")  # Espaciado para alinear con el input
-        st.write("")
-        if st.button("🔄 Actualizar desde SIIF"):
-            st.info(
-                "Automatización Playwright no implementada aún. "
-                "Se lanzará el script de scraping del SIIF."
-            )
-
-    # --- Carga y visualización de datos ---
-    try:
-        with st.spinner("Cargando datos RF610..."):
-            df = fetch_dataframe(
-                ENDPOINT,
-                params={"ejercicio": ejercicio, "limit": None},
-            )
-
-        if df.empty:
-            st.info(f"No se encontraron datos RF610 para el ejercicio {ejercicio}.")
-        else:
-            st.write(f"### Registros encontrados: {len(df)}")
-            st.dataframe(df, width="stretch")
-
-    except APIConnectionError as e:
-        st.error(f"⚠️ Error de conexión: {e}")
-    except APIResponseError as e:
-        st.error(f"⚠️ Error de API: {e}")
