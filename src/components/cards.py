@@ -1,6 +1,7 @@
 import streamlit as st
 
 
+# --------------------------------------------------
 def metric_card(title, value, delta):
     """Un componente reutilizable para mostrar métricas."""
     with st.container(border=True):
