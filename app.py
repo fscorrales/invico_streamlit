@@ -146,7 +146,7 @@ def build_navigation() -> None:
             with st.container(width="content"):
                 st.write(f"👤 **{st.session_state['user']['username']}**")
             with st.container(width="content"):
-                if st.button("Log out", use_container_width=True):
+                if st.button("Log out", width="stretch"):
                     st.session_state["token"] = None
                     st.session_state["user"] = None
                     st.rerun()
