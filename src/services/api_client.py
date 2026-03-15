@@ -15,7 +15,6 @@ import streamlit as st
 from ..config import settings
 
 BASE_URL = settings.BASE_URL
-DEFAULT_TIMEOUT = 60.0
 
 
 # --------------------------------------------------
@@ -34,26 +33,27 @@ class APIResponseError(Exception):
 
 # --------------------------------------------------
 def _get_headers(token: Optional[str] = None) -> dict[str, str]:
-    """Construye headers de autorización desde session_state."""
-    token = st.session_state.get("token")
-    if not token:
-        # Nota: En lugar de error, podrías redirigir a login
-        raise APIConnectionError("No hay token de sesión. Inicie sesión nuevamente.")
-    return {"Authorization": f"Bearer {token}"}
+    # """Construye headers de autorización desde session_state."""
+    # token = st.session_state.get("token")
+    # if not token:
+    #     # Nota: En lugar de error, podrías redirigir a login
+    #     raise APIConnectionError("No hay token de sesión. Inicie sesión nuevamente.")
+    # return {"Authorization": f"Bearer {token}"}
 
     """
-    Obtiene headers. Si se pasa un token, lo usa. 
+    Obtiene headers. Si se pasa un token, lo usa.
     Si no, intenta sacarlo de Streamlit.
     """
     if token:
         return {"Authorization": f"Bearer {token}"}
-    
+
     # Intento obtenerlo de Streamlit solo si estamos en un contexto de app
     st_token = st.session_state.get("token")
     if not st_token:
         # Nota: En lugar de error, podrías redirigir a login
         raise APIConnectionError("No hay token de sesión. Inicie sesión nuevamente.")
     return {"Authorization": f"Bearer {token}"}
+
 
 # --------------------------------------------------
 def fetch_data(
@@ -84,7 +84,7 @@ def fetch_data(
             f"{BASE_URL}{endpoint}",
             headers=headers,
             params=clean_params,
-            timeout=DEFAULT_TIMEOUT,
+            timeout=settings.DEFAULT_TIMEOUT,
         )
         return _handle_response(response)
 
@@ -130,7 +130,7 @@ def patch_request(
             f"{BASE_URL}{endpoint}",
             headers=headers,
             json=json_body,
-            timeout=DEFAULT_TIMEOUT,
+            timeout=settings.DEFAULT_TIMEOUT,
         )
     except httpx.RequestError as e:
         raise APIConnectionError(f"Error de conexión con el servidor: {e}") from e
@@ -161,7 +161,7 @@ def post_request(
             f"{BASE_URL}{endpoint}",
             headers=headers,
             json=json_body,
-            timeout=DEFAULT_TIMEOUT,
+            timeout=settings.DEFAULT_TIMEOUT,
         )
         return _handle_response(response)
     except httpx.RequestError as e:

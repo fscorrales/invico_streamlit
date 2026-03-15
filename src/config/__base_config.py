@@ -16,6 +16,7 @@ class BaseAppSettings(BaseSettings):
     BASE_URL: str | None = None
     GOOGLE_CREDENTIALS: str | None = None  # JSON credentials for Google Sheets
     JWT_SECRET: str = "super_secret_key"
+    DEFAULT_TIMEOUT: float = 90.0
     # Otros valores opcionales...
     # HOST_URL: str = "localhost"
     # HOST_PORT: int = 8000
