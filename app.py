@@ -175,13 +175,13 @@ def main() -> None:
     initialize_state()
 
     # TEMPORARY: Bypass Login para desarrollo
-    if not st.session_state.get("token"):
-        st.session_state["token"] = "dev-bypass-token"
-        st.session_state["user"] = {
-            "role": "admin",
-            "username": "developer",
-            "id": "1",
-        }
+    # if not st.session_state.get("token"):
+    #     st.session_state["token"] = "dev-bypass-token"
+    #     st.session_state["user"] = {
+    #         "role": "admin",
+    #         "username": "developer",
+    #         "id": "1",
+    #     }
 
     if not st.session_state["token"]:
         render_login()

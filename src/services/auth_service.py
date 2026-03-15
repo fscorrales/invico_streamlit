@@ -8,14 +8,30 @@ BASE_URL = settings.BASE_URL
 DEFAULT_TIMEOUT = 60.0
 
 
+# --------------------------------------------------
 class AuthenticationError(Exception):
     """Custom exception for authentication failures."""
 
     pass
 
 
+# --------------------------------------------------
 class APIError(Exception):
     """Custom exception for general API errors."""
+
+    pass
+
+
+# --------------------------------------------------
+class APIConnectionError(Exception):
+    """Error de conexión con el servidor."""
+
+    pass
+
+
+# --------------------------------------------------
+class APIResponseError(Exception):
+    """Error en la respuesta del servidor."""
 
     pass
 
@@ -30,11 +46,22 @@ def login(username: str, password: str) -> str:
     data = {"username": username, "password": password}
 
     try:
-        response = httpx.post(f"{BASE_URL}/auth/login", data=data, timeout=DEFAULT_TIMEOUT)
+        response = httpx.post(
+            f"{BASE_URL}/auth/login", data=data, timeout=settings.DEFAULT_TIMEOUT
+        )
+
+        if not (200 <= response.status_code < 300):
+            raise APIResponseError(
+                f"Error de API ({response.status_code}): {response.text}"
+            )
         if response.status_code == 401 or response.status_code == 404:
             raise AuthenticationError("Credenciales incorrectas")
-        if response.status_code != 200:
-            raise APIError(f"Error de API: {response.text}")
+        # if response.status_code != 200:
+        #     raise APIError(f"Error de API: {response.text}")
+        if response.status_code == 503:
+            raise APIConnectionError(
+                "El servidor está despertando. Reintente en unos segundos..."
+            )
 
         # El backend típicamente devuelve {"access_token": "...", "token_type": "bearer"}
         token_data = response.json()
