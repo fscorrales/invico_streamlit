@@ -74,6 +74,33 @@ def login(username: str, password: str) -> str:
         raise APIError(f"Error de conexión con el servidor: {str(e)}")
 
 
+def register(username: str, password: str) -> None:
+    """
+    Registra un nuevo usuario en el sistema.
+    """
+    if not username or not password:
+        raise ValueError("Usuario y contraseña son requeridos.")
+
+    data = {"username": username, "password": password}
+
+    try:
+        response = httpx.post(
+            f"{BASE_URL}/auth/register", data=data, timeout=settings.DEFAULT_TIMEOUT
+        )
+
+        if response.status_code == 400:
+            # Errores comunes: usuario ya existe, contraseña débil, etc.
+            raise APIResponseError(f"No se pudo registrar: {response.text}")
+
+        if not (200 <= response.status_code < 300):
+            raise APIResponseError(
+                f"Error de API ({response.status_code}): {response.text}"
+            )
+
+    except httpx.RequestError as e:
+        raise APIError(f"Error de conexión con el servidor: {str(e)}")
+
+
 def get_current_user(token: str) -> PublicStoredUser:
     """
     Obtiene los datos del usuario logueado utilizando el token JWT.

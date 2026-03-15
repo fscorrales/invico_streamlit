@@ -32,35 +32,68 @@ def initialize_state() -> None:
 # Login
 # ──────────────────────────────────────────────
 def render_login() -> None:
-    """Renderiza el formulario de login."""
-    st.title("Inicio de Sesión")
-    st.info("Por favor, inicie sesión utilizando el formulario de abajo.")
+    """Renderiza el formulario de login y registro."""
+    st.title("Acceso al Sistema")
 
-    with st.form("login_form"):
-        username = st.text_input("Usuario")
-        password = st.text_input("Contraseña", type="password")
-        submitted = st.form_submit_button("Ingresar")
+    tab_login, tab_register = st.tabs(["🔒 Iniciar Sesión", "📝 Registrarse"])
 
-        if submitted:
-            with st.spinner("Autenticando en el Sistema..."):
-                try:
-                    token = auth_service.login(username, password)
-                    st.session_state["token"] = token
+    with tab_login:
+        st.info("Ingrese sus credenciales para continuar.")
+        with st.form("login_form"):
+            username = st.text_input("Usuario", key="login_username")
+            password = st.text_input("Contraseña", type="password", key="login_password")
+            submitted = st.form_submit_button("Ingresar", use_container_width=True)
 
-                    user_data = auth_service.get_current_user(token)
-                    st.session_state["user"] = {
-                        "role": user_data.role.value,
-                        "username": user_data.username,
-                        "id": user_data.id,
-                    }
-                    st.rerun()
+            if submitted:
+                with st.spinner("Autenticando en el Sistema..."):
+                    try:
+                        token = auth_service.login(username, password)
+                        st.session_state["token"] = token
 
-                except auth_service.AuthenticationError as e:
-                    st.error(f"Error de acceso: {e}")
-                except auth_service.APIError as e:
-                    st.error(f"Error en el servidor: {e}")
-                except Exception as e:
-                    st.error(f"Ocurrió un error inesperado. Intente luego. {e}")
+                        user_data = auth_service.get_current_user(token)
+                        st.session_state["user"] = {
+                            "role": user_data.role.value,
+                            "username": user_data.username,
+                            "id": user_data.id,
+                        }
+                        st.rerun()
+
+                    except auth_service.AuthenticationError as e:
+                        st.error(f"Error de acceso: {e}")
+                    except auth_service.APIError as e:
+                        st.error(f"Error en el servidor: {e}")
+                    except Exception as e:
+                        st.error(f"Ocurrió un error inesperado. {e}")
+
+    with tab_register:
+        st.info("Complete los datos para crear una nueva cuenta.")
+        with st.form("register_form"):
+            new_user = st.text_input("Usuario deseado", key="reg_username")
+            new_pass = st.text_input("Contraseña", type="password", key="reg_password")
+            conf_pass = st.text_input(
+                "Confirmar Contraseña", type="password", key="reg_confirm"
+            )
+            submitted_reg = st.form_submit_button(
+                "Crear Cuenta", use_container_width=True
+            )
+
+            if submitted_reg:
+                if not new_user or not new_pass:
+                    st.error("Todos los campos son obligatorios.")
+                elif new_pass != conf_pass:
+                    st.error("Las contraseñas no coinciden.")
+                else:
+                    with st.spinner("Registrando usuario..."):
+                        try:
+                            auth_service.register(new_user, new_pass)
+                            st.success(
+                                "✅ Registro solicitado exitosamente. "
+                                "Ahora puede intentar iniciar sesión."
+                            )
+                        except auth_service.APIResponseError as e:
+                            st.error(f"Error de registro: {e}")
+                        except Exception as e:
+                            st.error(f"Error inesperado: {e}")
 
 
 # ──────────────────────────────────────────────
