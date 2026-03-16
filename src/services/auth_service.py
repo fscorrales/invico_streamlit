@@ -1,39 +1,16 @@
 import httpx
 
+from src.config import settings
 from src.services.models import PublicStoredUser
-
-from ..config import settings
+from src.utils.exceptions import (
+    APIConnectionError,
+    APIResponseError,
+    AuthenticationError,
+    ValidationError,
+)
 
 BASE_URL = settings.BASE_URL
 DEFAULT_TIMEOUT = 60.0
-
-
-# --------------------------------------------------
-class AuthenticationError(Exception):
-    """Custom exception for authentication failures."""
-
-    pass
-
-
-# --------------------------------------------------
-class APIError(Exception):
-    """Custom exception for general API errors."""
-
-    pass
-
-
-# --------------------------------------------------
-class APIConnectionError(Exception):
-    """Error de conexión con el servidor."""
-
-    pass
-
-
-# --------------------------------------------------
-class APIResponseError(Exception):
-    """Error en la respuesta del servidor."""
-
-    pass
 
 
 def login(username: str, password: str) -> str:
@@ -41,7 +18,7 @@ def login(username: str, password: str) -> str:
     Autentica al usuario contra el backend y devuelve el token JWT.
     """
     if not username or not password:
-        raise ValueError("Usuario y contraseña son requeridos.")
+        raise ValidationError("Usuario y contraseña son requeridos.")
 
     data = {"username": username, "password": password}
 
@@ -56,8 +33,6 @@ def login(username: str, password: str) -> str:
             )
         if response.status_code == 401 or response.status_code == 404:
             raise AuthenticationError("Credenciales incorrectas")
-        # if response.status_code != 200:
-        #     raise APIError(f"Error de API: {response.text}")
         if response.status_code == 503:
             raise APIConnectionError(
                 "El servidor está despertando. Reintente en unos segundos..."
@@ -66,12 +41,12 @@ def login(username: str, password: str) -> str:
         # El backend típicamente devuelve {"access_token": "...", "token_type": "bearer"}
         token_data = response.json()
         if "access_token" not in token_data:
-            raise APIError("Respuesta de token inválida del servidor.")
+            raise APIResponseError("Respuesta de token inválida del servidor.")
 
         return token_data["access_token"]
 
     except httpx.RequestError as e:
-        raise APIError(f"Error de conexión con el servidor: {str(e)}")
+        raise APIConnectionError(f"Error de conexión con el servidor: {str(e)}")
 
 
 def register(username: str, password: str) -> None:
@@ -79,7 +54,7 @@ def register(username: str, password: str) -> None:
     Registra un nuevo usuario en el sistema.
     """
     if not username or not password:
-        raise ValueError("Usuario y contraseña son requeridos.")
+        raise ValidationError("Usuario y contraseña son requeridos.")
 
     data = {"username": username, "password": password}
 
@@ -98,7 +73,7 @@ def register(username: str, password: str) -> None:
             )
 
     except httpx.RequestError as e:
-        raise APIError(f"Error de conexión con el servidor: {str(e)}")
+        raise APIConnectionError(f"Error de conexión con el servidor: {str(e)}")
 
 
 def get_current_user(token: str) -> PublicStoredUser:
@@ -106,7 +81,7 @@ def get_current_user(token: str) -> PublicStoredUser:
     Obtiene los datos del usuario logueado utilizando el token JWT.
     """
     if not token:
-        raise ValueError("Token no proporcionado.")
+        raise ValidationError("Token no proporcionado.")
 
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -119,10 +94,10 @@ def get_current_user(token: str) -> PublicStoredUser:
             )
 
         if response.status_code != 200:
-            raise APIError(f"Error al obtener usuario: {response.text}")
+            raise APIResponseError(f"Error al obtener usuario: {response.text}")
 
         # Parse and validate the response against the Pydantic model natively
         return PublicStoredUser(**response.json())
 
     except httpx.RequestError as e:
-        raise APIError(f"Error de conexión con el servidor: {str(e)}")
+        raise APIConnectionError(f"Error de conexión con el servidor: {str(e)}")

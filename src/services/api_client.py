@@ -12,23 +12,10 @@ import httpx
 import pandas as pd
 import streamlit as st
 
-from ..config import settings
+from src.config import settings
+from src.utils.exceptions import APIConnectionError, APIResponseError
 
 BASE_URL = settings.BASE_URL
-
-
-# --------------------------------------------------
-class APIConnectionError(Exception):
-    """Error de conexión con el servidor."""
-
-    pass
-
-
-# --------------------------------------------------
-class APIResponseError(Exception):
-    """Error en la respuesta del servidor."""
-
-    pass
 
 
 # --------------------------------------------------
