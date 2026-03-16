@@ -38,14 +38,10 @@ def render_login() -> None:
                             }
                             st.rerun()
 
-                        except ex.AuthenticationError as e:
-                            st.error(f"Error de acceso: {e}")
-                        except ex.APIConnectionError as e:
-                            st.error(f"Error de conexión: {e}")
-                        except ex.APIResponseError as e:
-                            st.error(f"Error en el servidor: {e}")
-                        except ex.ValidationError as e:
-                            st.error(f"Dato inválido: {e}")
+                        except (
+                            ex.AppBaseException
+                        ) as e:  # Captura cualquier error definido por ti
+                            st.error(f"Error: {e}")
                         except Exception as e:
                             st.error(f"Ocurrió un error inesperado. {e}")
 
