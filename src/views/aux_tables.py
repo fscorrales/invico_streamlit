@@ -1,4 +1,5 @@
 import itertools
+from typing import Any, Optional
 
 import pandas as pd
 import streamlit as st
@@ -16,7 +17,12 @@ from src.services.api_client import (
 @st.fragment  # Permite que los filtros internos no recarguen TODA la página
 # --------------------------------------------------
 def report_template(
-    key: str, title: str, endpoint: str, description: str, filters_config: list
+    key: str,
+    title: str,
+    endpoint: str,
+    description: str,
+    filters_config: list,
+    on_update: Optional[Any] = None,
 ):
     """
     Vista reutilizable.
@@ -45,7 +51,9 @@ def report_template(
             key="text_input_advance_filter-" + key
         )
 
-        button_update("Actualizar desde SIIF", key="button_update-" + key)
+        if button_update("Actualizar desde SIIF", key="button_update-" + key):
+            if on_update:
+                on_update()
 
         # Aquí podrías integrar tu logic de exportación
         button_export("Exportar a Excel y GS", key="button_export-" + key)

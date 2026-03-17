@@ -2,11 +2,10 @@ import streamlit as st
 
 
 # --------------------------------------------------
-def button_update(label: str, key: str = "button_update", **kwargs):
-    """Un componente reutilizable"""
+def button_update(label: str, key: str = "button_update", **kwargs) -> bool:
+    """Un componente reutilizable que retorna True si se presiona."""
     with st.container(border=False, width="content"):
-        if st.button("🔄 " + label, key=key, **kwargs):
-            pass
+        return st.button("🔄 " + label, key=key, **kwargs)
 
 
 # --------------------------------------------------
