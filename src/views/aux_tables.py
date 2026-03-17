@@ -51,12 +51,12 @@ def report_template(
             key="text_input_advance_filter-" + key
         )
 
-        if button_update("Actualizar desde SIIF", key="button_update-" + key):
+        if button_update("Actualizar desde SIIF", key=f"button_update_{key}"):
             if on_update:
                 on_update()
 
         # Aquí podrías integrar tu logic de exportación
-        button_export("Exportar a Excel y GS", key="button_export-" + key)
+        button_export("Exportar a Excel y GS", key=f"button_export_{key}")
 
     # --- Lógica de Datos ---
     # 2. Validar que no haya filtros vacíos

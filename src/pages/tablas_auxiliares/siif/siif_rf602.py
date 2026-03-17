@@ -9,6 +9,7 @@ from src.views.aux_tables import report_template
 
 
 @st.dialog("Credenciales SIIF")
+# --------------------------------------------------
 def request_credentials_modal():
     st.write("Ingrese sus credenciales de SIIF para iniciar la descarga.")
     username = st.text_input("Usuario")
@@ -71,7 +72,6 @@ def request_credentials_modal():
                 # usá asyncio.run() que es más limpio y maneja el cierre del loop.
                 try:
                     results = asyncio.run(run_automation())
-                    print(results.head())
                 except RuntimeError:
                     # Si ya hay un loop corriendo (común en Streamlit)
                     loop = asyncio.new_event_loop()
