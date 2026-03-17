@@ -35,6 +35,17 @@ def build_navigation() -> None:
     """Construye la navegación con st.navigation y ejecuta la página."""
     role = st.session_state["user"]["role"]
 
+    # username = st.session_state["user"]["username"]
+
+    # # 1. Info de usuario al principio del Sidebar
+    # with st.sidebar:
+    #     st.markdown(f"### 👤 {username}")
+    #     st.caption(f"Rol: {role.upper()}")
+    #     if st.button("Log out", key="logout_btn", type="secondary"):
+    #         st.session_state["token"] = None
+    #         st.rerun()
+    #     st.divider()  # Línea divisoria antes del menú de páginas
+
     pages: dict[str, list] = {
         "Controles": [
             st.Page(

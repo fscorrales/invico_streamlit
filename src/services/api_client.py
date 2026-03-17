@@ -6,6 +6,7 @@ Todas las páginas deben usar este módulo en lugar de llamar a httpx
 directamente.
 """
 
+from io import BytesIO
 from typing import Any, Optional
 
 import httpx
@@ -93,6 +94,21 @@ def fetch_dataframe(
     if not data:
         return pd.DataFrame()
     return pd.DataFrame(data)
+
+
+# --------------------------------------------------
+def fetch_excel_stream(endpoint: str, params: dict):
+
+    with httpx.Client(timeout=120.0) as client:
+        # En GET, los parámetros se pasan al argumento 'params'
+        # httpx se encarga de convertirlos a: ?ejercicio=2024&query_filter=...
+        response = client.get(f"{BASE_URL}{endpoint}", params=params)
+
+        if response.status_code == 200:
+            return BytesIO(response.content)
+        else:
+            st.error(f"Error {response.status_code} al exportar.")
+            return None
 
 
 # --------------------------------------------------
