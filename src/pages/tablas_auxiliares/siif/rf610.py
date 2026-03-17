@@ -6,15 +6,13 @@ GET /siif/rf610/ con filtro por ejercicio fiscal.
 
 import streamlit as st
 from playwright.async_api import async_playwright
-from src.automation.siif.rf610 import Rf610
 
+from src.automation.siif.rf610 import Rf610
 from src.constants.endpoints import Endpoints
 from src.constants.options import get_ejercicios_list
 from src.services.api_client import post_request
 from src.views.aux_tables import report_template
 from src.views.modal_siif import request_credentials_modal
-
-ENDPOINT = Endpoints.SIIF_RF610.value
 
 
 # --------------------------------------------------

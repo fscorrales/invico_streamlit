@@ -18,8 +18,6 @@ from ...utils import (
 )
 from ..migration_client import MigrationClient
 
-ENDPOINT = Endpoints.SIIF_RF602.value
-
 
 # --------------------------------------------------
 def get_args():
@@ -136,7 +134,7 @@ def main():
     # 2. Ejecutar migración pasando el token explícitamente
     sync_rf602_to_mongodb(
         sqlite_path=args.sqlite_path,
-        endpoint=ENDPOINT,
+        endpoint=Endpoints.SIIF_RF602.value,
     )
 
 
