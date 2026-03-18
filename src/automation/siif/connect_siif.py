@@ -96,9 +96,17 @@ async def login(
     if playwright is None:
         playwright = await async_playwright().start()
 
+    # Launch chrome browser installed on PC
     browser = await playwright.chromium.launch(
-        headless=headless, args=["--start-maximized"]
+        executable_path=r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        headless=headless,
+        args=["--start-maximized"],
     )
+
+    # browser = await playwright.chromium.launch(
+    #     headless=headless, args=["--start-maximized"]
+    # )
+
     context = await browser.new_context(no_viewport=True)
     page = await context.new_page()
 
