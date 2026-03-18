@@ -4,13 +4,14 @@ from typing import Any, Optional
 import pandas as pd
 import streamlit as st
 
-from src.components.buttons import button_update
+from src.components.buttons import button_export, button_update
 from src.components.multiselects import multiselect_filter
 from src.components.text_inputs import text_input_advance_filter
 from src.services.api_client import (
     APIConnectionError,
     APIResponseError,
     fetch_dataframe,
+    fetch_excel_stream,
 )
 
 
@@ -33,53 +34,41 @@ def report_template(
 
     selections = []
 
-    # # 0. Lógica de Exportación
-    # def download_file():
-    #     # Validamos filtros antes de proceder
-    #     if all(s[1] is not None for s in selections):
-    #         try:
-    #             # Limpiamos basura anterior antes de empezar el proceso pesado
-    #             if f"temp_file_{key}" in st.session_state:
-    #                 del st.session_state[f"temp_file_{key}"]
-    #             with st.spinner("Preparando archivos Excel..."):
-    #                 # REPETIMOS LÓGICA DE FILTROS:
-    #                 listas_valores = [s[1] for s in selections]
-    #                 nombres_params = [s[0] for s in selections]
+    # 0. Lógica de Exportación
+    def download_file():
+        # Validamos filtros antes de proceder
+        if all(s[1] is not None for s in selections):
+            try:
+                # Limpiamos basura anterior antes de empezar el proceso pesado
+                if f"temp_file_{key}" in st.session_state:
+                    del st.session_state[f"temp_file_{key}"]
+                with st.spinner("Preparando archivos Excel..."):
+                    # REPETIMOS LÓGICA DE FILTROS:
+                    listas_valores = [s[1] for s in selections]
+                    nombres_params = [s[0] for s in selections]
 
-    #                 # Para simplificar, si el usuario exporta, quizás quieras
-    #                 # mandarle un solo Excel con la combinación actual o iterar.
-    #                 # Aquí asumo que mandas el primer set de filtros o el consolidado:
-    #                 for combinacion in itertools.product(*listas_valores):
-    #                     params_peticion = dict(zip(nombres_params, combinacion))
-    #                     params_peticion["queryFilter"] = filtro_avanzado
+                    # Para simplificar, si el usuario exporta, quizás quieras
+                    # mandarle un solo Excel con la combinación actual o iterar.
+                    # Aquí asumo que mandas el primer set de filtros o el consolidado:
+                    for combinacion in itertools.product(*listas_valores):
+                        params_peticion = dict(zip(nombres_params, combinacion))
+                        params_peticion["queryFilter"] = filtro_avanzado
 
-    #                     # Llamada a la API que devuelve StreamingResponse
-    #                     excel_binario = fetch_excel_stream(
-    #                         f"{endpoint}export/", params_peticion
-    #                     )
+                        # Llamada a la API que devuelve StreamingResponse
+                        excel_binario = fetch_excel_stream(
+                            f"{endpoint}export/", params_peticion
+                        )
 
-    #                     if excel_binario:
-    #                         # IMPORTANTE: Como st.download_button recarga la página,
-    #                         # a veces es mejor usar un link o guardarlo en session_state
-    #                         st.session_state[f"temp_file_{key}"] = excel_binario
-    #                         st.success("✅ Archivo generado con éxito.")
-    #                         # CRÍTICO: Detenemos la ejecución aquí para que NO
-    #                         # se ejecute el spinner de "Consultando datos..." de la tabla
-    #                         st.stop()
-    #                     break  # Si solo quieres el primer set, o ajusta según tu necesidad
+                        if excel_binario:
+                            # IMPORTANTE: Como st.download_button recarga la página,
+                            # a veces es mejor usar un link o guardarlo en session_state
+                            st.session_state[f"temp_file_{key}"] = excel_binario
+                            st.success("✅ Archivo generado con éxito.")
+                            st.rerun()
+                        break  # Si solo quieres el primer set, o ajusta según tu necesidad
 
-    #         except Exception as e:
-    #             st.error(f"Error al exportar: {e}")
-
-    # # 0.5. Si el archivo ya se generó, mostramos el botón de descarga real
-    # if f"temp_file_{key}" in st.session_state:
-    #     st.download_button(
-    #         label="⬇️ Descargar Archivo Ahora",
-    #         data=st.session_state[f"temp_file_{key}"],
-    #         file_name=f"reporte_{key}.xlsx",
-    #         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    #         key=f"real_download_{key}",
-    #     )
+            except Exception as e:
+                st.error(f"Error al exportar: {e}")
 
     # 1. Renderizar Filtros
     # --- Filtros (Estado local del componente) ---
@@ -103,7 +92,25 @@ def report_template(
             if on_update:
                 on_update()
 
-        # # Aquí podrías integrar tu logic de exportación
+        # Aquí podrías integrar tu logic de exportación
+        if f"temp_file_{key}" not in st.session_state:
+            if button_export("Exportar a Excel y GS", key=f"button_export_{key}"):
+                # # Validamos aquí adentro manualmente para no depender del "return" general
+                # if any(not s[1] for s in selections):
+                #     st.warning("Seleccione filtros antes de exportar.")
+                # else:
+                download_file()  # Esta función debe tener un st.stop() al final (ver abajo)
+        else:
+            # Si hay archivo, el botón "Exportar" desaparece y aparece el de "Descargar"
+            st.download_button(
+                label="📥 GUARDAR EXCEL",
+                data=st.session_state[f"temp_file_{key}"],
+                file_name=f"reporte_{key}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key=f"btn_dl_{key}",
+                type="primary",  # Lo ponemos en color para que resalte
+                on_click=lambda: st.session_state.pop(f"temp_file_{key}"),
+            )
         # if button_export("Exportar a Excel y GS", key=f"button_export_{key}"):
         #     # Validamos aquí adentro manualmente para no depender del "return" general
         #     if any(not s[1] for s in selections):
@@ -111,9 +118,25 @@ def report_template(
         #     else:
         #         download_file()  # Esta función debe tener un st.stop() al final (ver abajo)
 
+    # # ESPACIO RESERVADO PARA EL BOTÓN (Aparecerá aquí cuando esté listo)
+    # placeholder_download = st.empty()
+
+    # # 0.5. Si el archivo ya se generó, mostramos el botón de descarga real
+    # if f"temp_file_{key}" in st.session_state:
+    #     with placeholder_download.container():
+    #         st.download_button(
+    #             label="⬇️ Descargar Archivo Ahora",
+    #             data=st.session_state[f"temp_file_{key}"],
+    #             file_name=f"reporte_{key}.xlsx",
+    #             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    #             key=f"real_download_{key}",
+    #         )
+
     # 3. Validar que no haya filtros vacíos
     if any(not s[1] for s in selections):
-        st.warning("Seleccione al menos un valor en cada filtro.")
+        st.warning(
+            "Seleccione al menos un valor en cada filtro obligatorio. El filtro avanzado es opcional"
+        )
         return
 
     # 4. Lógica de Fetch Iterativo (El equivalente al v-for de Vue + API calls)

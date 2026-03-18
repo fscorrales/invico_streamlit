@@ -98,17 +98,34 @@ def fetch_dataframe(
 
 # --------------------------------------------------
 def fetch_excel_stream(endpoint: str, params: dict):
+    headers = _get_headers()
+    # Limpiamos None y nos aseguramos de no enviar listas si la API espera valores únicos
+    clean_params = {}
+    if params:
+        for k, v in params.items():
+            if v is not None:
+                # Si es una lista (de un multiselect), tomamos el primer elemento
+                clean_params[k] = v[0] if isinstance(v, list) else v
 
-    with httpx.Client(timeout=120.0) as client:
-        # En GET, los parámetros se pasan al argumento 'params'
-        # httpx se encarga de convertirlos a: ?ejercicio=2024&query_filter=...
-        response = client.get(f"{BASE_URL}{endpoint}", params=params)
+    try:
+        response = httpx.get(
+            f"{BASE_URL}{endpoint}",
+            headers=headers,
+            params=clean_params,
+            timeout=settings.DEFAULT_TIMEOUT + 60.0,
+            follow_redirects=True,  # <--- CRÍTICO: Esto soluciona el error 307
+        )
 
+        # Ojo: Si _handle_response intenta hacer response.json(), va a fallar
+        # porque un Excel es binario. Validamos manualmente:
         if response.status_code == 200:
             return BytesIO(response.content)
         else:
-            st.error(f"Error {response.status_code} al exportar.")
-            return None
+            # Aquí sí puedes usar tu lógica de error habitual
+            return _handle_response(response)
+
+    except httpx.RequestError as e:
+        raise APIConnectionError(f"Error de conexión (GET): {e}")
 
 
 # --------------------------------------------------
