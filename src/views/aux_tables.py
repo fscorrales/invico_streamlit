@@ -5,6 +5,7 @@ import pandas as pd
 import streamlit as st
 
 from src.components.buttons import button_export, button_update
+from src.components.dataframes import dataframe
 from src.components.multiselects import multiselect_filter
 from src.components.text_inputs import text_input_advance_filter
 from src.services.api_client import (
@@ -95,11 +96,7 @@ def report_template(
         # Aquí podrías integrar tu logic de exportación
         if f"temp_file_{key}" not in st.session_state:
             if button_export("Exportar a Excel y GS", key=f"button_export_{key}"):
-                # # Validamos aquí adentro manualmente para no depender del "return" general
-                # if any(not s[1] for s in selections):
-                #     st.warning("Seleccione filtros antes de exportar.")
-                # else:
-                download_file()  # Esta función debe tener un st.stop() al final (ver abajo)
+                download_file()
         else:
             # Si hay archivo, el botón "Exportar" desaparece y aparece el de "Descargar"
             st.download_button(
@@ -111,35 +108,15 @@ def report_template(
                 type="primary",  # Lo ponemos en color para que resalte
                 on_click=lambda: st.session_state.pop(f"temp_file_{key}"),
             )
-        # if button_export("Exportar a Excel y GS", key=f"button_export_{key}"):
-        #     # Validamos aquí adentro manualmente para no depender del "return" general
-        #     if any(not s[1] for s in selections):
-        #         st.warning("Seleccione filtros antes de exportar.")
-        #     else:
-        #         download_file()  # Esta función debe tener un st.stop() al final (ver abajo)
 
-    # # ESPACIO RESERVADO PARA EL BOTÓN (Aparecerá aquí cuando esté listo)
-    # placeholder_download = st.empty()
-
-    # # 0.5. Si el archivo ya se generó, mostramos el botón de descarga real
-    # if f"temp_file_{key}" in st.session_state:
-    #     with placeholder_download.container():
-    #         st.download_button(
-    #             label="⬇️ Descargar Archivo Ahora",
-    #             data=st.session_state[f"temp_file_{key}"],
-    #             file_name=f"reporte_{key}.xlsx",
-    #             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    #             key=f"real_download_{key}",
-    #         )
-
-    # 3. Validar que no haya filtros vacíos
+    # 2. Validar que no haya filtros vacíos
     if any(not s[1] for s in selections):
         st.warning(
             "Seleccione al menos un valor en cada filtro obligatorio. El filtro avanzado es opcional"
         )
         return
 
-    # 4. Lógica de Fetch Iterativo (El equivalente al v-for de Vue + API calls)
+    # 3. Lógica de Fetch Iterativo (El equivalente al v-for de Vue + API calls)
     try:
         with st.spinner("Consultando datos..."):
             df_final = pd.DataFrame()
@@ -164,14 +141,15 @@ def report_template(
             if df_final.empty:
                 st.info("No se encontraron resultados.")
             else:
-                st.session_state[f"data_{endpoint}"] = df_final
+                st.session_state[f"data_{key}"] = df_final
 
     except APIConnectionError as e:
         st.error(f"⚠️ Error de conexión: {e}")
     except APIResponseError as e:
         st.error(f"⚠️ Error de API: {e}")
 
-    # 5. Mostrar resultados (usando session_state para que no desaparezcan)
-    data_key = f"data_{endpoint}"
+    # 4. Mostrar resultados (usando session_state para que no desaparezcan)
+    data_key = f"data_{key}"
     if data_key in st.session_state:
-        st.dataframe(st.session_state[data_key], width="stretch")
+        dataframe(st.session_state[data_key], key=f"df_{key}")
+        # st.dataframe(st.session_state[data_key], width="stretch")
