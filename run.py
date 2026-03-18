@@ -9,7 +9,7 @@
 # aunque para usar Pywinauto, el ejecutable clásico de PyInstaller sigue siendo el estándar.
 
 # Ejemplo básico para generar el ejecutable
-# pyinstaller --onefile --additional-hooks-dir=. --collect-all streamlit --copy-metadata streamlit run.py
+# poetry run pyinstaller --onefile --additional-hooks-dir=. --collect-all streamlit --copy-metadata streamlit --add-data "app.py;." --add-data "src;src" run.py
 
 # Tip para "Antigravity": Como vas a usar Pywinauto y Playwright, recordá que PyInstaller
 # a veces no incluye los binarios de los navegadores automáticamente. Si el ejecutable final
