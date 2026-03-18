@@ -35,19 +35,32 @@
 #     # # Run the Streamlit app using subprocess
 #     # subprocess.run(["streamlit", "run", "streamlit_app.py"])
 
+
+import os
 import sys
 
 from streamlit.web import cli as stcli
 
 
+def get_resource_path(relative_path):
+    try:
+        # Ruta temporal de PyInstaller
+        base_path = sys._MEIPASS
+    except Exception:
+        # Ruta en modo desarrollo
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+
 def run_streamlit_app():
-    # El primer argumento es siempre 'streamlit'
-    # El segundo es el comando 'run'
-    # El tercero es la ruta a tu archivo principal (app.py)
+    # Buscamos app.py dentro de la carpeta temporal del ejecutable
+    app_path = get_resource_path("app.py")
+
     sys.argv = [
         "streamlit",
         "run",
-        "app.py",
+        app_path,
         "--global.developmentMode=false",
     ]
     sys.exit(stcli.main())
@@ -57,4 +70,4 @@ if __name__ == "__main__":
     run_streamlit_app()
 
 # poetry run python -m run
-# poetry run streamlit run src/main.py
+# poetry run streamlit run src/app.py
