@@ -8,7 +8,7 @@ APP_NAME = "Control INVICO"
 ENTRY_POINT = "run.py"  # El script lanzador
 STREAMLIT_APP = "app.py"  # Tu app principal
 SRC_DIR = "src"  # Carpeta con tu lógica y .env
-# ICON_FILE = "mi_icono.ico"  # El archivo de icono de la app
+ICON_FILE = "logo_invico.ico"  # El archivo de icono de la app
 
 
 def build():
@@ -33,7 +33,7 @@ def build():
         # Inclusión de archivos y carpetas
         f"--add-data={STREAMLIT_APP}{os.pathsep}.",
         f"--add-data={SRC_DIR}{os.pathsep}{SRC_DIR}",
-        # f"--icon={ICON_FILE}",
+        f"--icon={ICON_FILE}",
     ]
 
     # 3. Ejecutar PyInstaller
