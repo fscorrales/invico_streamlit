@@ -4,7 +4,7 @@ import shutil
 import PyInstaller.__main__
 
 # --- CONFIGURACIÓN ---
-APP_NAME = "Control INVICO"
+APP_NAME = "INVICO Dashboard"
 ENTRY_POINT = "run.py"  # El script lanzador
 STREAMLIT_APP = "app.py"  # Tu app principal
 SRC_DIR = "src"  # Carpeta con tu lógica y .env
@@ -29,7 +29,9 @@ def build():
         "--collect-all=streamlit",
         "--collect-all=httpx",
         "--collect-all=pydantic_settings",
+        "--collect-all=playwright",
         "--copy-metadata=streamlit",
+        "--copy-metadata=playwright",
         # Inclusión de archivos y carpetas
         f"--add-data={STREAMLIT_APP}{os.pathsep}.",
         f"--add-data={SRC_DIR}{os.pathsep}{SRC_DIR}",
