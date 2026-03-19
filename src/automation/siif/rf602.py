@@ -7,7 +7,7 @@ Purpose: Read, process and write SIIF's rf602 (Prespuesto de Gastos por Fuente) 
 
 __all__ = ["Rf602"]
 
-import argparse
+import typer
 import asyncio
 import datetime as dt
 import inspect
@@ -16,83 +16,14 @@ import os
 import numpy as np
 import pandas as pd
 from playwright.async_api import Download, async_playwright
+from typing import List, Optional
+from pathlib import Path
 
 from src.automation.siif.connect_siif import (
     ReportCategory,
     SIIFReportManager,
     login,
 )
-
-
-# --------------------------------------------------
-def get_args():
-    """Get command-line arguments"""
-
-    parser = argparse.ArgumentParser(
-        description="Read, process and write SIIF's rf602",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-
-    parser.add_argument(
-        "-u",
-        "--username",
-        help="Username for SIIF access",
-        metavar="username",
-        type=str,
-        default=None,
-    )
-
-    parser.add_argument(
-        "-p",
-        "--password",
-        help="Password for SIIF access",
-        metavar="password",
-        type=str,
-        default=None,
-    )
-
-    parser.add_argument(
-        "-e",
-        "--ejercicios",
-        metavar="ejercicios",
-        default=[dt.datetime.now().year],
-        type=int,
-        choices=range(2010, dt.datetime.now().year + 1),
-        nargs="+",
-        help="Ejercicios to download from SIIF",
-    )
-
-    parser.add_argument(
-        "-d", "--download", help="Download report from SIIF", action="store_true"
-    )
-
-    parser.add_argument(
-        "--headless", help="Run browser in headless mode", action="store_true"
-    )
-
-    parser.add_argument(
-        "-f",
-        "--file",
-        metavar="xls_file",
-        default=None,
-        type=argparse.FileType("r"),
-        help="SIIF' rf602.xls report. Must be in the same folder",
-    )
-
-    args = parser.parse_args()
-
-    if args.username is None or args.password is None:
-        from ...config import settings
-
-        args.username = settings.SIIF_USERNAME
-        args.password = settings.SIIF_PASSWORD
-        if args.username is None or args.password is None:
-            parser.error("Both --username and --password are required.")
-
-    if args.file and args.download:
-        parser.error("You cannot use --file and --download together. Choose one.")
-
-    return args
 
 
 # --------------------------------------------------
@@ -258,44 +189,105 @@ class Rf602(SIIFReportManager):
         return self.clean_df
 
 
+app = typer.Typer(help="Read, process and write SIIF's rf602", add_completion=False)
+
 # --------------------------------------------------
-async def main():
-    """Make a jazz noise here"""
+@app.command()
+def main(
+    username: Optional[str] = typer.Option(None, "--username", "-u", help="Username for SIIF access"),
+    password: Optional[str] = typer.Option(None, "--password", "-p", help="Password for SIIF access"),
+    ejercicios: List[int] = typer.Option(
+        [dt.datetime.now().year], 
+        "--ejercicios", "-e", 
+        help="Ejercicios to download from SIIF"
+    ),
+    download: bool = typer.Option(False, "--download", "-d", help="Download report from SIIF"),
+    headless: bool = typer.Option(False, "--headless", help="Run browser in headless mode"),
+    file: Optional[Path] = typer.Option(
+        None, "--file", "-f", 
+        help="SIIF' rf602.xls report. Must be in the same folder",
+        exists=True, file_okay=True, dir_okay=False, readable=True
+    ),
+):
+    """
+    Lee, procesa y escribe el reporte rf602 del SIIF.
+    """
+    
+    # 1. Validación de lógica de negocio (Exclusión mutua)
+    if file and download:
+        typer.secho("❌ Error: No puedes usar --file y --download al mismo tiempo.", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
 
-    args = get_args()
+    # 2. Carga de credenciales (Lógica que tenías en get_args)
+    if username is None or password is None:
+        try:
+            from ...config import settings
+            username = username or settings.SIIF_USERNAME
+            password = password or settings.SIIF_PASSWORD
+        except ImportError:
+            pass
+        
+        if not username or not password:
+            typer.secho("❌ Error: Se requieren credenciales (vía argumentos o config).", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
 
+    # 3. Ejecución de la lógica asíncrona
+    asyncio.run(run_automation(username, password, ejercicios, download, headless, file))
+
+# --------------------------------------------------
+async def run_automation(username, password, ejercicios, download, headless, file):
+    """
+    Lógica de ejecución asíncrona de Playwright.
+    """
+    # Determinamos la ruta de guardado 
     save_path = os.path.dirname(
         os.path.abspath(inspect.getfile(inspect.currentframe()))
     )
-
     async with async_playwright() as p:
+        # 1. Login
         connect_siif = await login(
-            args.username, args.password, playwright=p, headless=False
+            username, password, playwright=p, headless=headless
         )
         try:
+            # 2. Navegación inicial
             rf602 = Rf602(siif=connect_siif)
             await rf602.go_to_reports()
             await rf602.go_to_specific_report()
-            for ejercicio in args.ejercicios:
-                if args.download:
+
+            # 3. Bucle de ejercicios
+            for ejercicio in ejercicios:
+                typer.echo(f"⏳ Procesando ejercicio: {ejercicio}...")
+                if download:
+                    # Descarga y guardado físico
                     await rf602.download_report(ejercicio=str(ejercicio))
                     await rf602.save_xls_file(
                         save_path=save_path,
                         file_name=str(ejercicio) + "-rf602.xls",
                     )
-                await rf602.read_xls_file(args.file)
+
+                    # Feedback visual de éxito
+                    typer.secho(f"✅ Ejercicio {ejercicio} descargado con éxito.", fg=typer.colors.GREEN)
+
+                typer.echo(f"Archivo: {file}")
+                # 4. Lectura y Procesamiento
+                await rf602.read_xls_file(file)
                 print(rf602.df)
                 await rf602.process_dataframe()
+
+                # Feedback visual de éxito
+                typer.secho(f"✅ Ejercicio {ejercicio} procesado con éxito.", fg=typer.colors.GREEN)
                 print(rf602.clean_df)
         except Exception as e:
-            print(f"Error al iniciar sesión: {e}")
+            typer.secho(f"💥 Error durante la ejecución: {e}", fg=typer.colors.RED, err=True)
         finally:
-            await rf602.logout()
-
+            # Cerramos sesión siempre para no dejar colgada la instancia
+            if 'rf602' in locals():
+                await rf602.logout()
 
 # --------------------------------------------------
 if __name__ == "__main__":
-    asyncio.run(main())
+    # asyncio.run(main())
+    app()
     # From /invico_streamlit
 
     # poetry run python -m src.automation.siif.rf602 -d
