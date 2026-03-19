@@ -24,6 +24,7 @@ from src.automation.siif.connect_siif import (
     SIIFReportManager,
     login,
 )
+from src.utils.print_tables import print_rich_table
 
 
 # --------------------------------------------------
@@ -217,7 +218,7 @@ def main(
         None,
         "--file",
         "-f",
-        help="SIIF' rf602.xls report. Must be in the same folder",
+        help="SIIF' rf602.xls report.",
         exists=True,
         file_okay=True,
         dir_okay=False,
@@ -302,14 +303,16 @@ async def run_automation(username, password, ejercicios, download, headless, fil
 
                     # 4. Lectura y Procesamiento
                     await siif.read_xls_file()
-                    print(siif.df)
+                    # print(siif.df)
                     await siif.process_dataframe()
                     # Feedback visual de éxito
                     typer.secho(
                         f"✅ Ejercicio {ejercicio} procesado con éxito.",
                         fg=typer.colors.GREEN,
                     )
-                    print(siif.clean_df)
+                    print_rich_table(
+                        siif.clean_df, title=f"Resultados Ejercicio {ejercicio}"
+                    )
 
                 # 5. Logout
                 await siif.logout()
@@ -317,15 +320,15 @@ async def run_automation(username, password, ejercicios, download, headless, fil
             else:
                 siif = Rf602()
                 # 1. Lectura y Procesamiento
-                typer.echo(f"⏳ Procesando archivo: {file}...")
+                typer.echo(f"⏳ Procesando archivo: {file.name}...")
                 await siif.read_xls_file(file)
                 print(siif.df)
                 await siif.process_dataframe()
                 typer.secho(
-                    f"✅ Archivo {file} procesado con éxito.",
+                    f"✅ Archivo {file.name} procesado con éxito.",
                     fg=typer.colors.GREEN,
                 )
-                print(siif.clean_df)
+                print_rich_table(siif.clean_df, title=f"Datos del archivo: {file.name}")
 
         except Exception as e:
             typer.secho(
