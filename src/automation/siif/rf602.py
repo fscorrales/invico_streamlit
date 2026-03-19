@@ -7,17 +7,17 @@ Purpose: Read, process and write SIIF's rf602 (Prespuesto de Gastos por Fuente) 
 
 __all__ = ["Rf602"]
 
-import typer
 import asyncio
 import datetime as dt
 import inspect
 import os
+from pathlib import Path
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
+import typer
 from playwright.async_api import Download, async_playwright
-from typing import List, Optional
-from pathlib import Path
 
 from src.automation.siif.connect_siif import (
     ReportCategory,
@@ -191,98 +191,146 @@ class Rf602(SIIFReportManager):
 
 app = typer.Typer(help="Read, process and write SIIF's rf602", add_completion=False)
 
+
 # --------------------------------------------------
 @app.command()
 def main(
-    username: Optional[str] = typer.Option(None, "--username", "-u", help="Username for SIIF access"),
-    password: Optional[str] = typer.Option(None, "--password", "-p", help="Password for SIIF access"),
-    ejercicios: List[int] = typer.Option(
-        [dt.datetime.now().year], 
-        "--ejercicios", "-e", 
-        help="Ejercicios to download from SIIF"
+    username: Optional[str] = typer.Option(
+        None, "--username", "-u", help="Username for SIIF access"
     ),
-    download: bool = typer.Option(False, "--download", "-d", help="Download report from SIIF"),
-    headless: bool = typer.Option(False, "--headless", help="Run browser in headless mode"),
+    password: Optional[str] = typer.Option(
+        None, "--password", "-p", help="Password for SIIF access"
+    ),
+    ejercicios: List[int] = typer.Option(
+        [dt.datetime.now().year],
+        "--ejercicios",
+        "-e",
+        help="Ejercicios to download from SIIF",
+    ),
+    download: bool = typer.Option(
+        False, "--download", "-d", help="Download report from SIIF"
+    ),
+    headless: bool = typer.Option(
+        False, "--headless", help="Run browser in headless mode"
+    ),
     file: Optional[Path] = typer.Option(
-        None, "--file", "-f", 
+        None,
+        "--file",
+        "-f",
         help="SIIF' rf602.xls report. Must be in the same folder",
-        exists=True, file_okay=True, dir_okay=False, readable=True
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
     ),
 ):
     """
     Lee, procesa y escribe el reporte rf602 del SIIF.
     """
-    
+
     # 1. Validación de lógica de negocio (Exclusión mutua)
     if file and download:
-        typer.secho("❌ Error: No puedes usar --file y --download al mismo tiempo.", fg=typer.colors.RED, err=True)
+        typer.secho(
+            "❌ Error: No puedes usar --file y --download al mismo tiempo.",
+            fg=typer.colors.RED,
+            err=True,
+        )
         raise typer.Exit(code=1)
 
     # 2. Carga de credenciales (Lógica que tenías en get_args)
     if username is None or password is None:
         try:
             from ...config import settings
+
             username = username or settings.SIIF_USERNAME
             password = password or settings.SIIF_PASSWORD
         except ImportError:
             pass
-        
+
         if not username or not password:
-            typer.secho("❌ Error: Se requieren credenciales (vía argumentos o config).", fg=typer.colors.RED, err=True)
+            typer.secho(
+                "❌ Error: Se requieren credenciales (vía argumentos o config).",
+                fg=typer.colors.RED,
+                err=True,
+            )
             raise typer.Exit(code=1)
 
     # 3. Ejecución de la lógica asíncrona
-    asyncio.run(run_automation(username, password, ejercicios, download, headless, file))
+    asyncio.run(
+        run_automation(username, password, ejercicios, download, headless, file)
+    )
+
 
 # --------------------------------------------------
 async def run_automation(username, password, ejercicios, download, headless, file):
     """
     Lógica de ejecución asíncrona de Playwright.
     """
-    # Determinamos la ruta de guardado 
+    # Determinamos la ruta de guardado
     save_path = os.path.dirname(
         os.path.abspath(inspect.getfile(inspect.currentframe()))
     )
     async with async_playwright() as p:
-        # 1. Login
-        connect_siif = await login(
-            username, password, playwright=p, headless=headless
-        )
         try:
-            # 2. Navegación inicial
-            rf602 = Rf602(siif=connect_siif)
-            await rf602.go_to_reports()
-            await rf602.go_to_specific_report()
+            if download:
+                typer.echo("⏳ Descargando reporte rf602...")
 
-            # 3. Bucle de ejercicios
-            for ejercicio in ejercicios:
-                typer.echo(f"⏳ Procesando ejercicio: {ejercicio}...")
-                if download:
+                # 1. Login
+                connect_siif = await login(
+                    username, password, playwright=p, headless=headless
+                )
+
+                # 2. Navegación inicial
+                siif = Rf602(siif=connect_siif)
+                await siif.go_to_reports()
+                await siif.go_to_specific_report()
+                # 3. Bucle de ejercicios
+                for ejercicio in ejercicios:
+                    typer.echo(f"⏳ Procesando ejercicio: {ejercicio}...")
                     # Descarga y guardado físico
-                    await rf602.download_report(ejercicio=str(ejercicio))
-                    await rf602.save_xls_file(
+                    await siif.download_report(ejercicio=str(ejercicio))
+                    await siif.save_xls_file(
                         save_path=save_path,
                         file_name=str(ejercicio) + "-rf602.xls",
                     )
-
                     # Feedback visual de éxito
-                    typer.secho(f"✅ Ejercicio {ejercicio} descargado con éxito.", fg=typer.colors.GREEN)
+                    typer.secho(
+                        f"✅ Ejercicio {ejercicio} descargado con éxito.",
+                        fg=typer.colors.GREEN,
+                    )
 
-                typer.echo(f"Archivo: {file}")
-                # 4. Lectura y Procesamiento
-                await rf602.read_xls_file(file)
-                print(rf602.df)
-                await rf602.process_dataframe()
+                    # 4. Lectura y Procesamiento
+                    await siif.read_xls_file()
+                    print(siif.df)
+                    await siif.process_dataframe()
+                    # Feedback visual de éxito
+                    typer.secho(
+                        f"✅ Ejercicio {ejercicio} procesado con éxito.",
+                        fg=typer.colors.GREEN,
+                    )
+                    print(siif.clean_df)
 
-                # Feedback visual de éxito
-                typer.secho(f"✅ Ejercicio {ejercicio} procesado con éxito.", fg=typer.colors.GREEN)
-                print(rf602.clean_df)
+                # 5. Logout
+                await siif.logout()
+
+            else:
+                siif = Rf602()
+                # 1. Lectura y Procesamiento
+                typer.echo(f"⏳ Procesando archivo: {file}...")
+                await siif.read_xls_file(file)
+                print(siif.df)
+                await siif.process_dataframe()
+                typer.secho(
+                    f"✅ Archivo {file} procesado con éxito.",
+                    fg=typer.colors.GREEN,
+                )
+                print(siif.clean_df)
+
         except Exception as e:
-            typer.secho(f"💥 Error durante la ejecución: {e}", fg=typer.colors.RED, err=True)
-        finally:
-            # Cerramos sesión siempre para no dejar colgada la instancia
-            if 'rf602' in locals():
-                await rf602.logout()
+            typer.secho(
+                f"💥 Error durante la ejecución: {e}", fg=typer.colors.RED, err=True
+            )
+
 
 # --------------------------------------------------
 if __name__ == "__main__":
