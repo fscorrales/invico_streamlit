@@ -6,6 +6,9 @@ el sidebar de navegación MPA. La sección "Administración"
 solo es visible para usuarios con rol admin.
 """
 
+import os
+import time
+
 import streamlit as st
 
 from src.pages.login import render_login
@@ -26,6 +29,31 @@ st.markdown(
 """,
     unsafe_allow_html=True,
 )
+
+
+# 1. Al principio de tu app (o donde manejes la navegación)
+if "app_closing" not in st.session_state:
+    st.session_state.app_closing = False
+
+# Si la app se está cerrando, mostramos la pantalla limpia y salimos
+if st.session_state.app_closing:
+    st.empty()  # Limpia lo que haya quedado arriba
+    st.markdown(
+        """
+        <style>
+            [data-testid="stSidebar"] {display: none;} /* Oculta la barra lateral */
+        </style>
+    """,
+        unsafe_allow_html=True,
+    )
+
+    st.write("#")
+    st.success("### 🔒 Sesión Finalizada")
+    st.write("La aplicación de **INVICO** se ha detenido correctamente.")
+    st.info("Ya puedes cerrar esta ventana del navegador.")
+
+    time.sleep(1)
+    os._exit(0)
 
 
 # ──────────────────────────────────────────────
@@ -134,8 +162,14 @@ def build_navigation() -> None:
                 st.write(f"👤 **{st.session_state['user']['username']}**")
             with st.container(width="content"):
                 if st.button("Log out", width="stretch"):
+                    # 1.Activamos el interruptor
+                    st.session_state.app_closing = True
+
+                    # 2. Limpiamos la sesión para seguridad
                     st.session_state["token"] = None
                     st.session_state["user"] = None
+
+                    # 3. Forzamos el rerun para que entre en la pantalla de cierre
                     st.rerun()
 
         st.divider()
