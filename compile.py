@@ -23,7 +23,7 @@ def build():
         ENTRY_POINT,
         f"--name={APP_NAME}",
         "--onefile",
-        "--windowed",  # Para que no se abra una consola negra detrás (opcional)
+        # "--windowed",  # Para que no se abra una consola negra detrás (opcional)
         "--additional-hooks-dir=.",
         # Recolección de librerías "rebeldes"
         "--collect-all=streamlit",

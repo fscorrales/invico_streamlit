@@ -62,7 +62,14 @@ def run_streamlit_app():
         "run",
         app_path,
         "--global.developmentMode=false",
+        "--browser.gatherUsageStats=false",  # <-- Esto desactiva el envío de estadísticas
     ]
+
+    # TRUCO EXTRA: Forzar el modo "headless" en la configuración
+    from streamlit import config
+
+    config.set_option("browser.gatherUsageStats", False)
+
     sys.exit(stcli.main())
 
 
