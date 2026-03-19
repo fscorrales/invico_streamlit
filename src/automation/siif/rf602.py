@@ -284,6 +284,7 @@ async def run_automation(username, password, ejercicios, download, headless, fil
                 siif = Rf602(siif=connect_siif)
                 await siif.go_to_reports()
                 await siif.go_to_specific_report()
+
                 # 3. Bucle de ejercicios
                 for ejercicio in ejercicios:
                     typer.echo(f"⏳ Procesando ejercicio: {ejercicio}...")
