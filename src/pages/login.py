@@ -47,10 +47,26 @@ def render_login() -> None:
 
         with tab_register:
             st.info("Complete los datos para crear una nueva cuenta.")
+
+            # Mensaje de recomendación visible
+            st.markdown("""
+                💡 **Recomendación:** Para mayor facilidad, te sugerimos utilizar el **mismo usuario** que 
+                        utilizas en los otros sistemas de **INVICO** (ej. `JPEREZ o jperez`). Además, 
+                        la **contraseña** debe tener **al menos 4 caracteres**.
+            """)
             with st.form("register_form"):
-                new_user = st.text_input("Usuario deseado", key="reg_username")
+                # Usamos placeholder para dar un ejemplo visual y help para la instrucción
+                new_user = st.text_input(
+                    "Usuario deseado",
+                    key="reg_username",
+                    placeholder="Ej: jperez o JPEREZ",
+                    help="Se recomienda usar tu usuario estándar de INVICO para no olvidarlo.",
+                )
                 new_pass = st.text_input(
-                    "Contraseña", type="password", key="reg_password"
+                    "Contraseña",
+                    type="password",
+                    key="reg_password",
+                    help="Mínimo 4 caracteres.",
                 )
                 conf_pass = st.text_input(
                     "Confirmar Contraseña", type="password", key="reg_confirm"
@@ -60,10 +76,19 @@ def render_login() -> None:
                 )
 
                 if submitted_reg:
+                    # 1. Validación de campos vacíos
                     if not new_user or not new_pass:
                         st.error("Todos los campos son obligatorios.")
+
+                    # 2. NUEVA VALIDACIÓN: Longitud mínima
+                    elif len(new_pass) < 4:
+                        st.error("⚠️ La contraseña debe tener al menos 4 caracteres.")
+
+                    # 3. Validación de coincidencia
                     elif new_pass != conf_pass:
                         st.error("Las contraseñas no coinciden.")
+
+                    # 4. Proceso de registro
                     else:
                         with st.spinner("Registrando usuario..."):
                             try:
@@ -72,7 +97,7 @@ def render_login() -> None:
                                     "✅ Registro solicitado exitosamente. "
                                     "Ahora puede intentar iniciar sesión."
                                 )
-                            except ex.APIResponseError as e:
-                                st.error(f"Error de registro: {e}")
+                            except ex.AppBaseException as e:
+                                st.error(f"Error: {e}")
                             except Exception as e:
                                 st.error(f"Error inesperado: {e}")
