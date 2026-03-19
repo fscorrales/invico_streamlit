@@ -45,4 +45,4 @@ def build():
 if __name__ == "__main__":
     build()
 
-# poetry run python build.py
+# poetry run python compile.py
