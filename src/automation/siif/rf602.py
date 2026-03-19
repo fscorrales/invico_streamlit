@@ -338,8 +338,9 @@ async def run_automation(username, password, ejercicios, download, headless, fil
 
 # --------------------------------------------------
 if __name__ == "__main__":
-    # asyncio.run(main())
     app()
+
+    # asyncio.run(main())
     # From /invico_streamlit
 
     # poetry run python -m src.automation.siif.rf602 -d
