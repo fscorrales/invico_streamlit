@@ -18,11 +18,12 @@ python-dotenv = "^1.0.1"
 pandas = "^2.2.0"
 pydantic-settings = "^2.13.1"
 xlrd = "^2.0.2"
-typer = "^0.24.1"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.15.5"
 pyinstaller = "^6.19.0"
+typer = "^0.24.1"
+rich = "^14.3.3"
 
 [build-system]
 requires = ["poetry-core"]
