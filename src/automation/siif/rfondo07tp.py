@@ -252,7 +252,7 @@ def main(
     # Validación de ejercicios
     ejercicios_ok = []
     for ejercicio in ejercicios:
-        if ejercicio not in [2010, dt.datetime.now().year]:
+        if ejercicio not in list(range(2010, dt.datetime.now().year + 1)):
             typer.secho(
                 f"❌ Error: Ejercicio {ejercicio} fuera del rango permitido (2010-{dt.datetime.now().year}).",
                 fg=typer.colors.RED,

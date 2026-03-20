@@ -264,7 +264,7 @@ def main(
     # Validación de ejercicios
     ejercicios_ok = []
     for ejercicio in ejercicios:
-        if ejercicio not in [2010, dt.datetime.now().year]:
+        if ejercicio not in list(range(2010, dt.datetime.now().year + 1)):
             typer.secho(
                 f"❌ Error: Ejercicio {ejercicio} fuera del rango permitido (2010-{dt.datetime.now().year}).",
                 fg=typer.colors.RED,
@@ -273,6 +273,8 @@ def main(
             raise typer.Exit(code=1)
         else:
             ejercicios_ok.append(ejercicio)
+
+    ejercicios = ejercicios_ok
 
     # 2. Carga de credenciales (Lógica que tenías en get_args)
     if username is None or password is None:
