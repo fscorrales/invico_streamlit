@@ -190,6 +190,11 @@ class Rf602(SIIFReportManager):
         return self.clean_df
 
 
+# ──────────────────────────────────────────────
+# Inicialización de Typer
+# ──────────────────────────────────────────────
+
+
 app = typer.Typer(help="Read, process and write SIIF's rf602", add_completion=False)
 
 
