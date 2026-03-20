@@ -1,19 +1,23 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List, Any
-from enum import Enum
 from datetime import datetime
+from enum import Enum
+from typing import Any, List, Optional
+
+from pydantic import BaseModel
 
 # --- Enums ---
+
 
 class Role(str, Enum):
     admin = "admin"
     user = "user"
     pending = "pending"
 
+
 class Origen(str, Enum):
     EPAM = "EPAM"
     OBRAS = "OBRAS"
     FUNCIONAMIENTO = "FUNCIONAMIENTO"
+
 
 class FuenteFinanciamientoSIIF(str, Enum):
     f_10 = "10"
@@ -23,35 +27,50 @@ class FuenteFinanciamientoSIIF(str, Enum):
     f_14 = "14"
     f_15 = "15"
 
+
+class TipoComprobanteSIIF(str, Enum):
+    adelanto_contratista = "PA6"
+    anticipo_viatico = "PA3"
+    reversion_viatico = "REV"
+
+
 # --- Users & Auth ---
+
 
 class LoginUser(BaseModel):
     username: str
     password: str
 
+
 class UserRegistrationForm(BaseModel):
     username: str
     password: str
+
 
 class CreateUser(BaseModel):
     username: str
     password: str
     role: Role = Role.user
 
+
 class PublicStoredUser(BaseModel):
     username: str
     id: str
     role: Role
 
+
 class UpdateUserRole(BaseModel):
     role: Role = Role.user
+
 
 class ExternalCredentialIn(BaseModel):
     systemName: str
     externalUsername: str
     externalPassword: str
 
+
 # --- Reports ---
+
 
 class BancoINVICOReport(BaseModel):
     ejercicio: int
@@ -68,6 +87,7 @@ class BancoINVICOReport(BaseModel):
     cod_imputacion: str
     imputacion: str
 
+
 class ControlRecursosReport(BaseModel):
     ejercicio: int
     mes: str
@@ -75,6 +95,7 @@ class ControlRecursosReport(BaseModel):
     grupo: str
     recursos_siif: float
     depositos_banco: float
+
 
 class ResumenRendProvReport(BaseModel):
     origen: Origen
@@ -99,6 +120,7 @@ class ResumenRendProvReport(BaseModel):
     retenciones: float
     importe_neto: float
 
+
 class Rf602Report(BaseModel):
     ejercicio: int
     estructura: str
@@ -116,6 +138,7 @@ class Rf602Report(BaseModel):
     ordenado: float
     saldo: float
     pendiente: float
+
 
 class Rf610Report(BaseModel):
     ejercicio: int
@@ -138,16 +161,20 @@ class Rf610Report(BaseModel):
     ordenado: float
     saldo: float
 
+
 # --- API Route Responses ---
+
 
 class ErrorsDetails(BaseModel):
     loc: str
     msg: str
     error_type: str
 
+
 class ErrorsWithDocId(BaseModel):
     doc_id: str
     details: List[ErrorsDetails]
+
 
 class RouteReturnSchema(BaseModel):
     title: Optional[str] = None
@@ -155,10 +182,12 @@ class RouteReturnSchema(BaseModel):
     added: int = 0
     errors: List[ErrorsWithDocId] = []
 
+
 class ValidationError(BaseModel):
     loc: List[Any]
     msg: str
     type: str
+
 
 class HTTPValidationError(BaseModel):
     detail: Optional[List[ValidationError]] = None
