@@ -7,14 +7,17 @@ Purpose: Read, process and write SIIF's rf610 () report
 
 __all__ = ["Rf610"]
 
-import argparse
+
 import asyncio
 import datetime as dt
 import inspect
 import os
+from pathlib import Path
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
+import typer
 from playwright.async_api import Download, async_playwright
 
 from src.automation.siif.connect_siif import (
@@ -22,81 +25,7 @@ from src.automation.siif.connect_siif import (
     SIIFReportManager,
     login,
 )
-
-
-# --------------------------------------------------
-def get_args():
-    """Get command-line arguments"""
-
-    parser = argparse.ArgumentParser(
-        description="Read, process and write SIIF's rf610",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-
-    parser.add_argument(
-        "-u",
-        "--username",
-        help="Username for SIIF access",
-        metavar="username",
-        type=str,
-        default=None,
-    )
-
-    parser.add_argument(
-        "-p",
-        "--password",
-        help="Password for SIIF access",
-        metavar="password",
-        type=str,
-        default=None,
-    )
-
-    parser.add_argument(
-        "-e",
-        "--ejercicios",
-        metavar="ejercicios",
-        default=[dt.datetime.now().year],
-        type=int,
-        choices=range(2010, dt.datetime.now().year + 1),
-        nargs="+",
-        help="Ejercicios to download from SIIF",
-    )
-
-    parser.add_argument(
-        "-d",
-        "--download",
-        help="Download report from SIIF",
-        action="store_true",
-        default=False,
-    )
-
-    parser.add_argument(
-        "--headless", help="Run browser in headless mode", action="store_true"
-    )
-
-    parser.add_argument(
-        "-f",
-        "--file",
-        metavar="xls_file",
-        default=None,
-        type=str,
-        help="SIIF' rf610.xls report. Must be in the same folder",
-    )
-
-    args = parser.parse_args()
-
-    if args.username is None or args.password is None:
-        from ...config import settings
-
-        args.username = settings.SIIF_USERNAME
-        args.password = settings.SIIF_PASSWORD
-        if args.username is None or args.password is None:
-            parser.error("Both --username and --password are required.")
-
-    if args.file and args.download:
-        parser.error("You cannot use --file and --download together. Choose one.")
-
-    return args
+from src.utils.print_tables import print_rich_table
 
 
 # --------------------------------------------------
@@ -223,7 +152,6 @@ class Rf610(SIIFReportManager):
         df[["actividad", "desc_actividad"]] = df["actividad"].str.split(
             n=1, expand=True
         )
-        print("Separamos los grupos")
         df[["grupo", "desc_grupo"]] = df["grupo"].str.split(n=1, expand=True)
         df["programa"] = df["programa"].str.zfill(2)
         df["subprograma"] = df["subprograma"].str.zfill(2)
@@ -279,49 +207,156 @@ class Rf610(SIIFReportManager):
         return self.clean_df
 
 
+app = typer.Typer(help="Read, process and write SIIF's rf610", add_completion=False)
+
+
 # --------------------------------------------------
-async def main():
-    """Make a jazz noise here"""
+@app.command()
+def main(
+    username: Optional[str] = typer.Option(
+        None, "--username", "-u", help="Username for SIIF access"
+    ),
+    password: Optional[str] = typer.Option(
+        None, "--password", "-p", help="Password for SIIF access"
+    ),
+    ejercicios: List[int] = typer.Option(
+        [dt.datetime.now().year],
+        "--ejercicios",
+        "-e",
+        help="Ejercicios to download from SIIF",
+    ),
+    download: bool = typer.Option(
+        False, "--download", "-d", help="Download report from SIIF"
+    ),
+    headless: bool = typer.Option(
+        False, "--headless", help="Run browser in headless mode"
+    ),
+    file: Optional[Path] = typer.Option(
+        None,
+        "--file",
+        "-f",
+        help="SIIF' rf610.xls report's full file path",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    ),
+):
+    """
+    Lee, procesa y escribe el reporte rf610 del SIIF.
+    """
 
-    args = get_args()
+    # 1. Validación de lógica de negocio (Exclusión mutua)
+    if file and download:
+        typer.secho(
+            "❌ Error: No puedes usar --file y --download al mismo tiempo.",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(code=1)
 
+    # 2. Carga de credenciales (Lógica que tenías en get_args)
+    if username is None or password is None:
+        try:
+            from ...config import settings
+
+            username = username or settings.SIIF_USERNAME
+            password = password or settings.SIIF_PASSWORD
+        except ImportError:
+            pass
+
+        if not username or not password:
+            typer.secho(
+                "❌ Error: Se requieren credenciales (vía argumentos o config).",
+                fg=typer.colors.RED,
+                err=True,
+            )
+            raise typer.Exit(code=1)
+
+    # 3. Ejecución de la lógica asíncrona
+    asyncio.run(
+        run_automation(username, password, ejercicios, download, headless, file)
+    )
+
+
+# --------------------------------------------------
+async def run_automation(username, password, ejercicios, download, headless, file):
+    """
+    Lógica de ejecución asíncrona de Playwright.
+    """
+    # Determinamos la ruta de guardado
     save_path = os.path.dirname(
         os.path.abspath(inspect.getfile(inspect.currentframe()))
     )
-
     async with async_playwright() as p:
         try:
-            if args.download:
+            if download:
+                typer.echo("⏳ Descargando reporte rf610...")
+
+                # 1. Login
                 connect_siif = await login(
-                    args.username, args.password, playwright=p, headless=False
+                    username, password, playwright=p, headless=headless
                 )
-                rf610 = Rf610(siif=connect_siif)
-                await rf610.go_to_reports()
-                await rf610.go_to_specific_report()
-                for ejercicio in args.ejercicios:
-                    await rf610.download_report(ejercicio=str(ejercicio))
-                    await rf610.save_xls_file(
+
+                # 2. Navegación inicial
+                siif = Rf610(siif=connect_siif)
+                await siif.go_to_reports()
+                await siif.go_to_specific_report()
+
+                # 3. Bucle de ejercicios
+                for ejercicio in ejercicios:
+                    typer.echo(f"⏳ Procesando ejercicio: {ejercicio}...")
+                    # Descarga y guardado físico
+                    await siif.download_report(ejercicio=str(ejercicio))
+                    await siif.save_xls_file(
                         save_path=save_path,
                         file_name=str(ejercicio) + "-rf610.xls",
                     )
-                    await rf610.read_xls_file(args.file)
-                    print(rf610.df)
-                    await rf610.process_dataframe()
-                    print(rf610.clean_df)
-                await rf610.logout()
+                    # Feedback visual de éxito
+                    typer.secho(
+                        f"✅ Ejercicio {ejercicio} descargado con éxito.",
+                        fg=typer.colors.GREEN,
+                    )
+
+                    # 4. Lectura y Procesamiento
+                    await siif.read_xls_file()
+                    # print(siif.df)
+                    await siif.process_dataframe()
+                    # Feedback visual de éxito
+                    typer.secho(
+                        f"✅ Ejercicio {ejercicio} procesado con éxito.",
+                        fg=typer.colors.GREEN,
+                    )
+                    print_rich_table(
+                        siif.clean_df, title=f"Resultados Ejercicio {ejercicio}"
+                    )
+
+                # 5. Logout
+                await siif.logout()
+
             else:
-                rf610 = Rf610()
-                await rf610.read_xls_file(args.file)
-                print(rf610.df)
-                await rf610.process_dataframe()
-                print(rf610.clean_df)
+                siif = Rf610()
+                # 1. Lectura y Procesamiento
+                typer.echo(f"⏳ Procesando archivo: {file.name}...")
+                await siif.read_xls_file(file)
+                await siif.process_dataframe()
+                typer.secho(
+                    f"✅ Archivo {file.name} procesado con éxito.",
+                    fg=typer.colors.GREEN,
+                )
+                print_rich_table(siif.clean_df, title=f"Datos del archivo: {file.name}")
+
         except Exception as e:
-            print(f"Error al iniciar sesión: {e}")
+            typer.secho(
+                f"💥 Error durante la ejecución: {e}", fg=typer.colors.RED, err=True
+            )
 
 
 # --------------------------------------------------
 if __name__ == "__main__":
-    asyncio.run(main())
-    # From /invicofapy
+    app()
+
+    # From /invico_streamlit
 
     # poetry run python -m src.automation.siif.rf610 -d
+    # poetry run python -m src.automation.siif.rf610 -f "D:\Proyectos IT\invico_streamlit\src\automation\siif\2026-rf610.xls"

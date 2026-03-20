@@ -218,7 +218,7 @@ def main(
         None,
         "--file",
         "-f",
-        help="SIIF' rf602.xls report.",
+        help="SIIF' rf602.xls report's full file path",
         exists=True,
         file_okay=True,
         dir_okay=False,
@@ -322,7 +322,6 @@ async def run_automation(username, password, ejercicios, download, headless, fil
                 # 1. Lectura y Procesamiento
                 typer.echo(f"⏳ Procesando archivo: {file.name}...")
                 await siif.read_xls_file(file)
-                print(siif.df)
                 await siif.process_dataframe()
                 typer.secho(
                     f"✅ Archivo {file.name} procesado con éxito.",
@@ -340,7 +339,7 @@ async def run_automation(username, password, ejercicios, download, headless, fil
 if __name__ == "__main__":
     app()
 
-    # asyncio.run(main())
     # From /invico_streamlit
 
     # poetry run python -m src.automation.siif.rf602 -d
+    # poetry run python -m src.automation.siif.rf602 -f "D:\Proyectos IT\invico_streamlit\src\automation\siif\2026-rf602.xls"
