@@ -12,6 +12,7 @@ import time
 import streamlit as st
 
 from src.pages.login import render_login
+from src.utils.version import get_version
 
 st.set_page_config(
     page_title="INVICO Control Presupuestario",
@@ -29,6 +30,9 @@ st.markdown(
 """,
     unsafe_allow_html=True,
 )
+
+with st.container():
+    st.sidebar.caption(f"Versión: {get_version()}", text_alignment="center")
 
 
 # 1. Al principio de tu app (o donde manejes la navegación)
