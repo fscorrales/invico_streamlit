@@ -57,7 +57,7 @@ def report_template(
 
                         # Llamada a la API que devuelve StreamingResponse
                         excel_binario = fetch_excel_stream(
-                            f"{endpoint}export/", params_peticion
+                            f"{endpoint}/export", params_peticion
                         )
 
                         if excel_binario:
