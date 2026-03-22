@@ -73,6 +73,7 @@ def fetch_data(
             headers=headers,
             params=clean_params,
             timeout=settings.DEFAULT_TIMEOUT,
+            follow_redirects=True,
         )
         return _handle_response(response)
 
@@ -151,6 +152,7 @@ def patch_request(
             headers=headers,
             json=json_body,
             timeout=settings.DEFAULT_TIMEOUT,
+            follow_redirects=True,
         )
     except httpx.RequestError as e:
         raise APIConnectionError(f"Error de conexión con el servidor: {e}") from e
@@ -182,6 +184,7 @@ def post_request(
             headers=headers,
             json=json_body,
             timeout=settings.DEFAULT_TIMEOUT,
+            follow_redirects=True,
         )
         return _handle_response(response)
     except httpx.RequestError as e:
