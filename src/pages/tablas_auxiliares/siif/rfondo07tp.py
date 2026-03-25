@@ -3,14 +3,16 @@ from playwright.async_api import async_playwright
 
 from src.automation.siif.rfondo07tp import Rfondo07tp
 from src.constants.endpoints import Endpoints
-from src.constants.options import get_ejercicios_list
+from src.constants.options import get_ejercicios_list, get_tipos_comprobantes_siif_list
 from src.services.api_client import post_request
-from src.services.models import TipoComprobanteSIIF
+
+# from src.services.models import TipoComprobanteSIIF
 from src.views.aux_tables import report_template
 from src.views.modal_siif import request_credentials_modal
 
 ENDPONT = Endpoints.SIIF_RFONDO07TP.value
 REPORTE = "rfondo07tp"
+TIPOS_COMPROBANTES = get_tipos_comprobantes_siif_list()
 
 
 # --------------------------------------------------
@@ -61,10 +63,10 @@ def render() -> None:
         },
         {
             "label": "Elija el tipo de comprobante",
-            "options": [t.value for t in TipoComprobanteSIIF],
+            "options": TIPOS_COMPROBANTES,
             "query_param": "tipoComprobante",
             "key": "tipos_comprobante_" + REPORTE,
-            "default": TipoComprobanteSIIF.adelanto_contratista.value,
+            "default": "PA6",
         },
     ]
 
