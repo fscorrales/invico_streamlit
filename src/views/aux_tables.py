@@ -134,6 +134,10 @@ def report_template(
                 params_peticion["limit"] = 0
                 params_peticion["queryFilter"] = filtro_avanzado
 
+                # DEBUG: Mostrar en la app (puedes borrarlo después)
+                # print(f"DEBUG API CALL [{endpoint}]: {params_peticion}")
+                # st.info(f"Enviando a API: {params_peticion}")
+
                 # Hacemos el fetch individual
                 df_parcial = fetch_dataframe(endpoint, params=params_peticion)
                 df_final = pd.concat([df_final, df_parcial], ignore_index=True)

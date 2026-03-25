@@ -6,6 +6,7 @@ Todas las páginas deben usar este módulo en lugar de llamar a httpx
 directamente.
 """
 
+import json
 from io import BytesIO
 from typing import Any, Optional
 
@@ -178,6 +179,19 @@ def post_request(
     tras ejecuciones de Playwright/Pywinauto.
     """
     headers = _get_headers(token=token)
+
+    # --- FIX: Convertir Timestamps a strings ---
+    if json_body is not None:
+        # Serializamos a string y volvemos a cargar a dict
+        # Esto convierte automáticamente los Timestamps a strings
+        json_body = json.loads(
+            json.dumps(
+                json_body,
+                default=lambda x: x.isoformat() if hasattr(x, "isoformat") else str(x),
+            )
+        )
+    # --------------------------------------------
+
     try:
         response = httpx.post(
             f"{BASE_URL}{endpoint}",
