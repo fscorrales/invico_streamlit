@@ -185,6 +185,9 @@ class Rfondo07tp(SIIFReportManager):
             df[to_numeric_cols].apply(pd.to_numeric).astype(np.float64)
         )
 
+        if tipo_comprobante == TipoComprobanteSIIF.adelanto_contratista.value:
+            df["estructura"] = df["glosa"].str.rstrip().str.slice(-15)
+
         self.clean_df = df
         return self.clean_df
 
