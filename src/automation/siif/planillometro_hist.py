@@ -120,5 +120,5 @@ if __name__ == "__main__":
     app()
     # From /invico_streamlit
 
-    # poetry run python -m src.automation.siif.planillometro_hist -f "D:\Proyectos IT\invico_streamlit\src\automation\siif\planillometro_hist.xls"
+    # poetry run python -m src.automation.siif.planillometro_hist -f "D:\Proyectos IT\invico_streamlit\src\automation\siif\planillometro_hist.xlsx"
     # poetry run python -m src.automation.siif.planillometro_hist -f"C:\IT\Proyectos\Python\invico_streamlit\src\automation\siif\planillometro_hist.xls"
