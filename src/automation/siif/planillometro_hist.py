@@ -107,7 +107,7 @@ def main(
     """
     try:
         siif = PlanillometroHist()
-        siif.from_excel(pdf_path=file)
+        siif.from_excel(excel_path=file)
         print_rich_table(siif.clean_df, title=f"Datos del archivo: {file.name}")
     except Exception as e:
         typer.secho(

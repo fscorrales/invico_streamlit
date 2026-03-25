@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "invico-streamlit"
-version = "0.12.1"
+version = "0.12.2"
 description = "Dashboard de Control Presupuestario"
 authors = ["Fernando Corrales <fscpython@gmail.com>"]
 readme = "README.md"
@@ -19,6 +19,7 @@ pandas = "^2.2.0"
 pydantic-settings = "^2.13.1"
 xlrd = "^2.0.2"
 pdfplumber = "^0.11.9"
+openpyxl = "^3.1.5"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.15.5"
