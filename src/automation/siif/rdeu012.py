@@ -293,7 +293,7 @@ def main(
             )
             raise typer.Exit(code=1)
         else:
-            meses_ok.append(ejercicio)
+            meses_ok.append(mesyano)
 
     meses = meses_ok
 
