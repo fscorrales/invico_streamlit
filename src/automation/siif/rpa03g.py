@@ -333,9 +333,9 @@ def main(
     # Validación de tipos de comprobantes
     grupos_partidas_ok = []
     for grupo_partida in grupos_partidas:
-        if grupo_partida not in [c.value for c in GrupoPartidaSIIF]:
+        if grupo_partida not in [str(c.value) for c in GrupoPartidaSIIF]:
             typer.secho(
-                f"❌ Error: Grupo de partida {grupo_partida} no reconocido.",
+                f"❌ Error: Grupo de partida {grupo_partida} no reconocido entre {[c.value for c in GrupoPartidaSIIF]}.",
                 fg=typer.colors.RED,
                 err=True,
             )
