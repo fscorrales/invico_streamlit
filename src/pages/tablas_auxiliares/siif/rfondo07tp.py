@@ -16,7 +16,7 @@ TIPOS_COMPROBANTES = get_tipos_comprobantes_siif_list()
 
 
 # --------------------------------------------------
-async def run_rfondo07tp_automation(username: str, password: str) -> None:
+async def run_automation(username: str, password: str) -> None:
     ejercicios = st.session_state.get("ejercicios_" + REPORTE, [])
     if not ejercicios:
         st.error("No hay ejercicios seleccionados.")
@@ -76,5 +76,5 @@ def render() -> None:
         endpoint=ENDPONT,
         description="Resumen de Fondos del Ejercicio por Tipo de Comprobante",
         filters_config=mis_filtros,
-        on_update=lambda: request_credentials_modal(run_rfondo07tp_automation),
+        on_update=lambda: request_credentials_modal(run_automation),
     )

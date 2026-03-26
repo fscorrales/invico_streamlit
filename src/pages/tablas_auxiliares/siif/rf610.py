@@ -14,10 +14,13 @@ from src.services.api_client import post_request
 from src.views.aux_tables import report_template
 from src.views.modal_siif import request_credentials_modal
 
+ENDPONT = Endpoints.SIIF_RF610.value
+REPORTE = "rf610"
+
 
 # --------------------------------------------------
-async def run_rf610_automation(username: str, password: str) -> None:
-    ejercicios = st.session_state.get("ejercicios_rf610", [])
+async def run_automation(username: str, password: str) -> None:
+    ejercicios = st.session_state.get("ejercicios_" + REPORTE, [])
     if not ejercicios:
         st.error("No hay ejercicios seleccionados.")
         return
@@ -27,26 +30,26 @@ async def run_rf610_automation(username: str, password: str) -> None:
         ejercicios = [ejercicios]
 
     async with async_playwright() as p:
-        rf610 = Rf610()
+        siif = Rf610()
         # The Rf610 class handles login via SIIFReportManager.login
-        await rf610.login(
+        await siif.login(
             username=username,
             password=password,
             playwright=p,
             headless=False,
         )
-        await rf610.go_to_reports()
+        await siif.go_to_reports()
 
         results = []
         for ej in ejercicios:
-            df_clean = await rf610.download_and_process_report(ejercicio=ej)
+            df_clean = await siif.download_and_process_report(ejercicio=ej)
             if df_clean is not None and not df_clean.empty:
                 # Send to backend
                 json_data = df_clean.to_dict(orient="records")
-                response = post_request(Endpoints.SIIF_RF610.value, json_body=json_data)
+                response = post_request(ENDPONT, json_body=json_data)
                 results.append(f"Ejercicio {ej}: {response}")
 
-        await rf610.logout()
+        await siif.logout()
         return results
 
 
@@ -57,7 +60,7 @@ def render() -> None:
             "label": "Elija los ejercicios a consultar",
             "options": get_ejercicios_list(),
             "query_param": "ejercicio",
-            "key": "ejercicios_rf610",
+            "key": "ejercicios_" + REPORTE,
             "default": get_ejercicios_list()[-1],
         },
         # {
@@ -70,10 +73,10 @@ def render() -> None:
     ]
 
     report_template(
-        key="rf610",
-        title="SIIF - Reporte RF610",
-        endpoint=Endpoints.SIIF_RF610.value,
-        description="Ejecución presupuestaria con descripciones de programas, subprogramas, proyectos y actividades. Datos del SIIF.",
+        key=REPORTE,
+        title="SIIF - Reporte " + REPORTE,
+        endpoint=ENDPONT,
+        description="Ejecución presupuestaria del Ejercicio con descripciones de las Estructuras",
         filters_config=mis_filtros,
-        on_update=lambda: request_credentials_modal(run_rf610_automation),
+        on_update=lambda: request_credentials_modal(run_automation),
     )
