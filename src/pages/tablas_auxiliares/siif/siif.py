@@ -2,12 +2,12 @@
 
 import streamlit as st
 
-from src.pages.tablas_auxiliares.siif import rf602, rf610, rfondo07tp
+from src.pages.tablas_auxiliares.siif import rf602, rf610, rfondo07tp, rfondos04
 
 
 def main() -> None:
 
-    tab1, tab2, tab3 = st.tabs(["rf602", "rf610", "rfondo07tp"])
+    tab1, tab2, tab3, tab4 = st.tabs(["rf602", "rf610", "rfondo07tp", "rfondos04"])
 
     with tab1:
         rf602.render()
@@ -17,6 +17,9 @@ def main() -> None:
 
     with tab3:
         rfondo07tp.render()
+
+    with tab4:
+        rfondos04.render()
 
 
 # tab1, tab2 = st.tabs(["Chart", "Data"], on_change="rerun")
