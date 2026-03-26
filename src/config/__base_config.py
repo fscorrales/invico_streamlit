@@ -25,6 +25,8 @@ class BaseAppSettings(BaseSettings):
     ADMIN_PASSWORD: str | None = None
     SIIF_USERNAME: str | None = None
     SIIF_PASSWORD: str | None = None
+    SSCC_USERNAME: str | None = None
+    SSCC_PASSWORD: str | None = None
     BASE_URL: str | None = None
     GOOGLE_CREDENTIALS: str | None = None  # JSON credentials for Google Sheets
     JWT_SECRET: str = "super_secret_key"
