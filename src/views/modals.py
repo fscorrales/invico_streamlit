@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Any, Callable
 
 import streamlit as st
 
@@ -50,44 +50,43 @@ def request_siif_credentials_modal(automation_callback: Callable[[str, str], Non
 
 @st.dialog("Credenciales SSCC")
 # --------------------------------------------------
-def request_sscc_credentials_modal(automation_callback: Callable[[str, str], None]):
+def request_sscc_credentials_modal(automation_callback: Callable[[str, str], Any]):
     """
-    Modal reutilizable para solicitar credenciales del SSCC.
-    automation_callback recibe (username, password).
+    Modal reutilizable para SSCC usando Pywinauto (Síncrono).
+    automation_callback recibe (username, password) y devuelve la lista de resultados.
     """
-    st.write("Ingrese sus credenciales de SSCC para iniciar la descarga.")
-    username = st.text_input("Usuario")
-    password = st.text_input("Contraseña", type="password")
+    st.write(
+        "Ingrese sus credenciales de SSCC para iniciar la automatización de escritorio."
+    )
 
-    if st.button("Iniciar Automatización"):
+    # Usamos keys únicas para evitar colisiones con otros modales
+    username = st.text_input("Usuario", key="sscc_user")
+    password = st.text_input("Contraseña", type="password", key="sscc_pass")
+
+    if st.button("Lanzar Robot SSCC", type="primary"):
         if not username or not password:
-            st.error("Debe ingresar usuario y contraseña.")
+            st.error("Debe completar ambos campos.")
             return
 
         try:
-            with st.spinner("Ejecutando automatización..."):
-                import asyncio
-                import sys
+            # En Pywinauto, el spinner es vital porque el navegador/app
+            # puede tardar segundos en reaccionar.
+            with st.spinner(
+                "🤖 Robot SSCC en ejecución... Por favor, no mueva el mouse."
+            ):
+                # Ejecución Directa (Síncrona)
+                # Al no ser async, no necesitamos loop, ni Proactor, ni await.
+                results = automation_callback(username, password)
 
-                # SOLUCIÓN PARA WINDOWS
-                if sys.platform == "win32":
-                    asyncio.set_event_loop_policy(
-                        asyncio.WindowsProactorEventLoopPolicy()
-                    )
+            if results:
+                st.success(
+                    f"✅ Proceso finalizado: {len(results)} operaciones completadas."
+                )
+            else:
+                st.info("Proceso terminado sin resultados nuevos.")
 
-                async def run_automation():
-                    return await automation_callback(username, password)
-
-            try:
-                results = asyncio.run(run_automation())
-            except RuntimeError:
-                # Si ya hay un loop corriendo (común en Streamlit)
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                results = loop.run_until_complete(run_automation())
-
-            st.success(f"Proceso finalizado: {len(results)} reportes procesados.")
+            # Esperamos un segundo para que el usuario vea el éxito antes de recargar
             st.rerun()
 
         except Exception as e:
-            st.error(f"Error durante la automatización: {e}")
+            st.error(f"❌ Error en la automatización SSCC: {str(e)}")
