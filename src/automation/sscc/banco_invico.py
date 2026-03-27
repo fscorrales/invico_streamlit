@@ -122,7 +122,7 @@ class BancoINVICO(SSCCReportManager):
                     cmb_nombre.click_input()
                     report_name = (
                         str(ejercicio)
-                        + " - Bancos - Consulta General de Movimientos.csv"
+                        + "-bancoINVICO.csv"
                     )
                     cmb_nombre.type_keys(report_name, with_spaces=True)
                     btn_guardar = export_dlg.child_window(
@@ -307,7 +307,7 @@ def main(
                     )
                     filename = (
                         str(ejercicio)
-                        + " - Bancos - Consulta General de Movimientos.csv"
+                        + "-bancoINVICO.csv"
                     )
                     banco_invico.read_csv_file(Path(os.path.join(save_path, filename)))
                     banco_invico.process_dataframe()
@@ -339,5 +339,5 @@ if __name__ == "__main__":
 
     # From /invico_streamlit
 
-    # poetry run python -m src.automation.siif.rvicon03 -d
-    # poetry run python -m src.automation.siif.rvicon03 -f "D:\Proyectos IT\invico_streamlit\src\automation\siif\2026-rvicon03.xls"
+    # poetry run python -m src.automation.sscc.banco_invico -d
+    # poetry run python -m src.automation.sscc.banco_invico -f "D:\Datos INVICO\R Gestion INVICO\invico_streamlit\src\automation\sscc\2026-bancoINVICO.csv"
