@@ -12,7 +12,7 @@ from src.constants.endpoints import Endpoints
 from src.constants.options import get_ejercicios_list
 from src.services.api_client import post_request
 from src.views.aux_tables import report_template
-from src.views.modal_siif import request_credentials_modal
+from src.views.modals import request_siif_credentials_modal
 
 ENDPONT = Endpoints.SIIF_RF610.value
 REPORTE = "rf610"
@@ -78,5 +78,5 @@ def render() -> None:
         endpoint=ENDPONT,
         description="Ejecución presupuestaria del Ejercicio con descripciones de las Estructuras",
         filters_config=mis_filtros,
-        on_update=lambda: request_credentials_modal(run_automation),
+        on_update=lambda: request_siif_credentials_modal(run_automation),
     )

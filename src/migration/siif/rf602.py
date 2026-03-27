@@ -58,7 +58,7 @@ def get_args():
     args = parser.parse_args()
 
     if args.sqlite_path is None:
-        from ...utils.hangling_path import get_sqlite_path
+        from ...utils.handling_path import get_sqlite_path
 
         args.sqlite_path = os.path.join(get_sqlite_path(), "siif.sqlite")
 

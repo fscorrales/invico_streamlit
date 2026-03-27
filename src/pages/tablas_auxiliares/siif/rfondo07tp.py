@@ -8,7 +8,7 @@ from src.services.api_client import post_request
 
 # from src.services.models import TipoComprobanteSIIF
 from src.views.aux_tables import report_template
-from src.views.modal_siif import request_credentials_modal
+from src.views.modals import request_siif_credentials_modal
 
 ENDPONT = Endpoints.SIIF_RFONDO07TP.value
 REPORTE = "rfondo07tp"
@@ -76,5 +76,5 @@ def render() -> None:
         endpoint=ENDPONT,
         description="Resumen de Fondos del Ejercicio por Tipo de Comprobante",
         filters_config=mis_filtros,
-        on_update=lambda: request_credentials_modal(run_automation),
+        on_update=lambda: request_siif_credentials_modal(run_automation),
     )
