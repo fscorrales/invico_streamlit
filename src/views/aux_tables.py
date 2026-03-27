@@ -89,7 +89,7 @@ def report_template(
             key="text_input_advance_filter-" + key
         )
 
-        if button_update("Actualizar desde SIIF", key=f"button_update_{key}"):
+        if button_update("Actualizador automático", key=f"button_update_{key}"):
             if on_update:
                 on_update()
 

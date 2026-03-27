@@ -129,7 +129,7 @@ def build_navigation() -> None:
                 icon="📑",
             ),
             st.Page(
-                "src/pages/tablas_auxiliares/sscc.py",
+                "src/pages/tablas_auxiliares/sscc/sscc.py",
                 title="SSCC",
                 icon="🏦",
             ),
