@@ -1,2 +1,2 @@
 from .handling_files import *
-from .hangling_path import *
+from .handling_path import *

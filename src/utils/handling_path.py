@@ -135,4 +135,4 @@ if __name__ == "__main__":
 
     # From /invicofapy
 
-    # poetry run python -m src.utils.hangling_path
+    # poetry run python -m src.utils.handling_path
