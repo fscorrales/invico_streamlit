@@ -17,7 +17,7 @@ REPORTE = "banco_invico"
 
 
 # --------------------------------------------------
-async def run_automation(username: str, password: str) -> None:
+def run_automation(username: str, password: str) -> None:
     ejercicios = st.session_state.get("ejercicios_" + REPORTE, [])
     if not ejercicios:
         st.error("No hay ejercicios seleccionados.")
