@@ -79,9 +79,7 @@ def request_sscc_credentials_modal(automation_callback: Callable[[str, str], Any
                 results = automation_callback(username, password)
 
             if results:
-                st.success(
-                    f"✅ Proceso finalizado: {len(results)} operaciones completadas."
-                )
+                st.success(f"✅ Proceso finalizado.")
             else:
                 st.info("Proceso terminado sin resultados nuevos.")
 
