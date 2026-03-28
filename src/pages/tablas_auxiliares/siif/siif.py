@@ -2,23 +2,38 @@
 
 import streamlit as st
 
-from src.pages.tablas_auxiliares.siif import rf602, rf610, rfondo07tp, rfondos04
+from src.pages.tablas_auxiliares.siif import (
+    rcg01_uejp,
+    rci02,
+    rf602,
+    rf610,
+    rfondo07tp,
+    rfondos04,
+)
 
 
 def main() -> None:
 
-    tab1, tab2, tab3, tab4 = st.tabs(["rf602", "rf610", "rfondo07tp", "rfondos04"])
+    tab_rci02, tab_rf602, tab_rf610, tab_rcg01_uejp, tab_rfondo07tp, tab_rfondos04 = (
+        st.tabs(["rci02", "rf602", "rf610", "rcg01_uejp", "rfondo07tp", "rfondos04"])
+    )
 
-    with tab1:
+    with tab_rci02:
+        rci02.render()
+
+    with tab_rf602:
         rf602.render()
 
-    with tab2:
+    with tab_rf610:
         rf610.render()
 
-    with tab3:
+    with tab_rcg01_uejp:
+        rcg01_uejp.render()
+
+    with tab_rfondo07tp:
         rfondo07tp.render()
 
-    with tab4:
+    with tab_rfondos04:
         rfondos04.render()
 
 
