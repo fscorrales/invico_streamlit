@@ -16,3 +16,15 @@ def get_ejercicios_list() -> list[int]:
 # --------------------------------------------------
 def get_tipos_comprobantes_siif_list() -> list[str]:
     return fetch_data(Endpoints.SIIF.value + "/tiposComprobantes")
+
+
+@st.cache_data
+# --------------------------------------------------
+def get_grupos_partidas_siif_list() -> list[str]:
+    return fetch_data(Endpoints.SIIF.value + "/gruposPartidas")
+
+
+@st.cache_data
+# --------------------------------------------------
+def get_partidas_principales_siif_list() -> list[str]:
+    return fetch_data(Endpoints.SIIF.value + "/partidasPrincipales")

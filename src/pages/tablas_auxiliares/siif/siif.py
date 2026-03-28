@@ -9,13 +9,22 @@ from src.pages.tablas_auxiliares.siif import (
     rf610,
     rfondo07tp,
     rfondos04,
+    rpa03g,
 )
 
 
 def main() -> None:
 
-    tab_rci02, tab_rf602, tab_rf610, tab_rcg01_uejp, tab_rfondo07tp, tab_rfondos04 = (
-        st.tabs(["rci02", "rf602", "rf610", "rcg01_uejp", "rfondo07tp", "rfondos04"])
+    (
+        tab_rci02,
+        tab_rf602,
+        tab_rf610,
+        tab_rcg01_uejp,
+        tab_rpa03g,
+        tab_rfondo07tp,
+        tab_rfondos04,
+    ) = st.tabs(
+        ["rci02", "rf602", "rf610", "rcg01_uejp", "rpa03g", "rfondo07tp", "rfondos04"]
     )
 
     with tab_rci02:
@@ -29,6 +38,9 @@ def main() -> None:
 
     with tab_rcg01_uejp:
         rcg01_uejp.render()
+
+    with tab_rpa03g:
+        rpa03g.render()
 
     with tab_rfondo07tp:
         rfondo07tp.render()
