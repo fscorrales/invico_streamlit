@@ -1,3 +1,6 @@
+__all__ = ["print_rich_table"]
+
+
 import numpy as np
 import pandas as pd
 from rich.console import Console

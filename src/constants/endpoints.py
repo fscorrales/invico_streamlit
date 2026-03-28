@@ -15,3 +15,4 @@ class Endpoints(str, Enum):
     CONTROL_RECURSOS = "/control/controlRecursos"
     SGF_RESUMEN_REND_PROV = "/sgf/resumenRendProv"
     SSCC_BANCO_INVICO = "/sscc/bancoINVICO"
+    CTAS_CTES = "/sscc/ctasCtes"
