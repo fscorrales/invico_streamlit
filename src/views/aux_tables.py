@@ -25,6 +25,8 @@ def report_template(
     description: str,
     filters_config: list,
     on_update: Optional[Any] = None,
+    has_export: bool = True,
+    allow_no_filters: bool = False,
 ):
     """
     Vista reutilizable.
@@ -89,32 +91,34 @@ def report_template(
             key="text_input_advance_filter-" + key
         )
 
-        if button_update("Actualizador automático", key=f"button_update_{key}"):
-            if on_update:
-                on_update()
+        if has_export:
+            if button_update("Actualizador automático", key=f"button_update_{key}"):
+                if on_update:
+                    on_update()
 
-        # Aquí podrías integrar tu logic de exportación
-        if f"temp_file_{key}" not in st.session_state:
-            if button_export("Exportar a Excel y GS", key=f"button_export_{key}"):
-                download_file()
-        else:
-            # Si hay archivo, el botón "Exportar" desaparece y aparece el de "Descargar"
-            st.download_button(
-                label="📥 GUARDAR EXCEL",
-                data=st.session_state[f"temp_file_{key}"],
-                file_name=f"reporte_{key}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                key=f"btn_dl_{key}",
-                type="primary",  # Lo ponemos en color para que resalte
-                on_click=lambda: st.session_state.pop(f"temp_file_{key}"),
-            )
+            # Aquí podrías integrar tu logic de exportación
+            if f"temp_file_{key}" not in st.session_state:
+                if button_export("Exportar a Excel y GS", key=f"button_export_{key}"):
+                    download_file()
+            else:
+                # Si hay archivo, el botón "Exportar" desaparece y aparece el de "Descargar"
+                st.download_button(
+                    label="📥 GUARDAR EXCEL",
+                    data=st.session_state[f"temp_file_{key}"],
+                    file_name=f"reporte_{key}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key=f"btn_dl_{key}",
+                    type="primary",  # Lo ponemos en color para que resalte
+                    on_click=lambda: st.session_state.pop(f"temp_file_{key}"),
+                )
 
     # 2. Validar que no haya filtros vacíos
-    if any(not s[1] for s in selections):
-        st.warning(
-            "Seleccione al menos un valor en cada filtro obligatorio. El filtro avanzado es opcional"
-        )
-        return
+    if not allow_no_filters:
+        if any(not s[1] for s in selections):
+            st.warning(
+                "Seleccione al menos un valor en cada filtro obligatorio. El filtro avanzado es opcional"
+            )
+            return
 
     # 3. Lógica de Fetch Iterativo (El equivalente al v-for de Vue + API calls)
     try:
@@ -126,21 +130,32 @@ def report_template(
             # Extraemos los nombres de los parámetros: ["ejercicio", "unidad_id"]
             nombres_params = [s[0] for s in selections]
 
-            # itertools.product genera todas las combinaciones posibles:
-            # (2023, "Salud"), (2023, "Educación"), (2024, "Salud"), ...
-            for combinacion in itertools.product(*listas_valores):
-                # Creamos el diccionario de params para esta petición específica
-                params_peticion = dict(zip(nombres_params, combinacion))
-                params_peticion["limit"] = 0
-                params_peticion["queryFilter"] = filtro_avanzado
+            # Si permitimos que no haya filtros y todas las listas están vacías,
+            # debemos forzar al menos una ejecución con params vacíos.
+            if allow_no_filters and all(not lista for lista in listas_valores):
+                params_peticion = {"limit": 0, "queryFilter": filtro_avanzado}
+                df_final = fetch_dataframe(endpoint, params=params_peticion)
+            else:
+                # Si hay filtros, usamos la lógica de combinaciones
+                # Pero ojo: product con una lista vacía devuelve nada.
+                # Aseguramos que las listas vacías tengan al menos un [None]
+                # si queremos que la combinación siga funcionando.
+                listas_limpias = [l if l else [None] for l in listas_valores]
+                # itertools.product genera todas las combinaciones posibles:
+                # (2023, "Salud"), (2023, "Educación"), (2024, "Salud"), ...
+                for combinacion in itertools.product(*listas_limpias):
+                    # Creamos el diccionario de params para esta petición específica
+                    params_peticion = dict(zip(nombres_params, combinacion))
+                    params_peticion["limit"] = 0
+                    params_peticion["queryFilter"] = filtro_avanzado
 
-                # DEBUG: Mostrar en la app (puedes borrarlo después)
-                # print(f"DEBUG API CALL [{endpoint}]: {params_peticion}")
-                # st.info(f"Enviando a API: {params_peticion}")
+                    # DEBUG: Mostrar en la app (puedes borrarlo después)
+                    # print(f"DEBUG API CALL [{endpoint}]: {params_peticion}")
+                    # st.info(f"Enviando a API: {params_peticion}")
 
-                # Hacemos el fetch individual
-                df_parcial = fetch_dataframe(endpoint, params=params_peticion)
-                df_final = pd.concat([df_final, df_parcial], ignore_index=True)
+                    # Hacemos el fetch individual
+                    df_parcial = fetch_dataframe(endpoint, params=params_peticion)
+                    df_final = pd.concat([df_final, df_parcial], ignore_index=True)
 
             if df_final.empty:
                 st.info("No se encontraron resultados.")
