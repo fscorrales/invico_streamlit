@@ -25,8 +25,9 @@ def report_template(
     description: str,
     filters_config: list,
     on_update: Optional[Any] = None,
-    has_export: bool = True,
     allow_no_filters: bool = False,
+    has_update: bool = True,
+    has_export: bool = True,
 ):
     """
     Vista reutilizable.
@@ -91,11 +92,12 @@ def report_template(
             key="text_input_advance_filter-" + key
         )
 
-        if has_export:
+        if has_update:
             if button_update("Actualizador automático", key=f"button_update_{key}"):
                 if on_update:
                     on_update()
 
+        if has_export:
             # Aquí podrías integrar tu logic de exportación
             if f"temp_file_{key}" not in st.session_state:
                 if button_export("Exportar a Excel y GS", key=f"button_export_{key}"):
