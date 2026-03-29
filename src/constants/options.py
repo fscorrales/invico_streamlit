@@ -28,3 +28,10 @@ def get_grupos_partidas_siif_list() -> list[str]:
 # --------------------------------------------------
 def get_partidas_principales_siif_list() -> list[str]:
     return fetch_data(Endpoints.SIIF.value + "/partidasPrincipales")
+
+
+@st.cache_data
+# --------------------------------------------------
+def get_ctas_ctes_list() -> list[str]:
+    data = fetch_data(Endpoints.CTAS_CTES.value)
+    return [d.get("map_to") for d in data]

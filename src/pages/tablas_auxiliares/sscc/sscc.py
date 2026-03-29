@@ -2,17 +2,17 @@
 
 import streamlit as st
 
-from src.pages.tablas_auxiliares.sscc import banco_invico
+from src.pages.tablas_auxiliares.sscc import banco_invico, ctas_ctes
 
 
 def main() -> None:
-    tab1, tab2 = st.tabs(["Banco INVICO", "Ctas Ctes"])
+    tab_banco_invico, tab_ctas_ctes = st.tabs(["Banco INVICO", "Ctas Ctes"])
 
-    with tab1:
+    with tab_banco_invico:
         banco_invico.render()
 
-    with tab2:
-        pass
+    with tab_ctas_ctes:
+        ctas_ctes.render()
 
 
 if __name__ == "__main__":
