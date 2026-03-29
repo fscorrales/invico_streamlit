@@ -133,6 +133,11 @@ def build_navigation() -> None:
                 title="SSCC",
                 icon="🏦",
             ),
+            st.Page(
+                "src/pages/tablas_auxiliares/icaro/icaro.py",
+                title="ICARO",
+                icon="🏗️",
+            ),
         ],
         "Reportes": [
             st.Page(
