@@ -16,3 +16,4 @@ class Endpoints(str, Enum):
     SGF_RESUMEN_REND_PROV = "/sgf/resumenRendProv"
     SSCC_BANCO_INVICO = "/sscc/bancoINVICO"
     CTAS_CTES = "/sscc/ctasCtes"
+    ICARO_CARGA = "/icaro/carga"
