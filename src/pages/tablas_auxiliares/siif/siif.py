@@ -10,6 +10,7 @@ from src.pages.tablas_auxiliares.siif import (
     rfondo07tp,
     rfondos04,
     rfp_p605b,
+    ri102,
     rpa03g,
 )
 
@@ -17,6 +18,7 @@ from src.pages.tablas_auxiliares.siif import (
 def main() -> None:
 
     (
+        tab_ri102,
         tab_rci02,
         tab_rfp_p605b,
         tab_rf602,
@@ -27,6 +29,7 @@ def main() -> None:
         tab_rfondos04,
     ) = st.tabs(
         [
+            "ri102",
             "rci02",
             "rfp_p605b",
             "rf602",
@@ -37,6 +40,9 @@ def main() -> None:
             "rfondos04",
         ]
     )
+
+    with tab_ri102:
+        ri102.render()
 
     with tab_rci02:
         rci02.render()
