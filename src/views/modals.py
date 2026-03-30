@@ -93,3 +93,55 @@ def request_sscc_credentials_modal(automation_callback: Callable[[str, str], Any
 
         except Exception as e:
             st.error(f"❌ Error en la automatización SSCC: {str(e)}")
+
+
+@st.dialog("Credenciales SIIF y SSCC")
+# --------------------------------------------------
+def request_siif_and_sscc_credentials_modal(
+    automation_callback: Callable[[str, str, str, str], Any],
+):
+    """
+    Modal reutilizable para SIIF y SSCC usando Pywinauto (Síncrono) y Playwright (Asíncrono).
+    automation_callback recibe (username, password) y devuelve la lista de resultados.
+    """
+    st.write(
+        "Ingrese sus credenciales de SIIF y SSCC para iniciar la automatización de escritorio."
+    )
+
+    # Usamos keys únicas para evitar colisiones con otros modales
+    siif_username = st.text_input("Usuario SIIF", key="siif_user")
+    siif_password = st.text_input("Contraseña SIIF", type="password", key="siif_pass")
+    sscc_username = st.text_input("Usuario SSCC", key="sscc_user")
+    sscc_password = st.text_input("Contraseña SSCC", type="password", key="sscc_pass")
+
+    if st.button("Lanzar Robot SIIF y SSCC", type="primary"):
+        if (
+            not siif_username
+            or not siif_password
+            or not sscc_username
+            or not sscc_password
+        ):
+            st.error("Debe completar todos los campos.")
+            return
+
+        try:
+            # En Pywinauto, el spinner es vital porque el navegador/app
+            # puede tardar segundos en reaccionar.
+            with st.spinner("🤖 Robot en ejecución... Por favor, no mueva el mouse."):
+                # Ejecución Directa (Síncrona)
+                # Al no ser async, no necesitamos loop, ni Proactor, ni await.
+                results = automation_callback(
+                    siif_username, siif_password, sscc_username, sscc_password
+                )
+
+            if results:
+                st.success(f"Proceso finalizado: {len(results)} reportes procesados.")
+            else:
+                st.info("Proceso terminado sin resultados nuevos.")
+
+            # Esperamos un segundo para que el usuario vea el éxito antes de recargar
+            time.sleep(1)
+            st.rerun()
+
+        except Exception as e:
+            st.error(f"❌ Error en la automatización SIIF y SSCC: {str(e)}")

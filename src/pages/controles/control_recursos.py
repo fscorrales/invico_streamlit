@@ -18,7 +18,7 @@ from src.constants.endpoints import Endpoints
 from src.constants.options import get_ejercicios_list
 from src.services.api_client import post_request
 from src.views.aux_tables import report_template
-from src.views.modals import request_siif_credentials_modal
+from src.views.modals import request_siif_and_sscc_credentials_modal
 
 ENDPONT = Endpoints.CONTROL_RECURSOS.value
 REPORTE = "recursos"
@@ -78,7 +78,7 @@ def render() -> None:
         endpoint=ENDPONT,
         description="Cruce de recursos SIIF vs Depósitos Bancarios por tipo de recurso y cta. cte.",
         filters_config=mis_filtros,
-        on_update=lambda: request_siif_credentials_modal(run_automation),
+        on_update=lambda: request_siif_and_sscc_credentials_modal(run_automation),
     )
 
 
