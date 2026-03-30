@@ -1,6 +1,7 @@
 __all__ = [
     "get_utils_path",
     "get_src_path",
+    "get_app_path",
     "get_outside_path",
     "get_download_path",
     "get_download_sgf_path",
@@ -31,16 +32,26 @@ def get_src_path():
     dir_path = os.path.dirname(dir_path)
     return dir_path
 
-
 # --------------------------------------------------
-def get_outside_path():
-    dir_path = os.path.dirname(os.path.dirname(get_src_path()))
+def get_app_path():
+    dir_path = os.path.dirname(get_src_path())
     return dir_path
 
 
 # --------------------------------------------------
+def get_outside_path():
+    dir_path = os.path.dirname(get_app_path())
+    return dir_path
+
+
+# # --------------------------------------------------
+# def get_download_path():
+#     dir_path = os.path.join(get_outside_path(), "Reportes Descargados")
+#     return dir_path
+
+# --------------------------------------------------
 def get_download_path():
-    dir_path = os.path.join(get_outside_path(), "Reportes Descargados")
+    dir_path = os.path.join(get_app_path(), "Reportes Descargados")
     return dir_path
 
 
@@ -115,6 +126,7 @@ def main():
 
     print(f"Utils Path: {get_utils_path()}")
     print(f"Src Path: {get_src_path()}")
+    print(f"App Path: {get_app_path()}")
     print(f"Outside Path: {get_outside_path()}")
     print(f"Download Path: {get_download_path()}")
     print(f"Download SGF Path: {get_download_sgf_path()}")

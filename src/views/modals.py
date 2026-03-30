@@ -42,6 +42,7 @@ def request_siif_credentials_modal(automation_callback: Callable[[str, str], Non
                 results = loop.run_until_complete(run_automation())
 
             st.success(f"Proceso finalizado: {len(results)} reportes procesados.")
+            time.sleep(1)
             st.rerun()
 
         except Exception as e:
@@ -79,11 +80,12 @@ def request_sscc_credentials_modal(automation_callback: Callable[[str, str], Any
                 results = automation_callback(username, password)
 
             if results:
-                st.success(f"✅ Proceso finalizado.")
+                st.success(f"Proceso finalizado: {len(results)} reportes procesados.")
             else:
                 st.info("Proceso terminado sin resultados nuevos.")
 
             # Esperamos un segundo para que el usuario vea el éxito antes de recargar
+            time.sleep(1)
             st.rerun()
 
         except Exception as e:
