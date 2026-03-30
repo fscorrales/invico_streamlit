@@ -1,7 +1,7 @@
 import streamlit as st
 from playwright.async_api import async_playwright
 
-from src.automation.siif.rpa03g import Rpa03g
+from src.automation.siif.gto_rpa03g import GtoRpa03g
 from src.constants.endpoints import Endpoints
 from src.constants.options import (
     get_ejercicios_list,
@@ -13,8 +13,8 @@ from src.services.api_client import post_request
 from src.views.aux_tables import report_template
 from src.views.modals import request_siif_credentials_modal
 
-ENDPONT = Endpoints.SIIF_RPA03G.value
-REPORTE = "rpa03g"
+ENDPONT = Endpoints.SIIF_GTO_RPA03G.value
+REPORTE = "gto_rpa03g"
 GRUPOS = get_grupos_partidas_siif_list()
 
 
@@ -34,7 +34,7 @@ async def run_automation(username: str, password: str) -> None:
         grupos = [grupos]
 
     async with async_playwright() as p:
-        siif = Rpa03g()
+        siif = GtoRpa03g()
         # The Rfondos04 class handles login via SIIFReportManager.login
         await siif.login(
             username=username,
