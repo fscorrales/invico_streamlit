@@ -222,7 +222,7 @@ class Rpa03g(SIIFReportManager):
             }
         )
         df["importe"] = pd.to_numeric(df["importe"]).astype(np.float64)
-        df["grupo"] = df["partida"].str[0] + "00"
+        df["grupo"] = df["partida"].str[0]
         df["mes"] = df["fecha"].str[5:7] + "/" + df["ejercicio"].astype(str)
         df["nro_comprobante"] = (
             df["nro_entrada"].str.zfill(5) + "/" + df["mes"].str[-2:]

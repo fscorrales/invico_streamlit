@@ -1,3 +1,4 @@
+import time
 from typing import Any, Callable
 
 import streamlit as st
@@ -21,6 +22,8 @@ def request_siif_credentials_modal(automation_callback: Callable[[str, str], Non
 
         try:
             with st.spinner("Ejecutando automatización..."):
+                st.info("Automatización iniciada. Por favor, espere...")
+
                 import asyncio
                 import sys
 
