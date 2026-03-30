@@ -8,6 +8,8 @@ Purpose: Migrate from old Icaro.sqlite to new DB
 __all__ = ["IcaroMongoMigrator"]
 
 
+import json
+import os
 import sqlite3
 from pathlib import Path
 
@@ -21,39 +23,66 @@ from ..migration_client import MigrationClient
 
 # --------------------------------------------------
 def validate_sqlite_file(value: Path):
-    # Typer ya validó que existe y es legible por los parámetros en typer.Option
+    if value is None:
+        return value
 
-    # 1. Validar extensión (opcional pero recomendado)
-    # Comúnmente .db, .sqlite, .sqlite3
-    valid_extensions = [".db", ".sqlite", ".sqlite3"]
-    if value and value.suffix.lower() not in valid_extensions:
-        # Solo lanzamos advertencia o error si quieres ser estricto con la extensión
-        # Si prefieres ser flexible, puedes comentar este bloque if.
+    # Convertimos a string y normalizamos barras
+    path_str = os.path.normpath(str(value))
+    
+    # Si detectamos que es una ruta de red pero le falta una barra inicial (común en Typer/Click)
+    if path_str.startswith('\\') and not path_str.startswith('\\\\'):
+        path_str = '\\' + path_str
+
+    # Creamos un nuevo objeto Path con la ruta corregida
+    fixed_path = Path(path_str)
+
+    if not fixed_path.exists():
         raise typer.BadParameter(
-            f"El archivo '{value}' no tiene una extensión de SQLite válida {valid_extensions}"
+            f"No se pudo encontrar el archivo en la red: '{path_str}'.\n"
+            "Tip: Intenta poner la ruta entre comillas dobles en la terminal."
         )
 
-    # 2. Validar integridad de la base de datos
+    # Validar integridad SQLite (usando la ruta corregida)
     try:
-        # Intentamos abrir la conexión
-        # uri=True ayuda si el path tiene caracteres especiales
-        conn = sqlite3.connect(f"file:{value}?mode=ro", uri=True)
-        cursor = conn.cursor()
-
-        # Ejecutamos un PRAGMA rápido para verificar que el encabezado es correcto
-        # y que realmente es un archivo de base de datos SQLite.
-        cursor.execute("PRAGMA schema_version;")
-        cursor.fetchone()
-
+        conn = sqlite3.connect(f"file:{fixed_path}?mode=ro", uri=True)
+        conn.execute("PRAGMA schema_version;")
         conn.close()
-    except sqlite3.DatabaseError as e:
-        raise typer.BadParameter(
-            f"El archivo no es una base de datos SQLite válida o está corrupto: {e}"
-        )
     except Exception as e:
-        raise typer.BadParameter(f"Error inesperado al validar SQLite: {e}")
+        raise typer.BadParameter(f"Error de base de datos: {e}")
 
-    return value
+    return fixed_path
+
+    # # 1. Validar extensión (opcional pero recomendado)
+    # # Comúnmente .db, .sqlite, .sqlite3
+    # valid_extensions = [".db", ".sqlite", ".sqlite3"]
+    # if value and value.suffix.lower() not in valid_extensions:
+    #     # Solo lanzamos advertencia o error si quieres ser estricto con la extensión
+    #     # Si prefieres ser flexible, puedes comentar este bloque if.
+    #     raise typer.BadParameter(
+    #         f"El archivo '{value}' no tiene una extensión de SQLite válida {valid_extensions}"
+    #     )
+
+    # # 2. Validar integridad de la base de datos
+    # try:
+    #     # Intentamos abrir la conexión
+    #     # uri=True ayuda si el path tiene caracteres especiales
+    #     conn = sqlite3.connect(f"file:{value}?mode=ro", uri=True)
+    #     cursor = conn.cursor()
+
+    #     # Ejecutamos un PRAGMA rápido para verificar que el encabezado es correcto
+    #     # y que realmente es un archivo de base de datos SQLite.
+    #     cursor.execute("PRAGMA schema_version;")
+    #     cursor.fetchone()
+
+    #     conn.close()
+    # except sqlite3.DatabaseError as e:
+    #     raise typer.BadParameter(
+    #         f"El archivo no es una base de datos SQLite válida o está corrupto: {e}"
+    #     )
+    # except Exception as e:
+    #     raise typer.BadParameter(f"Error inesperado al validar SQLite: {e}")
+
+    # return value
 
 
 # --------------------------------------------------
@@ -70,8 +99,17 @@ class IcaroMongoMigrator:
         client = MigrationClient(token="token_bypassed")
         try:
             records = df.to_dict(orient="records")
+
+            # Aplicamos tu FIX directamente aquí
+            clean_records = json.loads(
+                json.dumps(
+                    records,
+                    default=lambda x: x.isoformat() if hasattr(x, "isoformat") else str(x),
+                )
+            )
+
             # El cliente maneja internamente el login y el POST
-            result = client.post_batch(endpoint=endpoint, records=records)
+            result = client.post_batch(endpoint=endpoint, records=clean_records)
             # post_request(endpoint=endpoint, json_body=records, token=token)
             print(f"Successfully migrated {table}'s {len(records)} records to MongoDB.")
 
@@ -394,11 +432,10 @@ class IcaroMongoMigrator:
     #     )
 
     # --------------------------------------------------
-    async def migrate_carga(self):
+    def migrate_carga(self):
         """Migrate CARGA table to MongoDB."""
         table = "CARGA"
         df = get_df_from_sql_table(sqlite_path=self.sqlite_path, table=table)
-        df.drop(columns=["id"], inplace=True)
         df.rename(
             columns={
                 "Fecha": "fecha",
@@ -575,7 +612,7 @@ class IcaroMongoMigrator:
     #     )
 
     # --------------------------------------------------
-    async def migrate_all(self):
+    def migrate_all(self):
         return_schema = []
         # return_schema.append(await self.migrate_programas())
         # return_schema.append(await self.migrate_subprogramas())
@@ -587,7 +624,7 @@ class IcaroMongoMigrator:
         # return_schema.append(await self.migrate_partidas())
         # return_schema.append(await self.migrate_proveedores())
         # return_schema.append(await self.migrate_obras())
-        return_schema.append(await self.migrate_carga())
+        return_schema.append(self.migrate_carga())
         # return_schema.append(await self.migrate_retenciones())
         # return_schema.append(await self.migrate_certificados())
         # return_schema.append(await self.migrate_resumen_rend_obras())
@@ -611,10 +648,10 @@ def main(
         "--file",
         "-f",
         help="SQLite database file path",
-        exists=True,
+        exists=False,
         file_okay=True,
         dir_okay=False,
-        readable=True,
+        readable=False,
         callback=validate_sqlite_file,
     ),
 ):
@@ -641,4 +678,4 @@ if __name__ == "__main__":
     app()
     # From /invico_streamlit
 
-    # poetry run python -m src.migration.icaro.icaro -f "D:\Proyectos IT\..."
+    # poetry run python -m src.migration.icaro.icaro -f "\\192.168.0.149\Compartida CONTABLE\R Apps (Compartida)\R Output\SQLite Files\ICARO.sqlite"
