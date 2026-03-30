@@ -5,6 +5,7 @@ from pathlib import Path
 
 from src.automation.sscc.banco_invico import BancoINVICO
 from src.automation.sscc.connect_sscc import login
+from src.constants.endpoints import Endpoints
 from src.services.api_client import post_request
 from src.utils.handling_path import get_download_sscc_path
 
@@ -17,10 +18,9 @@ def run():
 
     username = sys.argv[1]
     password = sys.argv[2]
-    endpoint = sys.argv[3]
-    token = sys.argv[4]
+    token = sys.argv[3]
     # Recibimos el string "2024,2025" y lo convertimos en lista ['2024', '2025']
-    ejercicios_raw = sys.argv[5] if len(sys.argv) > 4 else ""
+    ejercicios_raw = sys.argv[4] if len(sys.argv) > 3 else ""
     ejercicios = ejercicios_raw.split(",") if ejercicios_raw else []
 
     print("🚀 Iniciando automatización Banco INVICO...")
@@ -48,7 +48,9 @@ def run():
                     dir_path=save_path, ejercicios=str(ejercicio)
                 )
                 filename = str(ejercicio) + "-bancoINVICO.csv"
-                print(f"✅ Reporte descargado: {Path(os.path.join(save_path, filename))}")
+                print(
+                    f"✅ Reporte descargado: {Path(os.path.join(save_path, filename))}"
+                )
                 banco_invico.read_csv_file(Path(os.path.join(save_path, filename)))
                 banco_invico.process_dataframe()
                 df_clean = banco_invico.clean_df
@@ -56,7 +58,11 @@ def run():
                     # Send to backend
                     print(f"✅ Enviando ejercicio {ejercicio} a backend...")
                     json_data = df_clean.to_dict(orient="records")
-                    response = post_request(endpoint, json_body=json_data, token=token)
+                    response = post_request(
+                        Endpoints.SSCC_BANCO_INVICO.value,
+                        json_body=json_data,
+                        token=token,
+                    )
                     results.append(f"Ejercicio {ejercicio}: {response}")
 
             return results
