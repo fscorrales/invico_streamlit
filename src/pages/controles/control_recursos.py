@@ -9,17 +9,11 @@ Google Sheet:
     - https://docs.google.com/spreadsheets/d/1u_I5wN3w_rGX6rWIsItXkmwfIEuSox6ZsmKYbMZ2iUY
 """
 
-import os
-import subprocess
-import sys
-
 import streamlit as st
-from playwright.async_api import async_playwright
 
-from src.automation.siif.rci02 import Rci02
+from src.automation.analysis import control_recursos
 from src.constants.endpoints import Endpoints
 from src.constants.options import get_ejercicios_list
-from src.services.api_client import post_request
 from src.views.aux_tables import report_template
 from src.views.modals import request_siif_and_sscc_credentials_modal
 
@@ -42,58 +36,23 @@ async def run_automation(
     if isinstance(ejercicios, int):
         ejercicios = [ejercicios]
 
-    ejercicios_str = ",".join(map(str, ejercicios))
-
     # 2. Iniciamos la descarga automática
+    results = []
     # 2.a. Ejecutamos la automatización de SIIF
-    async with async_playwright() as p:
-        siif = Rci02()
-        # The Rf602 class handles login via SIIFReportManager.login
-        await siif.login(
-            username=siif_username,
-            password=siif_password,
-            playwright=p,
-            headless=False,
-        )
-        await siif.go_to_reports()
-
-        results = []
-        for ej in ejercicios:
-            df_clean = await siif.download_and_process_report(ejercicio=ej)
-            if df_clean is not None and not df_clean.empty:
-                # Send to backend
-                json_data = df_clean.to_dict(orient="records")
-                response = post_request(Endpoints.SIIF_RCI02.value, json_body=json_data)
-                results.append(f"Ejercicio {ej}: {response}")
-
-        await siif.logout()
-
-    print("✅ SIIF Finalizado. Iniciando SSCC...")
-
-    # 2.b. Ejecutamos el módulo runner de SSCC en un proceso separado
-    modulo_runner = "src.automation.sscc.banco_invico_runner"
-
-    # Aseguramos que el PYTHONPATH sea la raíz actual
-    env = os.environ.copy()
-    env["PYTHONPATH"] = os.getcwd()
-
-    process_sscc = subprocess.Popen(
-        [
-            sys.executable,
-            "-m",
-            modulo_runner,
-            sscc_username,
-            sscc_password,
-            st.session_state.get("token"),
-            ejercicios_str,
-        ],
-        creationflags=subprocess.CREATE_NEW_CONSOLE,
-        env=env,
+    results = await control_recursos.sync_control_recursos_from_siif(
+        siif_username=siif_username,
+        siif_password=siif_password,
+        ejercicios=ejercicios,
     )
 
-    # Esperamos que el SSCC termine antes de devolver el control a Streamlit
-    process_sscc.wait()
-    print("✅ SSCC Finalizado.")
+    # 2.b. Ejecutamos el módulo runner de SSCC en un proceso separado
+    control_recursos.sync_control_recursos_from_sscc(
+        sscc_username=sscc_username,
+        sscc_password=sscc_password,
+        ejercicios=ejercicios,
+        token=st.session_state.get("token"),
+    )
+    results.append("SSCC ejecutado correctamente.")
 
     return results
 
@@ -123,64 +82,3 @@ def render() -> None:
 
 if __name__ == "__main__":
     render()
-
-# """Página: Control Recursos.
-
-# Muestra el DataFrame del control de recursos obtenido vía
-# GET /control/controlRecursos/ con filtro por ejercicio fiscal.
-# """
-
-# import streamlit as st
-
-# from src.constants.endpoints import Endpoints
-# from src.services.api_client import (
-#     APIConnectionError,
-#     APIResponseError,
-#     fetch_dataframe,
-# )
-
-# ENDPOINT = Endpoints.CONTROL_RECURSOS.value
-
-
-# st.markdown("# Control Recursos")
-# st.write(
-#     "Cruce de recursos SIIF vs depósitos bancarios. "
-#     "Permite filtrar por ejercicio fiscal y actualizar los datos."
-# )
-
-# # --- Filtros y Actualización ---
-# col1, col2 = st.columns([1, 3])
-# with col1:
-#     ejercicio = st.number_input(
-#         "Ejercicio",
-#         min_value=2010,
-#         max_value=2030,
-#         value=2025,
-#         step=1,
-#     )
-# with col2:
-#     st.write("")
-#     st.write("")
-#     if st.button("🔄 Actualizar desde fuentes"):
-#         st.info(
-#             "Automatización no implementada aún. Se lanzará el script correspondiente."
-#         )
-
-# # --- Carga y visualización de datos ---
-# try:
-#     with st.spinner("Cargando datos de Control Recursos..."):
-#         df = fetch_dataframe(
-#             ENDPOINT,
-#             params={"ejercicio": ejercicio, "limit": None},
-#         )
-
-#     if df.empty:
-#         st.info(f"No se encontraron datos para el ejercicio {ejercicio}.")
-#     else:
-#         st.write(f"### Registros encontrados: {len(df)}")
-#         st.dataframe(df, width="stretch")
-
-# except APIConnectionError as e:
-#     st.error(f"⚠️ Error de conexión: {e}")
-# except APIResponseError as e:
-#     st.error(f"⚠️ Error de API: {e}")
