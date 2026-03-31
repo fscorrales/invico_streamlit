@@ -54,6 +54,9 @@ async def run_automation(
     )
     results.append("SSCC ejecutado correctamente.")
 
+    # 3. Combinamos las tablas y actualizamos el reporte
+    control_recursos.compute_control_recursos(ejercicios=ejercicios)
+
     return results
 
 
