@@ -128,11 +128,27 @@ def request_siif_and_sscc_credentials_modal(
             # En Pywinauto, el spinner es vital porque el navegador/app
             # puede tardar segundos en reaccionar.
             with st.spinner("🤖 Robot en ejecución... Por favor, no mueva el mouse."):
-                # Ejecución Directa (Síncrona)
-                # Al no ser async, no necesitamos loop, ni Proactor, ni await.
-                results = automation_callback(
-                    siif_username, siif_password, sscc_username, sscc_password
-                )
+                import asyncio
+                import sys
+
+                # SOLUCIÓN PARA WINDOWS
+                if sys.platform == "win32":
+                    asyncio.set_event_loop_policy(
+                        asyncio.WindowsProactorEventLoopPolicy()
+                    )
+
+                async def run_automation():
+                    return await automation_callback(
+                        siif_username, siif_password, sscc_username, sscc_password
+                        )
+
+            try:
+                results = asyncio.run(run_automation())
+            except RuntimeError:
+                # Si ya hay un loop corriendo (común en Streamlit)
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                results = loop.run_until_complete(run_automation())
 
             if results:
                 st.success(f"Proceso finalizado: {len(results)} reportes procesados.")
