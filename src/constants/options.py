@@ -1,5 +1,6 @@
 import datetime as dt
 
+import pandas as pd
 import streamlit as st
 
 from src.constants.endpoints import Endpoints
@@ -32,6 +33,13 @@ def get_partidas_principales_siif_list() -> list[str]:
 
 @st.cache_data
 # --------------------------------------------------
-def get_ctas_ctes_list() -> list[str]:
+def get_ctas_ctes_df() -> pd.DataFrame:
     data = fetch_data(Endpoints.CTAS_CTES.value)
-    return [d.get("map_to") for d in data]
+    return pd.DataFrame(data)
+
+
+@st.cache_data
+# --------------------------------------------------
+def get_ctas_ctes_list() -> list[str]:
+    data = get_ctas_ctes_df().copy()
+    return data["map_to"].tolist()
