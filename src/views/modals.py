@@ -47,6 +47,29 @@ def request_siif_credentials_modal(automation_callback: Callable[[str, str], Non
             st.success(f"Proceso finalizado: {len(results)} reportes procesados.")
             time.sleep(1)
             st.rerun()
+            # st.success("✅ Proceso de actualización completado")
+
+            # # Creamos un contenedor expandible para no ensuciar la vista si todo salió bien
+            # with st.expander("Ver detalle del procesamiento", expanded=True):
+            #     # Mostramos métricas rápidas
+            #     c1, c2, c3 = st.columns(3)
+            #     total_added = sum(r["added"] for r in results)
+            #     total_deleted = sum(r["deleted"] for r in results)
+            #     total_errors = sum(len(r["errors"]) for r in results)
+
+            #     c1.metric("Registros Agregados", total_added)
+            #     c2.metric("Registros Eliminados", total_deleted)
+            #     c3.metric("Errores detectados", total_errors, delta_color="inverse")
+
+            #     # Si hay errores, los mostramos en una tabla o lista roja
+            #     if total_errors > 0:
+            #         st.markdown("---")
+            #         st.error("⚠️ Algunos registros no pudieron procesarse:")
+            #         for res in results:
+            #             for err in res["errors"]:
+            #                 st.write(
+            #                     f"**Doc ID {err['doc_id']}:** {err['details'][0]['msg']}"
+            #                 )
 
         except Exception as e:
             st.error(f"Error durante la automatización: {e}")
@@ -140,7 +163,7 @@ def request_siif_and_sscc_credentials_modal(
                 async def run_automation():
                     return await automation_callback(
                         siif_username, siif_password, sscc_username, sscc_password
-                        )
+                    )
 
             try:
                 results = asyncio.run(run_automation())
