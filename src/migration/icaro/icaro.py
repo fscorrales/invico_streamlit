@@ -28,10 +28,10 @@ def validate_sqlite_file(value: Path):
 
     # Convertimos a string y normalizamos barras
     path_str = os.path.normpath(str(value))
-    
+
     # Si detectamos que es una ruta de red pero le falta una barra inicial (común en Typer/Click)
-    if path_str.startswith('\\') and not path_str.startswith('\\\\'):
-        path_str = '\\' + path_str
+    if path_str.startswith("\\") and not path_str.startswith("\\\\"):
+        path_str = "\\" + path_str
 
     # Creamos un nuevo objeto Path con la ruta corregida
     fixed_path = Path(path_str)
@@ -104,7 +104,9 @@ class IcaroMongoMigrator:
             clean_records = json.loads(
                 json.dumps(
                     records,
-                    default=lambda x: x.isoformat() if hasattr(x, "isoformat") else str(x),
+                    default=lambda x: (
+                        x.isoformat() if hasattr(x, "isoformat") else str(x)
+                    ),
                 )
             )
 
@@ -219,67 +221,64 @@ class IcaroMongoMigrator:
     #         label="Tabla Actividades de ICARO",
     #     )
 
-    # # --------------------------------------------------
-    # async def migrate_estructuras(self) -> RouteReturnSchema:
-    #     # await self.estructuras_repo.delete_all()
-    #     # Programas
-    #     df = self.from_sql("PROGRAMAS")
-    #     df.rename(
-    #         columns={"Programa": "estructura", "DescProg": "desc_estructura"},
-    #         inplace=True,
-    #     )
-    #     # await self.estructuras_repo.save_all(df.to_dict(orient="records"))
+    # --------------------------------------------------
+    def migrate_estructuras(self):
+        """Migrate ESTRUCTURAS table to MongoDB."""
 
-    #     # Subprogramas
-    #     df_aux = self.from_sql("SUBPROGRAMAS")
-    #     df_aux.rename(
-    #         columns={
-    #             "Subprograma": "estructura",
-    #             "DescSubprog": "desc_estructura",
-    #         },
-    #         inplace=True,
-    #     )
-    #     df_aux.drop(["Programa"], axis=1, inplace=True)
-    #     df = pd.concat([df, df_aux], ignore_index=True)
-    #     # await self.estructuras_repo.save_all(df.to_dict(orient="records"))
+        # Programas
+        table = "PROGRAMAS"
+        df = get_df_from_sql_table(sqlite_path=self.sqlite_path, table=table)
+        df.rename(
+            columns={"Programa": "estructura", "DescProg": "desc_estructura"},
+            inplace=True,
+        )
 
-    #     # Proyectos
-    #     df_aux = self.from_sql("PROYECTOS")
-    #     df_aux.rename(
-    #         columns={
-    #             "Proyecto": "estructura",
-    #             "DescProy": "desc_estructura",
-    #         },
-    #         inplace=True,
-    #     )
-    #     df_aux.drop(["Subprograma"], axis=1, inplace=True)
-    #     df = pd.concat([df, df_aux], ignore_index=True)
-    #     # await self.estructuras_repo.save_all(df.to_dict(orient="records"))
+        # Subprogramas
+        table = "SUBPROGRAMAS"
+        df_aux = get_df_from_sql_table(sqlite_path=self.sqlite_path, table=table)
+        df_aux.rename(
+            columns={
+                "Subprograma": "estructura",
+                "DescSubprog": "desc_estructura",
+            },
+            inplace=True,
+        )
+        df_aux.drop(["Programa"], axis=1, inplace=True)
+        df = pd.concat([df, df_aux], ignore_index=True)
 
-    #     # Actividades
-    #     df_aux = self.from_sql("ACTIVIDADES")
-    #     df_aux.rename(
-    #         columns={
-    #             "Actividad": "estructura",
-    #             "DescAct": "desc_estructura",
-    #         },
-    #         inplace=True,
-    #     )
-    #     df_aux.drop(["Proyecto"], axis=1, inplace=True)
-    #     df = pd.concat([df, df_aux], ignore_index=True)
-    #     # Validar datos usando Pydantic
-    #     validate_and_errors = validate_and_extract_data_from_df(
-    #         dataframe=df, model=EstructurasReport, field_id="estructura"
-    #     )
-    #     return await sync_validated_to_repository(
-    #         repository=self.estructuras_repo,
-    #         validation=validate_and_errors,
-    #         delete_filter=None,
-    #         title="ICARO Estructuras Migration",
-    #         logger=logger,
-    #         label="Tabla Estructuras de ICARO",
-    #     )
-    #     # await self.estructuras_repo.save_all(df.to_dict(orient="records"))
+        # Proyectos
+        table = "PROYECTOS"
+        df_aux = get_df_from_sql_table(sqlite_path=self.sqlite_path, table=table)
+        df_aux.rename(
+            columns={
+                "Proyecto": "estructura",
+                "DescProy": "desc_estructura",
+            },
+            inplace=True,
+        )
+        df_aux.drop(["Subprograma"], axis=1, inplace=True)
+        df = pd.concat([df, df_aux], ignore_index=True)
+        # await self.estructuras_repo.save_all(df.to_dict(orient="records"))
+
+        # Actividades
+        table = "ACTIVIDADES"
+        df_aux = get_df_from_sql_table(sqlite_path=self.sqlite_path, table=table)
+        df_aux.rename(
+            columns={
+                "Actividad": "estructura",
+                "DescAct": "desc_estructura",
+            },
+            inplace=True,
+        )
+        df_aux.drop(["Proyecto"], axis=1, inplace=True)
+        df = pd.concat([df, df_aux], ignore_index=True)
+
+        df["updated_at"] = pd.Timestamp.now()
+        print_rich_table(df, title="Tabla Exportada Estructuras")
+
+        self.migrate_df_to_mongodb(
+            table=table, endpoint=Endpoints.ICARO_ESTRUCTURAS.value, df=df
+        )
 
     # # --------------------------------------------------
     # async def migrate_ctas_ctes(self) -> RouteReturnSchema:
@@ -397,39 +396,33 @@ class IcaroMongoMigrator:
     #         label="Tabla Proveedores de ICARO",
     #     )
 
-    # # --------------------------------------------------
-    # async def migrate_obras(self) -> RouteReturnSchema:
-    #     df = self.from_sql("OBRAS")
-    #     df.rename(
-    #         columns={
-    #             "Localidad": "localidad",
-    #             "CUIT": "cuit",
-    #             "Imputacion": "actividad",
-    #             "Partida": "partida",
-    #             "Fuente": "fuente",
-    #             "MontoDeContrato": "monto_contrato",
-    #             "Adicional": "monto_adicional",
-    #             "Cuenta": "cta_cte",
-    #             "NormaLegal": "norma_legal",
-    #             "Descripcion": "desc_obra",
-    #             "InformacionAdicional": "info_adicional",
-    #         },
-    #         inplace=True,
-    #     )
-    #     # Validar datos usando Pydantic
-    #     validate_and_errors = validate_and_extract_data_from_df(
-    #         dataframe=df, model=ObrasReport, field_id="actividad"
-    #     )
-    #     # await self.obras_repo.delete_all()
-    #     # await self.obras_repo.save_all(df.to_dict(orient="records"))
-    #     return await sync_validated_to_repository(
-    #         repository=self.obras_repo,
-    #         validation=validate_and_errors,
-    #         delete_filter=None,
-    #         title="ICARO Obras Migration",
-    #         logger=logger,
-    #         label="Tabla OBRAS de ICARO",
-    #     )
+    # --------------------------------------------------
+    def migrate_obras(self):
+        """Migrate OBRAS table to MongoDB."""
+        table = "OBRAS"
+        df = get_df_from_sql_table(sqlite_path=self.sqlite_path, table=table)
+        df.rename(
+            columns={
+                "Localidad": "localidad",
+                "CUIT": "cuit",
+                "Imputacion": "actividad",
+                "Partida": "partida",
+                "Fuente": "fuente",
+                "MontoDeContrato": "monto_contrato",
+                "Adicional": "monto_adicional",
+                "Cuenta": "cta_cte",
+                "NormaLegal": "norma_legal",
+                "Descripcion": "desc_obra",
+                "InformacionAdicional": "info_adicional",
+            },
+            inplace=True,
+        )
+        df["updated_at"] = pd.Timestamp.now()
+        print_rich_table(df, title=f"Tabla Exportada: {table}")
+
+        self.migrate_df_to_mongodb(
+            table=table, endpoint=Endpoints.ICARO_OBRAS.value, df=df
+        )
 
     # --------------------------------------------------
     def migrate_carga(self):
@@ -474,36 +467,30 @@ class IcaroMongoMigrator:
             table=table, endpoint=Endpoints.ICARO_CARGA.value, df=df
         )
 
-    # # --------------------------------------------------
-    # async def migrate_retenciones(self) -> RouteReturnSchema:
-    #     df = self.from_sql("RETENCIONES")
-    #     df.rename(
-    #         columns={
-    #             "Codigo": "codigo",
-    #             "Importe": "importe",
-    #             "Comprobante": "nro_comprobante",
-    #             "Tipo": "tipo",
-    #         },
-    #         inplace=True,
-    #     )
-    #     df["id_carga"] = df["nro_comprobante"] + "C"
-    #     df.loc[df["tipo"] == "PA6", "id_carga"] = df["nro_comprobante"] + "F"
-    #     df.drop(["nro_comprobante", "tipo"], axis=1, inplace=True)
+    # --------------------------------------------------
+    def migrate_retenciones(self):
+        """Migrate RETENCIONES table to MongoDB."""
+        table = "RETENCIONES"
+        df = get_df_from_sql_table(sqlite_path=self.sqlite_path, table=table)
+        df.rename(
+            columns={
+                "Codigo": "codigo",
+                "Importe": "importe",
+                "Comprobante": "nro_comprobante",
+                "Tipo": "tipo",
+            },
+            inplace=True,
+        )
+        df["id_carga"] = df["nro_comprobante"] + "C"
+        df.loc[df["tipo"] == "PA6", "id_carga"] = df["nro_comprobante"] + "F"
+        df.drop(["nro_comprobante", "tipo"], axis=1, inplace=True)
 
-    #     # Validar datos usando Pydantic
-    #     validate_and_errors = validate_and_extract_data_from_df(
-    #         dataframe=df, model=RetencionesReport, field_id="id_carga"
-    #     )
-    #     # await self.retenciones_repo.delete_all()
-    #     # await self.retenciones_repo.save_all(df.to_dict(orient="records"))
-    #     return await sync_validated_to_repository(
-    #         repository=self.retenciones_repo,
-    #         validation=validate_and_errors,
-    #         delete_filter=None,
-    #         title="ICARO Retenciones Migration",
-    #         logger=logger,
-    #         label="Tabla Retenciones de ICARO",
-    #     )
+        df["updated_at"] = pd.Timestamp.now()
+        print_rich_table(df, title=f"Tabla Exportada: {table}")
+
+        self.migrate_df_to_mongodb(
+            table=table, endpoint=Endpoints.ICARO_RETENCIONES.value, df=df
+        )
 
     # # --------------------------------------------------
     # async def migrate_certificados(self) -> RouteReturnSchema:
@@ -623,9 +610,9 @@ class IcaroMongoMigrator:
         # return_schema.append(await self.migrate_fuentes())
         # return_schema.append(await self.migrate_partidas())
         # return_schema.append(await self.migrate_proveedores())
-        # return_schema.append(await self.migrate_obras())
+        return_schema.append(self.migrate_obras())
         return_schema.append(self.migrate_carga())
-        # return_schema.append(await self.migrate_retenciones())
+        return_schema.append(self.migrate_retenciones())
         # return_schema.append(await self.migrate_certificados())
         # return_schema.append(await self.migrate_resumen_rend_obras())
         return return_schema
@@ -662,7 +649,7 @@ def main(
         migrator = IcaroMongoMigrator(
             sqlite_path=file,
         )
-        migrator.migrate_all()
+        migrator.migrate_retenciones()
         typer.secho(
             f"✅ Migración completada con éxito desde {file.name}.",
             fg=typer.colors.GREEN,

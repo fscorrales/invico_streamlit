@@ -20,3 +20,6 @@ class Endpoints(str, Enum):
     SSCC_BANCO_INVICO = "/sscc/bancoINVICO"
     CTAS_CTES = "/sscc/ctasCtes"
     ICARO_CARGA = "/icaro/carga"
+    ICARO_RETENCIONES = "/icaro/retenciones"
+    ICARO_OBRAS = "/icaro/obras"
+    ICARO_ESTRUCTURAS = "/icaro/estructuras"
