@@ -273,8 +273,9 @@ class IcaroMongoMigrator:
         df_aux.drop(["Proyecto"], axis=1, inplace=True)
         df = pd.concat([df, df_aux], ignore_index=True)
 
+        table = "ESTRUCTURAS"
         df["updated_at"] = pd.Timestamp.now()
-        print_rich_table(df, title="Tabla Exportada Estructuras")
+        print_rich_table(df, title=f"Tabla Exportada {table}")
 
         self.migrate_df_to_mongodb(
             table=table, endpoint=Endpoints.ICARO_ESTRUCTURAS.value, df=df
@@ -605,7 +606,7 @@ class IcaroMongoMigrator:
         # return_schema.append(await self.migrate_subprogramas())
         # return_schema.append(await self.migrate_proyectos())
         # return_schema.append(await self.migrate_actividades())
-        # return_schema.append(await self.migrate_estructuras())
+        return_schema.append(self.migrate_estructuras())
         # return_schema.append(await self.migrate_ctas_ctes())
         # return_schema.append(await self.migrate_fuentes())
         # return_schema.append(await self.migrate_partidas())
@@ -649,7 +650,7 @@ def main(
         migrator = IcaroMongoMigrator(
             sqlite_path=file,
         )
-        migrator.migrate_retenciones()
+        migrator.migrate_all()
         typer.secho(
             f"✅ Migración completada con éxito desde {file.name}.",
             fg=typer.colors.GREEN,
