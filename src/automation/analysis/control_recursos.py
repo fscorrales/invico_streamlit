@@ -1,3 +1,4 @@
+import datetime as dt
 import os
 import subprocess
 import sys
@@ -103,7 +104,9 @@ def compute_control_recursos(ejercicios: List[int]) -> None:
 
 
 # --------------------------------------------------
-def generate_siif_comprobantes_recursos(ejercicio: int = None) -> pd.DataFrame:
+def generate_siif_comprobantes_recursos(
+    ejercicio: int = dt.datetime.now().year,
+) -> pd.DataFrame:
     df = get_siif_rci02_unified_cta_cte(
         ejercicio=ejercicio,
     )
@@ -126,7 +129,7 @@ def generate_siif_comprobantes_recursos(ejercicio: int = None) -> pd.DataFrame:
 
 
 # --------------------------------------------------
-def generate_banco_invico(ejercicio: int = None) -> pd.DataFrame:
+def generate_banco_invico(ejercicio: int = dt.datetime.now().year) -> pd.DataFrame:
     df = get_banco_invico_unified_cta_cte(ejercicio=ejercicio)
     dep_transf_int = ["034", "004"]
     dep_pf = ["214", "215"]
