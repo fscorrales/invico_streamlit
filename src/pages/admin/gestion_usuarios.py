@@ -18,7 +18,7 @@ from src.services.api_client import (
 ENDPOINT = Endpoints.USERS.value
 
 
-st.sidebar.header("Gestión de Usuarios")
+# st.sidebar.header("Gestión de Usuarios")
 st.markdown("# Administración de Usuarios")
 st.write(
     "Panel de administración para gestionar usuarios del "
