@@ -482,6 +482,9 @@ class IcaroMongoMigrator:
             },
             inplace=True,
         )
+        df["ejercicio"] = pd.to_numeric(
+            "20" + df["nro_comprobante"].str[-2:], errors="coerce"
+        )
         df["id_carga"] = df["nro_comprobante"] + "C"
         df.loc[df["tipo"] == "PA6", "id_carga"] = df["nro_comprobante"] + "F"
         df.drop(["nro_comprobante", "tipo"], axis=1, inplace=True)
@@ -650,7 +653,7 @@ def main(
         migrator = IcaroMongoMigrator(
             sqlite_path=file,
         )
-        migrator.migrate_all()
+        migrator.migrate_retenciones()
         typer.secho(
             f"✅ Migración completada con éxito desde {file.name}.",
             fg=typer.colors.GREEN,
