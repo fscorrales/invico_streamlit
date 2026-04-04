@@ -28,7 +28,7 @@ def get_grupos_partidas_siif_list() -> list[dict[str, Any]]:
 
 @st.cache_data
 # --------------------------------------------------
-def get_grupos_partidas_str_siif_list() -> list[str]:
+def get_grupos_partidas_str_siif_list() -> list[dict[str, Any]]:
     return fetch_data(Endpoints.SIIF.value + "/gruposPartidasStr")
 
 
