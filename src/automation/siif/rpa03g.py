@@ -140,7 +140,7 @@ class Rpa03g(SIIFReportManager):
     async def download_report(
         self,
         ejercicio: str = str(dt.datetime.now().year),
-        grupo_partida: GrupoPartidaSIIF = GrupoPartidaSIIF.bienes_capital.value,
+        grupo_partida: str = str(GrupoPartidaSIIF.bienes_capital.value),
     ) -> Download:
         try:
             self.download = None
@@ -175,8 +175,11 @@ class Rpa03g(SIIFReportManager):
             await input_ejercicio.clear()
             await input_ejercicio.fill(str(ejercicio))
             # Grupo de Partida
+            grupo_partida_str = str(grupo_partida)
+            if grupo_partida_str.startswith("str:"):
+                grupo_partida_str = grupo_partida_str[4:]
             await input_gpo_partida.clear()
-            await input_gpo_partida.fill(str(grupo_partida))
+            await input_gpo_partida.fill(grupo_partida_str)
 
             async with self.siif.context.expect_page() as popup_info:
                 async with self.siif.reports_page.expect_download() as download_info:
@@ -379,7 +382,7 @@ async def run_automation(
     download: bool,
     headless: bool,
     file: Optional[Path],
-    grupos_partidas: List[str],
+    grupos_partidas: List[int],
 ):
     """
     Lógica de ejecución asíncrona de Playwright.
@@ -411,7 +414,7 @@ async def run_automation(
                         )
                         # Descarga y guardado físico
                         await siif.download_report(
-                            ejercicio=str(ejercicio), grupo_partida=grupo_partida
+                            ejercicio=str(ejercicio), grupo_partida=str(grupo_partida)
                         )
                         await siif.save_xls_file(
                             save_path=save_path,
