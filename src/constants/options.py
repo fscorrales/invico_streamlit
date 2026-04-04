@@ -27,6 +27,12 @@ def get_grupos_partidas_siif_list() -> list[str]:
 
 @st.cache_data
 # --------------------------------------------------
+def get_grupos_partidas_str_siif_list() -> list[str]:
+    return fetch_data(Endpoints.SIIF.value + "/gruposPartidasStr")
+
+
+@st.cache_data
+# --------------------------------------------------
 def get_partidas_principales_siif_list() -> list[str]:
     return fetch_data(Endpoints.SIIF.value + "/partidasPrincipales")
 

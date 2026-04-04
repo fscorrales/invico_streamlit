@@ -5,7 +5,7 @@ from src.automation.siif.rpa03g import Rpa03g
 from src.constants.endpoints import Endpoints
 from src.constants.options import (
     get_ejercicios_list,
-    get_grupos_partidas_siif_list,
+    get_grupos_partidas_str_siif_list,
 )
 from src.services.api_client import post_request
 
@@ -15,7 +15,7 @@ from src.views.modals import request_siif_credentials_modal
 
 ENDPONT = Endpoints.SIIF_RPA03G.value
 REPORTE = "rpa03g"
-GRUPOS = get_grupos_partidas_siif_list()
+GRUPOS = get_grupos_partidas_str_siif_list()
 
 
 # --------------------------------------------------
