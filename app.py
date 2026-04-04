@@ -31,9 +31,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-with st.container():
-    st.sidebar.caption(f"Versión: {get_version()}", text_alignment="center")
-
 
 # 1. Al principio de tu app (o donde manejes la navegación)
 if "app_closing" not in st.session_state:
@@ -148,7 +145,7 @@ def build_navigation() -> None:
         ],
     }
 
-    # Sección de admin solo visible para rol admin
+    # 2. Agregamos páginas extra según el rol (sin crear una sección nueva)
     if role == "admin":
         pages["Administración"] = [
             st.Page(
@@ -158,30 +155,70 @@ def build_navigation() -> None:
             ),
         ]
 
+    # 3. Inicializar y ejecutar
     pg = st.navigation(pages)
 
-    # 2. Crear un "Header" en la parte superior de la página
-    with st.container(
-        vertical_alignment="center", height="stretch", gap=None, horizontal=False
-    ):
-        with st.container(
-            horizontal=True, vertical_alignment="bottom", horizontal_alignment="right"
-        ):
-            with st.container(width="content"):
-                st.write(f"👤 **{st.session_state['user']['username']}**")
-            with st.container(width="content"):
-                if st.button("Log out", width="stretch"):
-                    # 1.Activamos el interruptor
-                    st.session_state.app_closing = True
+    # # 4. Crear un "Header" en la parte superior de la página
+    # with st.container(
+    #     vertical_alignment="center", height="stretch", gap=None, horizontal=False
+    # ):
+    #     with st.container(
+    #         horizontal=True, vertical_alignment="bottom", horizontal_alignment="right"
+    #     ):
+    #         with st.container(width="content"):
+    #             st.write(f"👤 **{st.session_state['user']['username']}**")
+    #         with st.container(width="content"):
+    #             if st.button("Log out", width="stretch"):
+    #                 # 1.Activamos el interruptor
+    #                 st.session_state.app_closing = True
 
-                    # 2. Limpiamos la sesión para seguridad
-                    st.session_state["token"] = None
-                    st.session_state["user"] = None
+    #                 # 2. Limpiamos la sesión para seguridad
+    #                 st.session_state["token"] = None
+    #                 st.session_state["user"] = None
 
-                    # 3. Forzamos el rerun para que entre en la pantalla de cierre
-                    st.rerun()
+    #                 # 3. Forzamos el rerun para que entre en la pantalla de cierre
+    #                 st.rerun()
+
+    #     st.divider()
+
+    # 3. Sidebar: Info de usuario y Logout
+    with st.sidebar:
+        # Generamos espacio en blanco dinámico
+        # Si tienes 6 páginas, unos 12 a 15 st.write("") suelen bastar
+        # para mandarlo al fondo en una pantalla estándar.
+        for _ in range(15):
+            st.write("")
 
         st.divider()
+
+        # Bloque de Usuario
+        cols = st.columns([0.6, 0.4], vertical_alignment="center")
+        cols[0].write(f"👤 **{st.session_state['user']['username']}**")
+
+        if cols[1].button("Log out", key="logout_spacer"):
+            st.session_state.app_closing = True
+            st.session_state["token"] = None
+            st.session_state["user"] = None
+            st.rerun()
+
+        with st.container():
+            st.sidebar.caption(f"Versión: {get_version()}", text_alignment="center")
+
+    # 4. CSS para eliminar el espacio que dejó el Header anterior
+    st.markdown(
+        """
+        <style>
+            .block-container {
+                padding-top: 1rem !important; /* Espacio mínimo arriba */
+            }
+            /* Mantenemos el botón del sidebar visible pero bajamos el header */
+            .stAppHeader {
+                background-color: transparent !important;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # 3. Ejecutar la página
     pg.run()

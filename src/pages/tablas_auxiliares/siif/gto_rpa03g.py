@@ -5,7 +5,7 @@ from src.automation.siif.gto_rpa03g import GtoRpa03g
 from src.constants.endpoints import Endpoints
 from src.constants.options import (
     get_ejercicios_list,
-    get_grupos_partidas_siif_list,
+    get_grupos_partidas_str_siif_list,
 )
 from src.services.api_client import post_request
 
@@ -13,9 +13,15 @@ from src.services.api_client import post_request
 from src.views.aux_tables import report_template
 from src.views.modals import request_siif_credentials_modal
 
+<<<<<<< HEAD:src/pages/tablas_auxiliares/siif/gto_rpa03g.py
 ENDPONT = Endpoints.SIIF_GTO_RPA03G.value
 REPORTE = "gto_rpa03g"
 GRUPOS = get_grupos_partidas_siif_list()
+=======
+ENDPONT = Endpoints.SIIF_RPA03G.value
+REPORTE = "rpa03g"
+GRUPOS = get_grupos_partidas_str_siif_list()
+>>>>>>> 8bb73ba40e602fe0df000983f3f8558bfadf5d4b:src/pages/tablas_auxiliares/siif/rpa03g.py
 
 
 # --------------------------------------------------

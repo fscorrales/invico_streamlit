@@ -125,42 +125,66 @@ def report_template(
     # 3. Lógica de Fetch Iterativo (El equivalente al v-for de Vue + API calls)
     try:
         with st.spinner("Consultando datos..."):
-            df_final = pd.DataFrame()
+            # df_final = pd.DataFrame()
 
-            # Extraemos solo las listas de valores: [[2023, 2024], ["Salud", "Educación"]]
-            listas_valores = [s[1] for s in selections]
-            # Extraemos los nombres de los parámetros: ["ejercicio", "unidad_id"]
-            nombres_params = [s[0] for s in selections]
+            # # Extraemos solo las listas de valores: [[2023, 2024], ["Salud", "Educación"]]
+            # listas_valores = [s[1] for s in selections]
+            # # Extraemos los nombres de los parámetros: ["ejercicio", "unidad_id"]
+            # nombres_params = [s[0] for s in selections]
 
-            # Si permitimos que no haya filtros y todas las listas están vacías,
-            # debemos forzar al menos una ejecución con params vacíos.
-            if allow_no_filters and all(not lista for lista in listas_valores):
-                params_peticion = {"limit": 0, "queryFilter": filtro_avanzado}
-                df_final = fetch_dataframe(endpoint, params=params_peticion)
-            else:
-                # Si hay filtros, usamos la lógica de combinaciones
-                # Pero ojo: product con una lista vacía devuelve nada.
-                # Aseguramos que las listas vacías tengan al menos un [None]
-                # si queremos que la combinación siga funcionando.
-                listas_limpias = [l if l else [None] for l in listas_valores]
-                # itertools.product genera todas las combinaciones posibles:
-                # (2023, "Salud"), (2023, "Educación"), (2024, "Salud"), ...
-                for combinacion in itertools.product(*listas_limpias):
-                    # Creamos el diccionario de params para esta petición específica
-                    params_peticion = dict(zip(nombres_params, combinacion))
-                    params_peticion["limit"] = 0
-                    params_peticion["queryFilter"] = filtro_avanzado
+            # # Si permitimos que no haya filtros y todas las listas están vacías,
+            # # debemos forzar al menos una ejecución con params vacíos.
+            # if allow_no_filters and all(not lista for lista in listas_valores):
+            #     params_peticion = {"limit": 0, "queryFilter": filtro_avanzado}
+            #     df_final = fetch_dataframe(endpoint, params=params_peticion)
+            # else:
+            #     # Si hay filtros, usamos la lógica de combinaciones
+            #     # Pero ojo: product con una lista vacía devuelve nada.
+            #     # Aseguramos que las listas vacías tengan al menos un [None]
+            #     # si queremos que la combinación siga funcionando.
+            #     listas_limpias = [l if l else [None] for l in listas_valores]
+            #     # itertools.product genera todas las combinaciones posibles:
+            #     # (2023, "Salud"), (2023, "Educación"), (2024, "Salud"), ...
+            #     for combinacion in itertools.product(*listas_limpias):
+            #         # Creamos el diccionario de params para esta petición específica
+            #         params_peticion = dict(zip(nombres_params, combinacion))
+            #         params_peticion["limit"] = 0
+            #         params_peticion["queryFilter"] = filtro_avanzado
 
-                    # DEBUG: Mostrar en la app (puedes borrarlo después)
-                    # print(f"DEBUG API CALL [{endpoint}]: {params_peticion}")
-                    # st.info(f"Enviando a API: {params_peticion}")
+            #         # DEBUG: Mostrar en la app (puedes borrarlo después)
+            #         # print(f"DEBUG API CALL [{endpoint}]: {params_peticion}")
+            #         # st.info(f"Enviando a API: {params_peticion}")
 
-                    # Hacemos el fetch individual
-                    df_parcial = fetch_dataframe(endpoint, params=params_peticion)
-                    df_final = pd.concat([df_final, df_parcial], ignore_index=True)
+            #         # Hacemos el fetch individual
+            #         df_parcial = fetch_dataframe(endpoint, params=params_peticion)
+            #         df_final = pd.concat([df_final, df_parcial], ignore_index=True)
 
-            if df_final.empty:
+            # if df_final.empty:
+            #     st.info("No se encontraron resultados.")
+            # else:
+            #     st.session_state[f"data_{key}"] = df_final
+
+            # 1. Preparamos el diccionario de parámetros base
+            params_peticion = {"limit": 0, "queryFilter": filtro_avanzado}
+
+            # 2. Procesamos las selecciones (ejercicio, unidad_id, etc.)
+            # Selections suele ser algo como [("ejercicio", [2024, 2026]), ("grupo", ["1", "2"])]
+            for nombre_param, valores in selections:
+                if valores:
+                    # Convertimos la lista [2024, 2026] en "2024,2026"
+                    # Usamos map(str, ...) para asegurarnos de que los int se conviertan a texto
+                    params_peticion[nombre_param] = ",".join(map(str, valores))
+
+            # 3. Una sola petición GET que incluye todos los filtros
+            # Ahora el backend recibirá ?ejercicio=2024,2026&grupo=1,2
+            df_final = fetch_dataframe(endpoint, params=params_peticion)
+
+            # 4. Gestión de resultados en el session_state
+            if df_final is None or df_final.empty:
                 st.info("No se encontraron resultados.")
+                st.session_state[f"data_{key}"] = (
+                    pd.DataFrame()
+                )  # Evita errores de 'None' después
             else:
                 st.session_state[f"data_{key}"] = df_final
 

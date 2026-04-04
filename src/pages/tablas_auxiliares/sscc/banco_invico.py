@@ -41,7 +41,6 @@ def run_automation(username: str, password: str) -> None:
             modulo_runner,
             username,
             password,
-            ENDPONT,
             st.session_state.get("token"),
             ejercicios_str,
         ],
