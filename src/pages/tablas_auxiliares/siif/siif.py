@@ -3,6 +3,7 @@
 import streamlit as st
 
 from src.pages.tablas_auxiliares.siif import (
+    gto_rpa03g,
     rcg01_uejp,
     rci02,
     rf602,
@@ -11,7 +12,6 @@ from src.pages.tablas_auxiliares.siif import (
     rfondos04,
     rfp_p605b,
     ri102,
-    rpa03g,
     rvicon03,
 )
 
@@ -26,7 +26,7 @@ def main() -> None:
         tab_rf602,
         tab_rf610,
         tab_rcg01_uejp,
-        tab_rpa03g,
+        tab_gto_rpa03g,
         tab_rfondo07tp,
         tab_rfondos04,
     ) = st.tabs(
@@ -38,7 +38,7 @@ def main() -> None:
             "rf602",
             "rf610",
             "rcg01_uejp",
-            "rpa03g",
+            "gto_rpa03g",
             "rfondo07tp",
             "rfondos04",
         ]
@@ -65,8 +65,8 @@ def main() -> None:
     with tab_rcg01_uejp:
         rcg01_uejp.render()
 
-    with tab_rpa03g:
-        rpa03g.render()
+    with tab_gto_rpa03g:
+        gto_rpa03g.render()
 
     with tab_rfondo07tp:
         rfondo07tp.render()

@@ -2,10 +2,10 @@
 """
 Author : Fernando Corrales <fscpython@gmail.com>
 Date   : 18-jun-2025
-Purpose: Read, process and write SIIF's rpa03g (Detalle Partidas 'ordenados' por entidad, año, periodo y grupo de partida) report
+Purpose: Read, process and write SIIF's gto_rpa03g (Detalle Partidas 'ordenados' por entidad, año, periodo y grupo de partida) report
 """
 
-__all__ = ["Rpa03g"]
+__all__ = ["GtoRpa03g"]
 
 import argparse
 import asyncio
@@ -34,7 +34,7 @@ def get_args():
     """Get command-line arguments"""
 
     parser = argparse.ArgumentParser(
-        description="Read, process and write SIIF's rpa03g",
+        description="Read, process and write SIIF's gto_rpa03g",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
@@ -111,21 +111,21 @@ def get_args():
 
 
 # --------------------------------------------------
-class Rpa03g(SIIFReportManager):
+class GtoRpa03g(SIIFReportManager):
     # --------------------------------------------------
     async def download_and_process_report(
         self,
         ejercicio: int = dt.datetime.now().year,
         grupo_partida: GrupoPartidaSIIF = GrupoPartidaSIIF.bienes_capital.value,
     ) -> pd.DataFrame:
-        """Download and process the rpa03g report for a specific year."""
+        """Download and process the gto_rpa03g report for a specific year."""
         try:
             await self.go_to_specific_report()
             self.download = await self.download_report(
                 ejercicio=str(ejercicio), grupo_partida=grupo_partida
             )
             if self.download is None:
-                raise ValueError("No se pudo descargar el reporte rpa03g.")
+                raise ValueError("No se pudo descargar el reporte gto_rpa03g.")
             await self.read_xls_file()
             return await self.process_dataframe()
         except Exception as e:
@@ -264,7 +264,9 @@ class Rpa03g(SIIFReportManager):
 # Inicialización de Typer
 # ──────────────────────────────────────────────
 
-app = typer.Typer(help="Read, process and write SIIF's rpa03g", add_completion=False)
+app = typer.Typer(
+    help="Read, process and write SIIF's gto_rpa03g", add_completion=False
+)
 
 
 # --------------------------------------------------
@@ -298,7 +300,7 @@ def main(
         None,
         "--file",
         "-f",
-        help="SIIF' rpa03g.xls report's full file path",
+        help="SIIF' gto_rpa03g.xls report's full file path",
         exists=True,
         file_okay=True,
         dir_okay=False,
@@ -306,7 +308,7 @@ def main(
     ),
 ):
     """
-    Lee, procesa y escribe el reporte rpa03g del SIIF.
+    Lee, procesa y escribe el reporte gto_rpa03g del SIIF.
     """
 
     # 1. Validación de lógica de negocio (Exclusión mutua)
@@ -394,7 +396,7 @@ async def run_automation(
     async with async_playwright() as p:
         try:
             if download:
-                typer.echo("⏳ Descargando reporte rpa03g...")
+                typer.echo("⏳ Descargando reporte gto_rpa03g...")
 
                 # 1. Login
                 connect_siif = await login(
@@ -402,7 +404,7 @@ async def run_automation(
                 )
 
                 # 2. Navegación inicial
-                siif = Rpa03g(siif=connect_siif)
+                siif = GtoRpa03g(siif=connect_siif)
                 await siif.go_to_reports()
                 await siif.go_to_specific_report()
 
@@ -419,7 +421,7 @@ async def run_automation(
                         await siif.save_xls_file(
                             save_path=save_path,
                             file_name=str(ejercicio)
-                            + "-rpa03g (Gpo "
+                            + "-gto_rpa03g (Gpo "
                             + str(grupo_partida)
                             + "00).xls",
                         )
@@ -447,7 +449,7 @@ async def run_automation(
                 await siif.logout()
 
             else:
-                siif = Rpa03g()
+                siif = GtoRpa03g()
                 # 1. Lectura y Procesamiento
                 typer.echo(f"⏳ Procesando archivo: {file.name}...")
                 await siif.read_xls_file(file)
@@ -470,5 +472,5 @@ if __name__ == "__main__":
 
     # From /invico_streamlit
 
-    # poetry run python -m src.automation.siif.rpa03g -d
-    # poetry run python -m src.automation.siif.rpa03g -f "D:\Proyectos IT\invico_streamlit\src\automation\siif\2026-rpa03g (Gpo 400).xls"
+    # poetry run python -m src.automation.siif.gto_rpa03g -d
+    # poetry run python -m src.automation.siif.gto_rpa03g -f "D:\Proyectos IT\invico_streamlit\src\automation\siif\2026-gto_rpa03g (Gpo 400).xls"
