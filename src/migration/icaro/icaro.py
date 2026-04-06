@@ -418,6 +418,13 @@ class IcaroMongoMigrator:
             },
             inplace=True,
         )
+
+        df = df.loc[:, [
+            "actividad", "partida", "fuente", "desc_obra", 
+            "cuit", "cta_cte", "norma_legal", "localidad", 
+            "info_adicional", "monto_contrato", "monto_adicional",
+        ]]
+
         df["updated_at"] = pd.Timestamp.now()
         print_rich_table(df, title=f"Tabla Exportada: {table}")
 
@@ -461,6 +468,15 @@ class IcaroMongoMigrator:
             + "/"
             + df["ejercicio"].astype(str)
         )
+
+        df = df.loc[:, [
+            "ejercicio", "mes", "fecha", "id_carga", "nro_comprobante", "tipo",
+            "fuente", "actividad", "partida", "cta_cte", "cuit", 
+            "importe", "fondo_reparo", "avance", "nro_certificado", 
+            "desc_obra", "origen",
+        ]]
+
+
         df["updated_at"] = pd.Timestamp.now()
         print_rich_table(df, title=f"Tabla Exportada: {table}")
 
@@ -488,6 +504,8 @@ class IcaroMongoMigrator:
         df["id_carga"] = df["nro_comprobante"] + "C"
         df.loc[df["tipo"] == "PA6", "id_carga"] = df["nro_comprobante"] + "F"
         df.drop(["nro_comprobante", "tipo"], axis=1, inplace=True)
+
+        df = df.loc[:, ["ejercicio", "id_carga", "codigo", "importe"]]
 
         df["updated_at"] = pd.Timestamp.now()
         print_rich_table(df, title=f"Tabla Exportada: {table}")
@@ -653,7 +671,7 @@ def main(
         migrator = IcaroMongoMigrator(
             sqlite_path=file,
         )
-        migrator.migrate_retenciones()
+        migrator.migrate_all()
         typer.secho(
             f"✅ Migración completada con éxito desde {file.name}.",
             fg=typer.colors.GREEN,
