@@ -281,33 +281,27 @@ class IcaroMongoMigrator:
             table=table, endpoint=Endpoints.ICARO_ESTRUCTURAS.value, df=df
         )
 
-    # # --------------------------------------------------
-    # async def migrate_ctas_ctes(self) -> RouteReturnSchema:
-    #     df = self.from_sql("CUENTASBANCARIAS")
-    #     df.rename(
-    #         columns={
-    #             "CuentaAnterior": "cta_cte_anterior",
-    #             "Cuenta": "cta_cte",
-    #             "Descripcion": "desc_cta_cte",
-    #             "Banco": "banco",
-    #         },
-    #         inplace=True,
-    #     )
+    # --------------------------------------------------
+    def migrate_ctas_ctes(self):
+        """Migrate CUENTASBANCARIAS table to MongoDB."""
+        table = "CUENTASBANCARIAS"
+        df = get_df_from_sql_table(sqlite_path=self.sqlite_path, table=table)
+        df.rename(
+            columns={
+                "CuentaAnterior": "cta_cte_anterior",
+                "Cuenta": "cta_cte",
+                "Descripcion": "desc_cta_cte",
+                "Banco": "banco",
+            },
+            inplace=True,
+        )
 
-    #     # Validar datos usando Pydantic
-    #     validate_and_errors = validate_and_extract_data_from_df(
-    #         dataframe=df, model=CtasCtesReport, field_id="cta_cte"
-    #     )
-    #     # await self.ctas_ctes_repo.delete_all()
-    #     # await self.ctas_ctes_repo.save_all(df.to_dict(orient="records"))
-    #     return await sync_validated_to_repository(
-    #         repository=self.ctas_ctes_repo,
-    #         validation=validate_and_errors,
-    #         delete_filter=None,
-    #         title="ICARO Ctas Ctes Migration",
-    #         logger=logger,
-    #         label="Tabla Ctas Ctes de ICARO",
-    #     )
+        df["updated_at"] = pd.Timestamp.now()
+        print_rich_table(df, title=f"Tabla Exportada: {table}")
+
+        self.migrate_df_to_mongodb(
+            table=table, endpoint=Endpoints.ICARO_CTAS_CTES.value, df=df
+        )
 
     # # --------------------------------------------------
     # async def migrate_fuentes(self) -> RouteReturnSchema:
@@ -419,11 +413,22 @@ class IcaroMongoMigrator:
             inplace=True,
         )
 
-        df = df.loc[:, [
-            "actividad", "partida", "fuente", "desc_obra", 
-            "cuit", "cta_cte", "norma_legal", "localidad", 
-            "info_adicional", "monto_contrato", "monto_adicional",
-        ]]
+        df = df.loc[
+            :,
+            [
+                "actividad",
+                "partida",
+                "fuente",
+                "desc_obra",
+                "cuit",
+                "cta_cte",
+                "norma_legal",
+                "localidad",
+                "info_adicional",
+                "monto_contrato",
+                "monto_adicional",
+            ],
+        ]
 
         df["updated_at"] = pd.Timestamp.now()
         print_rich_table(df, title=f"Tabla Exportada: {table}")
@@ -469,13 +474,28 @@ class IcaroMongoMigrator:
             + df["ejercicio"].astype(str)
         )
 
-        df = df.loc[:, [
-            "ejercicio", "mes", "fecha", "id_carga", "nro_comprobante", "tipo",
-            "fuente", "actividad", "partida", "cta_cte", "cuit", 
-            "importe", "fondo_reparo", "avance", "nro_certificado", 
-            "desc_obra", "origen",
-        ]]
-
+        df = df.loc[
+            :,
+            [
+                "ejercicio",
+                "mes",
+                "fecha",
+                "id_carga",
+                "nro_comprobante",
+                "tipo",
+                "fuente",
+                "actividad",
+                "partida",
+                "cta_cte",
+                "cuit",
+                "importe",
+                "fondo_reparo",
+                "avance",
+                "nro_certificado",
+                "desc_obra",
+                "origen",
+            ],
+        ]
 
         df["updated_at"] = pd.Timestamp.now()
         print_rich_table(df, title=f"Tabla Exportada: {table}")
@@ -628,7 +648,7 @@ class IcaroMongoMigrator:
         # return_schema.append(await self.migrate_proyectos())
         # return_schema.append(await self.migrate_actividades())
         return_schema.append(self.migrate_estructuras())
-        # return_schema.append(await self.migrate_ctas_ctes())
+        return_schema.append(self.migrate_ctas_ctes())
         # return_schema.append(await self.migrate_fuentes())
         # return_schema.append(await self.migrate_partidas())
         # return_schema.append(await self.migrate_proveedores())
@@ -671,7 +691,7 @@ def main(
         migrator = IcaroMongoMigrator(
             sqlite_path=file,
         )
-        migrator.migrate_all()
+        migrator.migrate_ctas_ctes()
         typer.secho(
             f"✅ Migración completada con éxito desde {file.name}.",
             fg=typer.colors.GREEN,
