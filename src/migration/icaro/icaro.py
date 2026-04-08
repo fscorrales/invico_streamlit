@@ -360,36 +360,30 @@ class IcaroMongoMigrator:
     #         label="Tabla Partidas de ICARO",
     #     )
 
-    # # --------------------------------------------------
-    # async def migrate_proveedores(self) -> RouteReturnSchema:
-    #     df = self.from_sql("PROVEEDORES")
-    #     df.rename(
-    #         columns={
-    #             "Codigo": "codigo",
-    #             "Descripcion": "desc_proveedor",
-    #             "Domicilio": "domicilio",
-    #             "Localidad": "localidad",
-    #             "Telefono": "telefono",
-    #             "CUIT": "cuit",
-    #             "CondicionIVA": "condicion_iva",
-    #         },
-    #         inplace=True,
-    #     )
-    #     # Validar datos usando Pydantic
-    #     validate_and_errors = validate_and_extract_data_from_df(
-    #         dataframe=df, model=ProveedoresReport, field_id="codigo"
-    #     )
+    # --------------------------------------------------
+    def migrate_proveedores(self):
+        """Migrate PROVEEDORES table to MongoDB."""
+        table = "PROVEEDORES"
+        df = get_df_from_sql_table(sqlite_path=self.sqlite_path, table=table)
+        df.rename(
+            columns={
+                "Codigo": "codigo",
+                "Descripcion": "desc_proveedor",
+                "Domicilio": "domicilio",
+                "Localidad": "localidad",
+                "Telefono": "telefono",
+                "CUIT": "cuit",
+                "CondicionIVA": "condicion_iva",
+            },
+            inplace=True,
+        )
 
-    #     # await self.proveedores_repo.delete_all()
-    #     # await self.proveedores_repo.save_all(df.to_dict(orient="records"))
-    #     return await sync_validated_to_repository(
-    #         repository=self.proveedores_repo,
-    #         validation=validate_and_errors,
-    #         delete_filter=None,
-    #         title="ICARO Proveedores Migration",
-    #         logger=logger,
-    #         label="Tabla Proveedores de ICARO",
-    #     )
+        df["updated_at"] = pd.Timestamp.now()
+        print_rich_table(df, title=f"Tabla Exportada: {table}")
+
+        self.migrate_df_to_mongodb(
+            table=table, endpoint=Endpoints.ICARO_PROVEEDORES.value, df=df
+        )
 
     # --------------------------------------------------
     def migrate_obras(self):
@@ -638,7 +632,7 @@ class IcaroMongoMigrator:
         return_schema.append(self.migrate_ctas_ctes())
         # return_schema.append(await self.migrate_fuentes())
         # return_schema.append(await self.migrate_partidas())
-        # return_schema.append(await self.migrate_proveedores())
+        return_schema.append(self.migrate_proveedores())
         return_schema.append(self.migrate_obras())
         return_schema.append(self.migrate_carga())
         return_schema.append(self.migrate_retenciones())
