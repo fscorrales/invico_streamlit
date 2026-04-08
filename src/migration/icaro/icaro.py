@@ -574,65 +574,58 @@ class IcaroMongoMigrator:
             table=table, endpoint=Endpoints.ICARO_CERTIFICADOS.value, df=df
         )
 
-    # # --------------------------------------------------
-    # async def migrate_resumen_rend_obras(self) -> RouteReturnSchema:
-    #     df = self.from_sql("EPAM")
-    #     df.rename(
-    #         columns={
-    #             "NroComprobanteSIIF": "nro_comprobante",
-    #             "TipoComprobanteSIIF": "tipo",
-    #             "Origen": "origen",
-    #             "Obra": "desc_obra",
-    #             "Periodo": "ejercicio",
-    #             "Beneficiario": "beneficiario",
-    #             "LibramientoSGF": "nro_libramiento_sgf",
-    #             "FechaPago": "fecha",
-    #             "ImporteBruto": "importe_bruto",
-    #             "IIBB": "iibb",
-    #             "TL": "lp",
-    #             "Sellos": "sellos",
-    #             "SUSS": "suss",
-    #             "GCIAS": "gcias",
-    #             "ImporteNeto": "importe_neto",
-    #         },
-    #         inplace=True,
-    #     )
-    #     df["destino"] = ""
-    #     df["movimiento"] = ""
-    #     df["seguro"] = 0
-    #     df["salud"] = 0
-    #     df["mutual"] = 0
-    #     df["cod_obra"] = df["desc_obra"].str.split("-", n=1).str[0]
-    #     df["fecha"] = pd.to_timedelta(df["fecha"], unit="D") + pd.Timestamp(
-    #         "1970-01-01"
-    #     )
-    #     df["ejercicio"] = df["fecha"].dt.year
-    #     df["mes"] = (
-    #         df["fecha"].dt.month.astype(str).str.zfill(2)
-    #         + "/"
-    #         + df["ejercicio"].astype(str)
-    #     )
-    #     df.loc[df["nro_comprobante"] != "", "id_carga"] = df["nro_comprobante"] + "C"
-    #     df.loc[df["tipo"] == "PA6", "id_carga"] = df["nro_comprobante"] + "F"
-    #     df.drop(["nro_comprobante", "tipo"], axis=1, inplace=True)
-    #     # df["fecha"] = df["fecha"].apply(
-    #     #     lambda x: x.to_pydatetime() if pd.notnull(x) else None
-    #     # )
+    # --------------------------------------------------
+    def migrate_resumen_rend_obras(self):
+        """Migrate RESUMENRENDOBRAS table to MongoDB."""
+        table = "EPAM"
+        df = get_df_from_sql_table(sqlite_path=self.sqlite_path, table=table)
+        df.rename(
+            columns={
+                "NroComprobanteSIIF": "nro_comprobante",
+                "TipoComprobanteSIIF": "tipo",
+                "Origen": "origen",
+                "Obra": "desc_obra",
+                "Periodo": "ejercicio",
+                "Beneficiario": "beneficiario",
+                "LibramientoSGF": "nro_libramiento_sgf",
+                "FechaPago": "fecha",
+                "ImporteBruto": "importe_bruto",
+                "IIBB": "iibb",
+                "TL": "lp",
+                "Sellos": "sellos",
+                "SUSS": "suss",
+                "GCIAS": "gcias",
+                "ImporteNeto": "importe_neto",
+            },
+            inplace=True,
+        )
+        df["destino"] = ""
+        df["movimiento"] = ""
+        df["seguro"] = 0
+        df["salud"] = 0
+        df["mutual"] = 0
+        df["cod_obra"] = df["desc_obra"].str.split("-", n=1).str[0]
+        df["fecha"] = pd.to_timedelta(df["fecha"], unit="D") + pd.Timestamp(
+            "1970-01-01"
+        )
+        df["ejercicio"] = df["fecha"].dt.year
+        df["mes"] = (
+            df["fecha"].dt.month.astype(str).str.zfill(2)
+            + "/"
+            + df["ejercicio"].astype(str)
+        )
+        df.loc[df["nro_comprobante"] != "", "id_carga"] = df["nro_comprobante"] + "C"
+        df.loc[df["tipo"] == "PA6", "id_carga"] = df["nro_comprobante"] + "F"
+        df.drop(["nro_comprobante", "tipo"], axis=1, inplace=True)
+        # df["fecha"] = df["fecha"].apply(
+        #     lambda x: x.to_pydatetime() if pd.notnull(x) else None
+        # )
+        df["updated_at"] = pd.Timestamp.now()
+        print_rich_table(df, title=f"Tabla Exportada: {table}")
 
-    #     # Validar datos usando Pydantic
-    #     validate_and_errors = validate_and_extract_data_from_df(
-    #         dataframe=df, model=ResumenRendObrasReport, field_id="id_carga"
-    #     )
-    #     # await self.resumen_rend_obras_repo.delete_all()
-    #     # await self.resumen_rend_obras_repo.save_all(df.to_dict(orient="records"))
-    #     return await sync_validated_to_repository(
-    #         repository=self.resumen_rend_obras_repo,
-    #         validation=validate_and_errors,
-    #         delete_filter=None,
-    #         title="ICARO Resumen Rend Obras Migration",
-    #         logger=logger,
-    #         label="Tabla Resumen Rend Obras de ICARO",
-    #     )
+        self.migrate_df_to_mongodb(
+            table=table, endpoint=Endpoints.ICARO_RESUMEN_REND_OBRAS.value, df=df
+        )
 
     # --------------------------------------------------
     def migrate_all(self):
@@ -650,7 +643,7 @@ class IcaroMongoMigrator:
         return_schema.append(self.migrate_carga())
         return_schema.append(self.migrate_retenciones())
         return_schema.append(self.migrate_certificados())
-        # return_schema.append(await self.migrate_resumen_rend_obras())
+        return_schema.append(self.migrate_resumen_rend_obras())
         return return_schema
 
 
