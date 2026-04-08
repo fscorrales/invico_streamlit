@@ -534,51 +534,45 @@ class IcaroMongoMigrator:
             table=table, endpoint=Endpoints.ICARO_RETENCIONES.value, df=df
         )
 
-    # # --------------------------------------------------
-    # async def migrate_certificados(self) -> RouteReturnSchema:
-    #     df = self.from_sql("CERTIFICADOS")
-    #     df.rename(
-    #         columns={
-    #             "NroComprobanteSIIF": "nro_comprobante",
-    #             "TipoComprobanteSIIF": "tipo",
-    #             "Origen": "origen",
-    #             "Periodo": "ejercicio",
-    #             "Beneficiario": "beneficiario",
-    #             "Obra": "desc_obra",
-    #             "NroCertificado": "nro_certificado",
-    #             "MontoCertificado": "monto_certificado",
-    #             "FondoDeReparo": "fondo_reparo",
-    #             "ImporteBruto": "importe_bruto",
-    #             "IIBB": "iibb",
-    #             "LP": "lp",
-    #             "SUSS": "suss",
-    #             "GCIAS": "gcias",
-    #             "INVICO": "invico",
-    #             "ImporteNeto": "importe_neto",
-    #         },
-    #         inplace=True,
-    #     )
-    #     df["ejercicio"] = pd.to_numeric(df["ejercicio"], errors="coerce")
-    #     df["otras_retenciones"] = 0
-    #     df["cod_obra"] = df["desc_obra"].str.split(" ", n=1).str[0]
-    #     df.loc[df["nro_comprobante"] != "", "id_carga"] = df["nro_comprobante"] + "C"
-    #     df.loc[df["tipo"] == "PA6", "id_carga"] = df["nro_comprobante"] + "F"
-    #     df.drop(["nro_comprobante", "tipo"], axis=1, inplace=True)
+    # --------------------------------------------------
+    def migrate_certificados(self):
+        """Migrate CERTIFICADOS table to MongoDB."""
+        table = "CERTIFICADOS"
+        df = get_df_from_sql_table(sqlite_path=self.sqlite_path, table=table)
+        df.rename(
+            columns={
+                "NroComprobanteSIIF": "nro_comprobante",
+                "TipoComprobanteSIIF": "tipo",
+                "Origen": "origen",
+                "Periodo": "ejercicio",
+                "Beneficiario": "beneficiario",
+                "Obra": "desc_obra",
+                "NroCertificado": "nro_certificado",
+                "MontoCertificado": "monto_certificado",
+                "FondoDeReparo": "fondo_reparo",
+                "ImporteBruto": "importe_bruto",
+                "IIBB": "iibb",
+                "LP": "lp",
+                "SUSS": "suss",
+                "GCIAS": "gcias",
+                "INVICO": "invico",
+                "ImporteNeto": "importe_neto",
+            },
+            inplace=True,
+        )
+        df["ejercicio"] = pd.to_numeric(df["ejercicio"], errors="coerce")
+        df["otras_retenciones"] = 0
+        df["cod_obra"] = df["desc_obra"].str.split(" ", n=1).str[0]
+        df.loc[df["nro_comprobante"] != "", "id_carga"] = df["nro_comprobante"] + "C"
+        df.loc[df["tipo"] == "PA6", "id_carga"] = df["nro_comprobante"] + "F"
+        df.drop(["nro_comprobante", "tipo"], axis=1, inplace=True)
 
-    #     # Validar datos usando Pydantic
-    #     validate_and_errors = validate_and_extract_data_from_df(
-    #         dataframe=df, model=CertificadosReport, field_id="id_carga"
-    #     )
-    #     # await self.certificados_repo.delete_all()
-    #     # await self.certificados_repo.save_all(df.to_dict(orient="records"))
-    #     return await sync_validated_to_repository(
-    #         repository=self.certificados_repo,
-    #         validation=validate_and_errors,
-    #         delete_filter=None,
-    #         title="ICARO Certificados Migration",
-    #         logger=logger,
-    #         label="Tabla Certificados de ICARO",
-    #     )
+        df["updated_at"] = pd.Timestamp.now()
+        print_rich_table(df, title=f"Tabla Exportada: {table}")
+
+        self.migrate_df_to_mongodb(
+            table=table, endpoint=Endpoints.ICARO_CERTIFICADOS.value, df=df
+        )
 
     # # --------------------------------------------------
     # async def migrate_resumen_rend_obras(self) -> RouteReturnSchema:
@@ -655,7 +649,7 @@ class IcaroMongoMigrator:
         return_schema.append(self.migrate_obras())
         return_schema.append(self.migrate_carga())
         return_schema.append(self.migrate_retenciones())
-        # return_schema.append(await self.migrate_certificados())
+        return_schema.append(self.migrate_certificados())
         # return_schema.append(await self.migrate_resumen_rend_obras())
         return return_schema
 
@@ -691,7 +685,7 @@ def main(
         migrator = IcaroMongoMigrator(
             sqlite_path=file,
         )
-        migrator.migrate_ctas_ctes()
+        migrator.migrate_certificados()
         typer.secho(
             f"✅ Migración completada con éxito desde {file.name}.",
             fg=typer.colors.GREEN,

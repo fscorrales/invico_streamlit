@@ -24,3 +24,4 @@ class Endpoints(str, Enum):
     ICARO_OBRAS = "/icaro/obras"
     ICARO_ESTRUCTURAS = "/icaro/estructuras"
     ICARO_CTAS_CTES = "/icaro/ctasCtes"
+    ICARO_CERTIFICADOS = "/icaro/certificados"
