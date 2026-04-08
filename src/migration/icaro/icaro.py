@@ -560,6 +560,7 @@ class IcaroMongoMigrator:
         df.loc[df["nro_comprobante"] != "", "id_carga"] = df["nro_comprobante"] + "C"
         df.loc[df["tipo"] == "PA6", "id_carga"] = df["nro_comprobante"] + "F"
         df.drop(["nro_comprobante", "tipo"], axis=1, inplace=True)
+        df["id_carga"] = df["id_carga"].fillna("")
 
         df["updated_at"] = pd.Timestamp.now()
         print_rich_table(df, title=f"Tabla Exportada: {table}")
@@ -689,3 +690,4 @@ if __name__ == "__main__":
     # From /invico_streamlit
 
     # poetry run python -m src.migration.icaro.icaro -f "\\192.168.0.149\Compartida CONTABLE\R Apps (Compartida)\R Output\SQLite Files\ICARO.sqlite"
+    # poetry run python -m src.migration.icaro.icaro -f "C:\Users\corra\Downloads\ICARO.sqlite"
