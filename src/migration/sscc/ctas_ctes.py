@@ -101,5 +101,6 @@ if __name__ == "__main__":
     app()
     # From /invico_streamlit
 
-    # poetry run python -m src.migration.sscc.ctas_ctes -f "D:\Proyectos IT\invico_streamlit\src\migration\sscc\ctas_ctes.xlsx"
-    # poetry run python -m src.migration.sscc.ctas_ctes -f"C:\IT\Proyectos\Python\invico_streamlit\src\migration\sscc\ctas_ctes.xlsx"
+    # poetry run python -m src.migration.sscc.ctas_ctes -f "D:\Proyectos IT\invico_streamlit\src\migration\sscc\ctas_ctes_desc.xlsx"
+    # poetry run python -m src.migration.sscc.ctas_ctes -f "C:\IT\Proyectos\Python\invico_streamlit\src\migration\sscc\ctas_ctes_desc.xlsx"+
+    # poetry run python -m src.migration.sscc.ctas_ctes -f "D:\Datos INVICO\Python INVICO\invico_streamlit\src\migration\sscc\ctas_ctes_desc.xlsx"
