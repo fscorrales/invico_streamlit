@@ -76,7 +76,7 @@ def render() -> None:
             "options": GRUPOS,
             "query_param": "grupo",
             "key": "grupos_" + REPORTE,
-            "default": GRUPOS,
+            "default": GRUPOS[:4],
         },
     ]
 

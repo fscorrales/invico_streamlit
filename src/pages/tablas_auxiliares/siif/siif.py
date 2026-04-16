@@ -13,12 +13,14 @@ from src.pages.tablas_auxiliares.siif import (
     rfp_p605b,
     ri102,
     rvicon03,
+    rog01,
 )
 
 
 def main() -> None:
 
-    (
+    (   
+        tab_rog01,
         tab_rvicon03,
         tab_ri102,
         tab_rci02,
@@ -31,6 +33,7 @@ def main() -> None:
         tab_rfondos04,
     ) = st.tabs(
         [
+            "rog01",
             "rvicon03",
             "ri102",
             "rci02",
@@ -43,6 +46,10 @@ def main() -> None:
             "rfondos04",
         ]
     )
+
+
+    with tab_rog01:
+        rog01.render()
 
     with tab_rvicon03:
         rvicon03.render()
