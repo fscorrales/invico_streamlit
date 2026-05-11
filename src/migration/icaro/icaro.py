@@ -407,6 +407,8 @@ class IcaroMongoMigrator:
             inplace=True,
         )
 
+        df["localidad"] = df["localidad"].str.upper()
+
         df = df.loc[
             :,
             [
@@ -467,7 +469,7 @@ class IcaroMongoMigrator:
             + "/"
             + df["ejercicio"].astype(str)
         )
-        df["origen"] = df.loc[df["origen"] == "Obras", "CERTIFICADOS"]
+        df["origen"] = df["origen"].replace("Obras", "CERTIFICADOS")
 
         df = df.loc[
             :,
@@ -674,7 +676,7 @@ def main(
         migrator = IcaroMongoMigrator(
             sqlite_path=file,
         )
-        migrator.migrate_certificados()
+        migrator.migrate_obras()
         typer.secho(
             f"✅ Migración completada con éxito desde {file.name}.",
             fg=typer.colors.GREEN,
