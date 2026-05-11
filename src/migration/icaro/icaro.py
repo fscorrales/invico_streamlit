@@ -467,6 +467,7 @@ class IcaroMongoMigrator:
             + "/"
             + df["ejercicio"].astype(str)
         )
+        df["origen"] = df.loc[df["origen"] == "Obras", "CERTIFICADOS"]
 
         df = df.loc[
             :,
