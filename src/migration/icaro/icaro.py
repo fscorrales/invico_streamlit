@@ -97,6 +97,7 @@ class IcaroMongoMigrator:
     ) -> None:
         """Migrate DataFrame to MongoDB."""
         client = MigrationClient(token="token_bypassed")
+        client.login()
         try:
             records = df.to_dict(orient="records")
 
