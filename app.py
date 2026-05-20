@@ -73,7 +73,8 @@ def initialize_state() -> None:
 # ──────────────────────────────────────────────
 def build_navigation() -> None:
     """Construye la navegación con st.navigation y ejecuta la página."""
-    role = st.session_state["user"]["role"]
+    role = st.session_state["user"].get("role", "pending")
+    username = st.session_state["user"].get("username", "Usuario")
 
     # username = st.session_state["user"]["username"]
 
@@ -158,31 +159,33 @@ def build_navigation() -> None:
     # 3. Inicializar y ejecutar
     pg = st.navigation(pages)
 
-    # # 4. Crear un "Header" en la parte superior de la página
-    # with st.container(
-    #     vertical_alignment="center", height="stretch", gap=None, horizontal=False
-    # ):
-    #     with st.container(
-    #         horizontal=True, vertical_alignment="bottom", horizontal_alignment="right"
-    #     ):
-    #         with st.container(width="content"):
-    #             st.write(f"👤 **{st.session_state['user']['username']}**")
-    #         with st.container(width="content"):
-    #             if st.button("Log out", width="stretch"):
-    #                 # 1.Activamos el interruptor
-    #                 st.session_state.app_closing = True
-
-    #                 # 2. Limpiamos la sesión para seguridad
-    #                 st.session_state["token"] = None
-    #                 st.session_state["user"] = None
-
-    #                 # 3. Forzamos el rerun para que entre en la pantalla de cierre
-    #                 st.rerun()
-
-    #     st.divider()
-
     # 3. Sidebar: Info de usuario y Logout
     with st.sidebar:
+        if st.button(
+            "🔄 Sincronizar Datos",
+            use_container_width=True,
+            help="Descarga los datos más recientes de la API",
+        ):
+            # # Incrementamos el trigger de las funciones con .parquet
+            # st.session_state.estructuras_uploader_iteration += 1
+            # get_estructuras(
+            #     update_trigger=st.session_state.estructuras_uploader_iteration
+            # )
+            # st.session_state.obras_uploader_iteration += 1
+            # get_obras(update_trigger=st.session_state.obras_uploader_iteration)
+            # st.session_state.proveedores_uploader_iteration += 1
+            # get_proveedores(
+            #     update_trigger=st.session_state.proveedores_uploader_iteration
+            # )
+            # st.session_state.ctas_ctes_uploader_iteration += 1
+            # get_ctas_ctes(update_trigger=st.session_state.ctas_ctes_uploader_iteration)
+
+            # Opcional: limpiar el caché de Streamlit para asegurar que no haya basura
+            st.cache_data.clear()
+            st.toast("Sincronizando con el servidor...", icon="🚀")
+            time.sleep(1)  # Simula un pequeño delay para que se vea el toast
+
+            st.rerun()
         # Generamos espacio en blanco dinámico
         # Si tienes 6 páginas, unos 12 a 15 st.write("") suelen bastar
         # para mandarlo al fondo en una pantalla estándar.
@@ -193,7 +196,7 @@ def build_navigation() -> None:
 
         # Bloque de Usuario
         cols = st.columns([0.6, 0.4], vertical_alignment="center")
-        cols[0].write(f"👤 **{st.session_state['user']['username']}**")
+        cols[0].write(f"👤 **{username}***")
 
         if cols[1].button("Log out", key="logout_spacer"):
             st.session_state.app_closing = True
@@ -223,32 +226,12 @@ def build_navigation() -> None:
     # 3. Ejecutar la página
     pg.run()
 
-    # # ── Sidebar inferior: info de usuario y logout ──
-    # with st.sidebar:
-    #     st.divider()
-    #     username = st.session_state["user"]["username"]
-    #     st.caption(f"👤 {username} ({role})")
-
-    #     if st.button("Cerrar Sesión", width="stretch"):
-    #         st.session_state["token"] = None
-    #         st.session_state["user"] = None
-    #         st.rerun()
-
 
 # ──────────────────────────────────────────────
 # Main
 # ──────────────────────────────────────────────
 def main() -> None:
     initialize_state()
-
-    # TEMPORARY: Bypass Login para desarrollo
-    # if not st.session_state.get("token"):
-    #     st.session_state["token"] = "dev-bypass-token"
-    #     st.session_state["user"] = {
-    #         "role": "admin",
-    #         "username": "developer",
-    #         "id": "1",
-    #     }
 
     if not st.session_state["token"]:
         render_login()
