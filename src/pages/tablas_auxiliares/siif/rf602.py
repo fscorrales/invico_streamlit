@@ -3,8 +3,13 @@ from playwright.async_api import async_playwright
 
 from src.automation.siif.rf602 import Rf602
 from src.constants import Endpoints, get_ejercicios_list
-from src.services import post_request
+from src.services import get_rf602, post_request
+from src.utils import (
+    APIConnectionError,
+    APIResponseError,
+)
 from src.views import (
+    dataframe_with_buttons,
     report_template,
     request_siif_credentials_modal,
 )
@@ -72,38 +77,38 @@ def render() -> None:
 
     # Capturamos el filtro del session_state (que el fragmento actualizó)
     filtro_actual = st.session_state.get(f"{REPORTE}_advanced_filter", "")
+    trigger = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
+    # Ejecutamos la lógica que necesitemos (ahora sí es reutilizable)
+    try:
+        df_602 = get_rf602(
+            filtro_actual,
+            update_trigger=trigger,
+        )
 
-    # # Ejecutamos la lógica que necesitemos (ahora sí es reutilizable)
-    # try:
-    #     df_proveedores = get_proveedores(
-    #         filtro_actual,
-    #         update_trigger=st.session_state.proveedores_uploader_iteration,
-    #     )
+        if df_602.empty:
+            st.info("No se encontraron resultados.")
+        # else:
+        #     st.session_state[f"data_{key}_carga"] = df_final
+        #     st.session_state[f"data_{key}_retenciones"] = df_final_ret
 
-    #     if df_proveedores.empty:
-    #         st.info("No se encontraron resultados.")
-    #     # else:
-    #     #     st.session_state[f"data_{key}_carga"] = df_final
-    #     #     st.session_state[f"data_{key}_retenciones"] = df_final_ret
+    except APIConnectionError as e:
+        st.error(f"⚠️ Error de conexión: {e}")
+    except APIResponseError as e:
+        st.error(f"⚠️ Error de API: {e}")
 
-    # except APIConnectionError as e:
-    #     st.error(f"⚠️ Error de conexión: {e}")
-    # except APIResponseError as e:
-    #     st.error(f"⚠️ Error de API: {e}")
-
-    # # 4. Mostrar resultados (usando session_state para que no desaparezcan)
-    # if not df_proveedores.empty:
-    #     dataframe_with_buttons(
-    #         df_proveedores,
-    #         key=f"{REPORTE}_df_proveedores",
-    #         height=300,
-    #         column_order=[
-    #             "cuit",
-    #             "codigo",
-    #             "desc_proveedor",
-    #             "domicilio",
-    #             "localidad",
-    #             "condicion_iva",
-    #         ],
-    #         show_buttons=False,
-    #     )
+    # 4. Mostrar resultados (usando session_state para que no desaparezcan)
+    if not df_602.empty:
+        dataframe_with_buttons(
+            df_602,
+            key=f"{REPORTE}_df_rf602",
+            height=300,
+            # column_order=[
+            #     "cuit",
+            #     "codigo",
+            #     "desc_proveedor",
+            #     "domicilio",
+            #     "localidad",
+            #     "condicion_iva",
+            # ],
+            show_buttons=False,
+        )
