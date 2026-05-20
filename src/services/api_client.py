@@ -6,6 +6,16 @@ Todas las páginas deben usar este módulo en lugar de llamar a httpx
 directamente.
 """
 
+__all__ = [
+    "fetch_data",
+    "fetch_excel_stream",
+    "post_request",
+    "put_request",
+    "patch_request",
+    "delete_request",
+    "fetch_dataframe",
+]
+
 import json
 from io import BytesIO
 from typing import Any, Optional
@@ -203,6 +213,66 @@ def post_request(
         return _handle_response(response)
     except httpx.RequestError as e:
         raise APIConnectionError(f"Error de conexión (POST): {e}") from e
+
+
+# --------------------------------------------------
+def put_request(
+    endpoint: str,
+    json_body: Optional[Any] = None,
+    token: Optional[str] = None,
+) -> dict[str, Any]:
+    """
+    Realiza un PUT genérico a la API. Útil para actualizar base de datos
+    tras ejecuciones de Playwright/Pywinauto.
+    """
+    headers = _get_headers(token=token)
+
+    # --- FIX: Convertir Timestamps a strings ---
+    if json_body is not None:
+        # Serializamos a string y volvemos a cargar a dict
+        # Esto convierte automáticamente los Timestamps a strings
+        json_body = json.loads(
+            json.dumps(
+                json_body,
+                default=lambda x: x.isoformat() if hasattr(x, "isoformat") else str(x),
+            )
+        )
+    # --------------------------------------------
+
+    try:
+        response = httpx.put(
+            f"{BASE_URL}{endpoint}",
+            headers=headers,
+            json=json_body,
+            timeout=settings.DEFAULT_TIMEOUT,
+            follow_redirects=True,
+        )
+        return _handle_response(response)
+    except httpx.RequestError as e:
+        raise APIConnectionError(f"Error de conexión (PUT): {e}") from e
+
+
+# --------------------------------------------------
+def delete_request(
+    endpoint: str,
+    token: Optional[str] = None,
+) -> dict[str, Any]:
+    """
+    Realiza un DELETE genérico a la API. Útil para actualizar base de datos
+    tras ejecuciones de Playwright/Pywinauto.
+    """
+    headers = _get_headers(token=token)
+
+    try:
+        response = httpx.delete(
+            f"{BASE_URL}{endpoint}",
+            headers=headers,
+            timeout=settings.DEFAULT_TIMEOUT,
+            follow_redirects=True,
+        )
+        return _handle_response(response)
+    except httpx.RequestError as e:
+        raise APIConnectionError(f"Error de conexión (DELETE): {e}") from e
 
 
 # --------------------------------------------------
