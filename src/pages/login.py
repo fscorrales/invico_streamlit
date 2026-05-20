@@ -22,11 +22,11 @@ def render_login() -> None:
                 password = st.text_input(
                     "Contraseña", type="password", key="login_password"
                 )
-                submitted = st.form_submit_button("Ingresar", use_container_width=True)
+                submitted = st.form_submit_button("Ingresar", width="stretch")
 
                 if submitted:
-                    with st.spinner("Autenticando en el Sistema..."):
-                        try:
+                    try:
+                        with st.spinner("Autenticando en el Sistema..."):
                             token = login(username, password)
                             st.session_state["token"] = token
 
@@ -36,14 +36,23 @@ def render_login() -> None:
                                 "username": user_data.username,
                                 "id": user_data.id,
                             }
-                            st.rerun()
 
-                        except (
-                            ex.AppBaseException
-                        ) as e:  # Captura cualquier error definido por ti
-                            st.error(f"Error: {e}")
-                        except Exception as e:
-                            st.error(f"Ocurrió un error inesperado. {e}")
+                        # with st.status("Preparando ICARO...", expanded=True) as status:
+                        #     st.write("Sincronizando Estructuras...")
+                        #     if "estructuras_uploader_iteration" not in st.session_state:
+                        #         st.session_state.estructuras_uploader_iteration = 0
+                        #     get_estructuras(
+                        #         update_trigger=st.session_state.estructuras_uploader_iteration
+                        #     )
+
+                        st.rerun()
+
+                    except (
+                        ex.AppBaseException
+                    ) as e:  # Captura cualquier error definido por ti
+                        st.error(f"Error: {e}")
+                    except Exception as e:
+                        st.error(f"Ocurrió un error inesperado. {e}")
 
         with tab_register:
             st.info("Complete los datos para crear una nueva cuenta.")
@@ -71,9 +80,7 @@ def render_login() -> None:
                 conf_pass = st.text_input(
                     "Confirmar Contraseña", type="password", key="reg_confirm"
                 )
-                submitted_reg = st.form_submit_button(
-                    "Crear Cuenta", use_container_width=True
-                )
+                submitted_reg = st.form_submit_button("Crear Cuenta", width="stretch")
 
                 if submitted_reg:
                     # 1. Validación de campos vacíos
