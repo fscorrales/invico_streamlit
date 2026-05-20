@@ -3,6 +3,8 @@ __all__ = [
     "get_src_path",
     "get_app_path",
     "get_outside_path",
+    "get_cache_path",
+    "get_secure_cache_path",
     "get_download_path",
     "get_download_sgf_path",
     "get_download_sscc_path",
@@ -18,6 +20,7 @@ __all__ = [
 
 import inspect
 import os
+import sys
 
 
 # --------------------------------------------------
@@ -32,10 +35,22 @@ def get_src_path():
     dir_path = os.path.dirname(dir_path)
     return dir_path
 
+
 # --------------------------------------------------
 def get_app_path():
-    dir_path = os.path.dirname(get_src_path())
-    return dir_path
+    # dir_path = os.path.dirname(get_src_path())
+    # return dir_path
+    # Detectamos si estamos ejecutando desde un .exe de PyInstaller
+    if getattr(sys, "frozen", False):
+        # Estamos en el .exe: la ruta base es donde está el archivo ejecutable
+        return os.path.dirname(sys.executable)
+    else:
+        # Estamos en modo desarrollo (Python): subimos niveles desde este archivo
+        # (Equivale a tu lógica anterior de subir desde utils/src)
+        dir_actual = os.path.dirname(os.path.abspath(__file__))
+        # Ajusta la cantidad de .dirname según qué tan profundo esté este script
+        # Si este script está en src/utils/path_helper.py, subirías 2 veces:
+        return os.path.dirname(os.path.dirname(dir_actual))
 
 
 # --------------------------------------------------
@@ -44,10 +59,23 @@ def get_outside_path():
     return dir_path
 
 
-# # --------------------------------------------------
-# def get_download_path():
-#     dir_path = os.path.join(get_outside_path(), "Reportes Descargados")
-#     return dir_path
+# --------------------------------------------------
+def get_cache_path():
+    dir_path = os.path.join(get_app_path(), ".cache")
+    # Aseguramos que la carpeta exista antes de devolver la ruta
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path, exist_ok=True)
+    return dir_path
+
+
+# --------------------------------------------------
+def get_secure_cache_path():
+    # Usa LOCALAPPDATA para evitar problemas de permisos en Windows
+    app_data = os.environ.get("LOCALAPPDATA", os.path.expanduser("~"))
+    dir_path = os.path.join(app_data, "ICARO", ".cache")
+    os.makedirs(dir_path, exist_ok=True)
+    return dir_path
+
 
 # --------------------------------------------------
 def get_download_path():
@@ -128,6 +156,8 @@ def main():
     print(f"Src Path: {get_src_path()}")
     print(f"App Path: {get_app_path()}")
     print(f"Outside Path: {get_outside_path()}")
+    print(f"Cache Path: {get_cache_path()}")
+    print(f"Secure Cache Path: {get_secure_cache_path()}")
     print(f"Download Path: {get_download_path()}")
     print(f"Download SGF Path: {get_download_sgf_path()}")
     print(f"Download SSCC Path: {get_download_sscc_path()}")
