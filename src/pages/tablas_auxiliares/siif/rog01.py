@@ -1,4 +1,3 @@
-import streamlit as st
 from playwright.async_api import async_playwright
 
 from src.automation.siif.rog01 import Rog01
@@ -11,6 +10,7 @@ from src.views.modals import request_siif_credentials_modal
 ENDPONT = Endpoints.SIIF_ROG01.value
 REPORTE = "rog01"
 GRUPOS = [element + "00" for element in get_grupos_partidas_str_siif_list()]
+
 
 # --------------------------------------------------
 async def run_automation(username: str, password: str) -> None:
@@ -56,5 +56,5 @@ def render() -> None:
         endpoint=ENDPONT,
         description="Detalle de Partidas Presupuestarias",
         filters_config=mis_filtros,
-        on_update=lambda: request_siif_credentials_modal(run_automation),
+        update_func=lambda: request_siif_credentials_modal(run_automation),
     )

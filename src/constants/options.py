@@ -1,3 +1,13 @@
+__all__ = [
+    "get_ejercicios_list",
+    "get_tipos_comprobantes_siif_list",
+    "get_grupos_partidas_siif_list",
+    "get_grupos_partidas_str_siif_list",
+    "get_partidas_principales_siif_list",
+    "get_ctas_ctes_df",
+    "get_ctas_ctes_list",
+]
+
 import datetime as dt
 from typing import Any
 

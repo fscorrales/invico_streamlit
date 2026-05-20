@@ -1,12 +1,24 @@
+__all__ = [
+    "report_template",
+    "params_preparation",
+    "dataframe_with_buttons",
+]
+
 from typing import Any, Optional
 
 import pandas as pd
 import streamlit as st
 
-from src.components.buttons import button_export, button_update
-from src.components.dataframes import dataframe
-from src.components.multiselects import multiselect_filter
-from src.components.text_inputs import text_input_advance_filter
+from src.components import (
+    button_add,
+    button_delete,
+    button_edit,
+    button_export,
+    button_update,
+    dataframe,
+    multiselect_filter,
+    text_input_advance_filter,
+)
 from src.services.api_client import (
     APIConnectionError,
     APIResponseError,
@@ -16,7 +28,7 @@ from src.services.api_client import (
 
 
 # --------------------------------------------------
-def params_preparation(selections: list, filtro_avanzado: str):
+def params_preparation(selections: list, filtro_avanzado: str) -> dict[str, Any]:
     """
     Función auxiliar para preparar los parámetros de la API a partir de las selecciones y el filtro avanzado.
     Devuelve un diccionario listo para ser usado en la petición.
@@ -38,7 +50,7 @@ def report_template(
     endpoint: str,
     description: str,
     filters_config: list,
-    on_update: Optional[Any] = None,
+    update_func: Optional[Any] = None,
     allow_no_filters: bool = False,
     has_update: bool = True,
     has_export: bool = True,
@@ -97,8 +109,8 @@ def report_template(
 
         if has_update:
             if button_update("Actualizador automático", key=f"button_update_{key}"):
-                if on_update:
-                    on_update()
+                if update_func:
+                    update_func()
 
         if has_export:
             # Aquí podrías integrar tu logic de exportación
@@ -145,8 +157,68 @@ def report_template(
     except APIResponseError as e:
         st.error(f"⚠️ Error de API: {e}")
 
+    # Sincronizamos con el session_state para que 'render' lo vea
+    if st.session_state.get(f"{key}_advanced_filter") != filtro_avanzado:
+        st.session_state[f"{key}_advanced_filter"] = filtro_avanzado
+        st.rerun()  # Forzamos que toda la página (fuera del fragmento) reaccione
+
     # 4. Mostrar resultados (usando session_state para que no desaparezcan)
     data_key = f"data_{key}"
     if data_key in st.session_state:
         dataframe(st.session_state[data_key], key=f"df_{key}")
         # st.dataframe(st.session_state[data_key], width="stretch")
+
+
+# --------------------------------------------------
+def dataframe_with_buttons(
+    df: pd.DataFrame,
+    key: str = "df_with_btns",
+    height: int = 150,
+    column_order: list = [],
+    selection_mode: str = None,
+    add_func=None,
+    edit_func=None,
+    delete_func=None,
+    show_buttons: bool = True,
+    **kwargs,
+):
+
+    with st.container(horizontal=False, border=True, width="stretch"):
+        event = dataframe(
+            df,
+            key=f"{key}",
+            height=height,
+            column_order=column_order,
+            on_select="rerun" if selection_mode else "ignore",
+            selection_mode=selection_mode or "multi-row",
+        )
+        if show_buttons:
+            with st.container(
+                horizontal=True,
+                border=False,
+                width="stretch",
+                horizontal_alignment="center",
+                gap="medium",
+            ):
+                if button_add(
+                    "Agregar",
+                    key=f"btn_add_{key}",
+                    type="primary",
+                    disabled=not add_func,
+                ):
+                    if add_func:
+                        add_func()
+                if button_edit("Editar", key=f"btn_edit_{key}", disabled=not edit_func):
+                    if edit_func:
+                        if len(event.selection.rows) > 0:
+                            selected_row_index = event.selection.rows[0]
+                            datos_edicion = df.iloc[selected_row_index].to_dict()
+                            edit_func(datos_edicion)
+                if button_delete(
+                    "Borrar", key=f"btn_delete_{key}", disabled=not delete_func
+                ):
+                    if delete_func:
+                        if len(event.selection.rows) > 0:
+                            selected_row_index = event.selection.rows[0]
+                            datos_eliminar = df.iloc[selected_row_index].to_dict()
+                            delete_func(datos_eliminar)

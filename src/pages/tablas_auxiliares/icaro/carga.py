@@ -25,6 +25,6 @@ def render() -> None:
         endpoint=ENDPONT,
         description="Tabla de Carga de Datos en ICARO",
         filters_config=mis_filtros,
-        on_update=None,
+        update_func=None,
         has_update=False,  # Asumo que este reporte no necesita actualización manual por ahora
     )

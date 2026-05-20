@@ -2,11 +2,12 @@ import streamlit as st
 from playwright.async_api import async_playwright
 
 from src.automation.siif.rf602 import Rf602
-from src.constants.endpoints import Endpoints
-from src.constants.options import get_ejercicios_list
-from src.services.api_client import post_request
-from src.views.aux_tables import report_template
-from src.views.modals import request_siif_credentials_modal
+from src.constants import Endpoints, get_ejercicios_list
+from src.services import post_request
+from src.views import (
+    report_template,
+    request_siif_credentials_modal,
+)
 
 ENDPONT = Endpoints.SIIF_RF602.value
 REPORTE = "rf602"
@@ -66,5 +67,43 @@ def render() -> None:
         endpoint=ENDPONT,
         description="Ejecución presupuestaria del Ejercicio con fuente de financiamiento",
         filters_config=mis_filtros,
-        on_update=lambda: request_siif_credentials_modal(run_automation),
+        update_func=lambda: request_siif_credentials_modal(run_automation),
     )
+
+    # Capturamos el filtro del session_state (que el fragmento actualizó)
+    filtro_actual = st.session_state.get(f"{REPORTE}_advanced_filter", "")
+
+    # # Ejecutamos la lógica que necesitemos (ahora sí es reutilizable)
+    # try:
+    #     df_proveedores = get_proveedores(
+    #         filtro_actual,
+    #         update_trigger=st.session_state.proveedores_uploader_iteration,
+    #     )
+
+    #     if df_proveedores.empty:
+    #         st.info("No se encontraron resultados.")
+    #     # else:
+    #     #     st.session_state[f"data_{key}_carga"] = df_final
+    #     #     st.session_state[f"data_{key}_retenciones"] = df_final_ret
+
+    # except APIConnectionError as e:
+    #     st.error(f"⚠️ Error de conexión: {e}")
+    # except APIResponseError as e:
+    #     st.error(f"⚠️ Error de API: {e}")
+
+    # # 4. Mostrar resultados (usando session_state para que no desaparezcan)
+    # if not df_proveedores.empty:
+    #     dataframe_with_buttons(
+    #         df_proveedores,
+    #         key=f"{REPORTE}_df_proveedores",
+    #         height=300,
+    #         column_order=[
+    #             "cuit",
+    #             "codigo",
+    #             "desc_proveedor",
+    #             "domicilio",
+    #             "localidad",
+    #             "condicion_iva",
+    #         ],
+    #         show_buttons=False,
+    #     )

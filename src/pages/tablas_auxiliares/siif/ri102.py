@@ -65,5 +65,5 @@ def render() -> None:
         endpoint=ENDPONT,
         description="Ejecución Presupuestaria Agregada de Recursos",
         filters_config=mis_filtros,
-        on_update=lambda: request_siif_credentials_modal(run_automation),
+        update_func=lambda: request_siif_credentials_modal(run_automation),
     )

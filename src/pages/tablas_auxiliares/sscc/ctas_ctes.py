@@ -25,7 +25,7 @@ def render() -> None:
         endpoint=ENDPONT,
         description="Unificador de Cuentas Corrientes",
         filters_config=mis_filtros,
-        on_update=None,
+        update_func=None,
         has_export=False,  # Asumo que este reporte no tiene exportación por ahora
         has_update=False,  # Asumo que este reporte no necesita actualización manual por ahora
         allow_no_filters=True,  # Permitimos que el usuario deje este filtro vacío

@@ -1,7 +1,7 @@
 import streamlit as st
 from playwright.async_api import async_playwright
-from src.automation.siif.gto_rpa03g import GtoRpa03g
 
+from src.automation.siif.gto_rpa03g import GtoRpa03g
 from src.constants.endpoints import Endpoints
 from src.constants.options import (
     get_ejercicios_list,
@@ -86,5 +86,5 @@ def render() -> None:
         endpoint=ENDPONT,
         description="Ejecución de Gastos del Ejercicio por Grupo de Partidas",
         filters_config=mis_filtros,
-        on_update=lambda: request_siif_credentials_modal(run_automation),
+        update_func=lambda: request_siif_credentials_modal(run_automation),
     )
