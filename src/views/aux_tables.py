@@ -111,6 +111,10 @@ def report_template(
             if button_update("Actualizador automático", key=f"button_update_{key}"):
                 if update_func:
                     update_func()
+                    actual = st.session_state.get(f"{key}_uploader_iteration")
+                    st.session_state[f"{key}_uploader_iteration"] = (
+                        0 if actual is None else actual + 1
+                    )
 
         if has_export:
             # Aquí podrías integrar tu logic de exportación
@@ -157,23 +161,25 @@ def report_template(
     except APIResponseError as e:
         st.error(f"⚠️ Error de API: {e}")
 
+    params = params_preparation(selections, filtro_avanzado)
+
     # Sincronizamos con el session_state para que 'render' lo vea
-    if st.session_state.get(f"{key}_advanced_filter") != filtro_avanzado:
-        st.session_state[f"{key}_advanced_filter"] = filtro_avanzado
+    if st.session_state.get(f"{key}_advanced_filter") != params:
+        st.session_state[f"{key}_advanced_filter"] = params
         st.rerun()  # Forzamos que toda la página (fuera del fragmento) reaccione
 
     # 4. Mostrar resultados (usando session_state para que no desaparezcan)
-    data_key = f"data_{key}"
-    if data_key in st.session_state:
-        dataframe(st.session_state[data_key], key=f"df_{key}")
-        # st.dataframe(st.session_state[data_key], width="stretch")
+    # data_key = f"data_{key}"
+    # if data_key in st.session_state:
+    #     dataframe(st.session_state[data_key], key=f"df_{key}")
+    #     # st.dataframe(st.session_state[data_key], width="stretch")
 
 
 # --------------------------------------------------
 def dataframe_with_buttons(
     df: pd.DataFrame,
     key: str = "df_with_btns",
-    height: int = 150,
+    height: int = 300,
     column_order: list = [],
     selection_mode: str = None,
     add_func=None,
