@@ -10,6 +10,8 @@ __all__ = [
     "get_siif_gto_rpa03g",
     "get_siif_rfondo07tp",
     "get_siif_rfondos04",
+    "get_sscc_ctas_ctes",
+    "get_sscc_banco_invico",
 ]
 
 import pandas as pd
@@ -174,11 +176,41 @@ def get_siif_rfondo07tp(params: str = "", update_trigger: int = 0):
 def get_siif_rfondos04(params: str = "", update_trigger: int = 0):
     df = pd.DataFrame()
 
-    df = fetch_dataframe(Endpoints.SIIF_RFONDS04.value, params=params)
+    df = fetch_dataframe(Endpoints.SIIF_RFONDOS04.value, params=params)
     if not df.empty:
         df = df.sort_values(
             ["ejercicio", "fecha", "tipo_comprobante", "nro_comprobante"],
             ascending=[False, False, False, False],
+        )
+
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_sscc_ctas_ctes(params: str = "", update_trigger: int = 0):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(Endpoints.CTAS_CTES.value, params=params)
+    # if not df.empty:
+    #     df = df.sort_values(
+    #         ["ejercicio", "fecha", "tipo_comprobante", "nro_comprobante"],
+    #         ascending=[False, False, False, False],
+    #     )
+
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_sscc_banco_invico(params: str = "", update_trigger: int = 0):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(Endpoints.SSCC_BANCO_INVICO.value, params=params)
+    if not df.empty:
+        df = df.sort_values(
+            ["ejercicio", "fecha", "cta_cte"],
+            ascending=[False, False, True],
         )
 
     return df

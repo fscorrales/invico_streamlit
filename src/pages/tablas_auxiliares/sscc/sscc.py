@@ -6,12 +6,14 @@ from src.pages.tablas_auxiliares.sscc import banco_invico, ctas_ctes
 
 
 def main() -> None:
-    tab_banco_invico, tab_ctas_ctes = st.tabs(["Banco INVICO", "Ctas Ctes"])
+    tab_banco_invico, tab_ctas_ctes = st.tabs(
+        ["Banco INVICO", "Ctas Ctes"], on_change="rerun"
+    )
 
-    with tab_banco_invico:
+    if tab_banco_invico.open:
         banco_invico.render()
 
-    with tab_ctas_ctes:
+    if tab_ctas_ctes.open:
         ctas_ctes.render()
 
 
