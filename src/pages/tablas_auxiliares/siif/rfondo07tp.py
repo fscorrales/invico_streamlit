@@ -4,11 +4,16 @@ from playwright.async_api import async_playwright
 from src.automation.siif.rfondo07tp import Rfondo07tp
 from src.constants.endpoints import Endpoints
 from src.constants.options import get_ejercicios_list, get_tipos_comprobantes_siif_list
-from src.services.api_client import post_request
-
-# from src.services.models import TipoComprobanteSIIF
-from src.views.aux_tables import report_template
-from src.views.modals import request_siif_credentials_modal
+from src.services import get_siif_rfondo07tp, post_request
+from src.utils import (
+    APIConnectionError,
+    APIResponseError,
+)
+from src.views import (
+    dataframe_with_buttons,
+    report_template,
+    request_siif_credentials_modal,
+)
 
 ENDPONT = Endpoints.SIIF_RFONDO07TP.value
 REPORTE = "rfondo07tp"
@@ -78,3 +83,52 @@ def render() -> None:
         filters_config=mis_filtros,
         update_func=lambda: request_siif_credentials_modal(run_automation),
     )
+
+    # Capturamos el filtro del session_state (que el fragmento actualizó)
+    filtro_actual = st.session_state.get(f"{REPORTE}_advanced_filter", "")
+    actual = st.session_state.get(f"{REPORTE}_uploader_iteration")
+    trigger = st.session_state[f"{REPORTE}_uploader_iteration"] = (
+        0 if actual is None else actual + 1
+    )
+    try:
+        df = get_siif_rfondo07tp(
+            filtro_actual,
+            update_trigger=trigger,
+        )
+
+        if df.empty:
+            st.info("No se encontraron resultados.")
+        # else:
+        #     st.session_state[f"data_{key}_carga"] = df_final
+        #     st.session_state[f"data_{key}_retenciones"] = df_final_ret
+
+    except APIConnectionError as e:
+        st.error(f"⚠️ Error de conexión: {e}")
+    except APIResponseError as e:
+        st.error(f"⚠️ Error de API: {e}")
+
+    # 4. Mostrar resultados (usando session_state para que no desaparezcan)
+    if not df.empty:
+        # Definimos las columnas que NO queremos mostrar
+        first_cols = [
+            "ejercicio",
+            "mes",
+            "fecha",
+            "tipo_comprobante",
+            "nro_comprobante",
+            "ingresos",
+            "egresos",
+            "saldo",
+        ]
+
+        # Generamos el orden dinámico: todas las del DF que no estén en la lista negra
+        orden_dinamico = first_cols + [
+            col for col in df.columns if col not in first_cols
+        ]
+
+        dataframe_with_buttons(
+            df,
+            key=f"{REPORTE}_df_rfondo07tp",
+            column_order=orden_dinamico,
+            show_buttons=False,
+        )

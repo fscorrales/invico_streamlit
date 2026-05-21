@@ -12,14 +12,14 @@ from src.pages.tablas_auxiliares.siif import (
     rfondos04,
     rfp_p605b,
     ri102,
-    rvicon03,
     rog01,
+    rvicon03,
 )
 
 
 def main() -> None:
 
-    (   
+    (
         tab_rog01,
         tab_rvicon03,
         tab_ri102,
@@ -44,41 +44,41 @@ def main() -> None:
             "gto_rpa03g",
             "rfondo07tp",
             "rfondos04",
-        ]
+        ],
+        on_change="rerun",
     )
 
-
-    with tab_rog01:
+    if tab_rog01.open:
         rog01.render()
 
-    with tab_rvicon03:
+    if tab_rvicon03.open:
         rvicon03.render()
 
-    with tab_ri102:
+    if tab_ri102.open:
         ri102.render()
 
-    with tab_rci02:
+    if tab_rci02.open:
         rci02.render()
 
-    with tab_rfp_p605b:
+    if tab_rfp_p605b.open:
         rfp_p605b.render()
 
-    with tab_rf602:
+    if tab_rf602.open:
         rf602.render()
 
-    with tab_rf610:
+    if tab_rf610.open:
         rf610.render()
 
-    with tab_rcg01_uejp:
+    if tab_rcg01_uejp.open:
         rcg01_uejp.render()
 
-    with tab_gto_rpa03g:
+    if tab_gto_rpa03g.open:
         gto_rpa03g.render()
 
-    with tab_rfondo07tp:
+    if tab_rfondo07tp.open:
         rfondo07tp.render()
 
-    with tab_rfondos04:
+    if tab_rfondos04.open:
         rfondos04.render()
 
 

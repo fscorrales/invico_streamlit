@@ -3,7 +3,7 @@ from playwright.async_api import async_playwright
 
 from src.automation.siif.rf602 import Rf602
 from src.constants import Endpoints, get_ejercicios_list
-from src.services import get_rf602, post_request
+from src.services import get_siif_rf602, post_request
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -77,15 +77,17 @@ def render() -> None:
 
     # Capturamos el filtro del session_state (que el fragmento actualizó)
     filtro_actual = st.session_state.get(f"{REPORTE}_advanced_filter", "")
-    trigger = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
-    # Ejecutamos la lógica que necesitemos (ahora sí es reutilizable)
+    actual = st.session_state.get(f"{REPORTE}_uploader_iteration")
+    trigger = st.session_state[f"{REPORTE}_uploader_iteration"] = (
+        0 if actual is None else actual + 1
+    )
     try:
-        df_602 = get_rf602(
+        df = get_siif_rf602(
             filtro_actual,
             update_trigger=trigger,
         )
 
-        if df_602.empty:
+        if df.empty:
             st.info("No se encontraron resultados.")
         # else:
         #     st.session_state[f"data_{key}_carga"] = df_final
@@ -97,18 +99,28 @@ def render() -> None:
         st.error(f"⚠️ Error de API: {e}")
 
     # 4. Mostrar resultados (usando session_state para que no desaparezcan)
-    if not df_602.empty:
+    if not df.empty:
+        # Definimos las columnas que NO queremos mostrar
+        first_cols = [
+            "ejercicio",
+            "estructura",
+            "fuente",
+            "credito_original",
+            "credito_vigente",
+            "comprometido",
+            "ordenado",
+            "saldo",
+            "pendiente",
+        ]
+
+        # Generamos el orden dinámico: todas las del DF que no estén en la lista negra
+        orden_dinamico = first_cols + [
+            col for col in df.columns if col not in first_cols
+        ]
+
         dataframe_with_buttons(
-            df_602,
+            df,
             key=f"{REPORTE}_df_rf602",
-            height=300,
-            # column_order=[
-            #     "cuit",
-            #     "codigo",
-            #     "desc_proveedor",
-            #     "domicilio",
-            #     "localidad",
-            #     "condicion_iva",
-            # ],
+            column_order=orden_dinamico,
             show_buttons=False,
         )
