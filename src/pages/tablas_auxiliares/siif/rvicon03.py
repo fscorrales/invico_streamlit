@@ -66,7 +66,7 @@ def render() -> None:
         },
     ]
 
-    filtros_api = report_template(
+    report_template(
         key=REPORTE,
         title="SIIF - Reporte " + REPORTE,
         endpoint=ENDPONT,
@@ -87,11 +87,11 @@ def render() -> None:
         st.rerun()
 
     # Capturamos el filtro del session_state (que el fragmento actualizó)
-    # filtro_actual = st.session_state.get(f"{REPORTE}_advanced_filter", "")
+    filtro_actual = st.session_state.get(f"{REPORTE}_advanced_filter", "")
     trigger = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
     try:
         df = get_siif_rvicon03(
-            filtros_api,
+            filtro_actual,
             update_trigger=trigger,
         )
 
