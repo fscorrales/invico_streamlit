@@ -14,6 +14,8 @@ __all__ = [
     "get_sscc_banco_invico",
 ]
 
+from typing import Any
+
 import pandas as pd
 import streamlit as st
 
@@ -23,7 +25,7 @@ from src.services.api_client import fetch_dataframe
 
 # --------------------------------------------------
 @st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
-def get_siif_rf602(params: str = "", update_trigger: int = 0):
+def get_siif_rf602(params: dict[str, Any] | None = None, update_trigger: int = 0):
     df = pd.DataFrame()
 
     df = fetch_dataframe(Endpoints.SIIF_RF602.value, params=params)
@@ -38,7 +40,7 @@ def get_siif_rf602(params: str = "", update_trigger: int = 0):
 
 # --------------------------------------------------
 @st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
-def get_siif_rog01(params: str = "", update_trigger: int = 0):
+def get_siif_rog01(params: dict[str, Any] | None = None, update_trigger: int = 0):
     df = pd.DataFrame()
 
     df = fetch_dataframe(Endpoints.SIIF_ROG01.value, params=params)
@@ -53,7 +55,7 @@ def get_siif_rog01(params: str = "", update_trigger: int = 0):
 
 # --------------------------------------------------
 @st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
-def get_siif_rvicon03(params: str = "", update_trigger: int = 0):
+def get_siif_rvicon03(params: dict[str, Any] | None = None, update_trigger: int = 0):
     df = pd.DataFrame()
 
     df = fetch_dataframe(Endpoints.SIIF_RVICON03.value, params=params)
@@ -68,7 +70,7 @@ def get_siif_rvicon03(params: str = "", update_trigger: int = 0):
 
 # --------------------------------------------------
 @st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
-def get_siif_ri102(params: str = "", update_trigger: int = 0):
+def get_siif_ri102(params: dict[str, Any] | None = None, update_trigger: int = 0):
     df = pd.DataFrame()
 
     df = fetch_dataframe(Endpoints.SIIF_RI102.value, params=params)
@@ -83,7 +85,7 @@ def get_siif_ri102(params: str = "", update_trigger: int = 0):
 
 # --------------------------------------------------
 @st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
-def get_siif_rci02(params: str = "", update_trigger: int = 0):
+def get_siif_rci02(params: dict[str, Any] | None = None, update_trigger: int = 0):
     df = pd.DataFrame()
 
     df = fetch_dataframe(Endpoints.SIIF_RCI02.value, params=params)
@@ -98,7 +100,7 @@ def get_siif_rci02(params: str = "", update_trigger: int = 0):
 
 # --------------------------------------------------
 @st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
-def get_siif_rfp_p605b(params: str = "", update_trigger: int = 0):
+def get_siif_rfp_p605b(params: dict[str, Any] | None = None, update_trigger: int = 0):
     df = pd.DataFrame()
 
     df = fetch_dataframe(Endpoints.SIIF_RFP_P605B.value, params=params)
@@ -113,7 +115,7 @@ def get_siif_rfp_p605b(params: str = "", update_trigger: int = 0):
 
 # --------------------------------------------------
 @st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
-def get_siif_rf610(params: str = "", update_trigger: int = 0):
+def get_siif_rf610(params: dict[str, Any] | None = None, update_trigger: int = 0):
     df = pd.DataFrame()
 
     df = fetch_dataframe(Endpoints.SIIF_RF610.value, params=params)
@@ -128,7 +130,7 @@ def get_siif_rf610(params: str = "", update_trigger: int = 0):
 
 # --------------------------------------------------
 @st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
-def get_siif_rcg01_uejp(params: str = "", update_trigger: int = 0):
+def get_siif_rcg01_uejp(params: dict[str, Any] | None = None, update_trigger: int = 0):
     df = pd.DataFrame()
 
     df = fetch_dataframe(Endpoints.SIIF_RCG01_UEJP.value, params=params)
@@ -143,7 +145,7 @@ def get_siif_rcg01_uejp(params: str = "", update_trigger: int = 0):
 
 # --------------------------------------------------
 @st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
-def get_siif_gto_rpa03g(params: str = "", update_trigger: int = 0):
+def get_siif_gto_rpa03g(params: dict[str, Any] | None = None, update_trigger: int = 0):
     df = pd.DataFrame()
 
     df = fetch_dataframe(Endpoints.SIIF_GTO_RPA03G.value, params=params)
@@ -158,7 +160,7 @@ def get_siif_gto_rpa03g(params: str = "", update_trigger: int = 0):
 
 # --------------------------------------------------
 @st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
-def get_siif_rfondo07tp(params: str = "", update_trigger: int = 0):
+def get_siif_rfondo07tp(params: dict[str, Any] | None = None, update_trigger: int = 0):
     df = pd.DataFrame()
 
     df = fetch_dataframe(Endpoints.SIIF_RFONDO07TP.value, params=params)
@@ -173,7 +175,7 @@ def get_siif_rfondo07tp(params: str = "", update_trigger: int = 0):
 
 # --------------------------------------------------
 @st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
-def get_siif_rfondos04(params: str = "", update_trigger: int = 0):
+def get_siif_rfondos04(params: dict[str, Any] | None = None, update_trigger: int = 0):
     df = pd.DataFrame()
 
     df = fetch_dataframe(Endpoints.SIIF_RFONDOS04.value, params=params)
@@ -188,7 +190,7 @@ def get_siif_rfondos04(params: str = "", update_trigger: int = 0):
 
 # --------------------------------------------------
 @st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
-def get_sscc_ctas_ctes(params: str = "", update_trigger: int = 0):
+def get_sscc_ctas_ctes(params: dict[str, Any] | None = None, update_trigger: int = 0):
     df = pd.DataFrame()
 
     df = fetch_dataframe(Endpoints.CTAS_CTES.value, params=params)
@@ -203,7 +205,9 @@ def get_sscc_ctas_ctes(params: str = "", update_trigger: int = 0):
 
 # --------------------------------------------------
 @st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
-def get_sscc_banco_invico(params: str = "", update_trigger: int = 0):
+def get_sscc_banco_invico(
+    params: dict[str, Any] | None = None, update_trigger: int = 0
+):
     df = pd.DataFrame()
 
     df = fetch_dataframe(Endpoints.SSCC_BANCO_INVICO.value, params=params)
