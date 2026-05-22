@@ -1,5 +1,6 @@
 import streamlit as st
 
+from src.components import dataframe
 from src.constants.endpoints import Endpoints
 from src.constants.options import get_ctas_ctes_list
 from src.services import get_sscc_ctas_ctes
@@ -8,7 +9,6 @@ from src.utils import (
     APIResponseError,
 )
 from src.views import (
-    dataframe_with_buttons,
     report_template,
 )
 
@@ -43,10 +43,7 @@ def render() -> None:
 
     # Capturamos el filtro del session_state (que el fragmento actualizó)
     filtro_actual = st.session_state.get(f"{REPORTE}_advanced_filter", "")
-    actual = st.session_state.get(f"{REPORTE}_uploader_iteration")
-    trigger = st.session_state[f"{REPORTE}_uploader_iteration"] = (
-        0 if actual is None else actual + 1
-    )
+    trigger = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
     try:
         df = get_sscc_ctas_ctes(
             filtro_actual,
@@ -76,9 +73,8 @@ def render() -> None:
             col for col in df.columns if col not in first_cols
         ]
 
-        dataframe_with_buttons(
+        dataframe(
             df,
             key=f"{REPORTE}_df_ctas_ctes",
             column_order=orden_dinamico,
-            show_buttons=False,
         )

@@ -21,6 +21,7 @@ import asyncio
 import datetime as dt
 import io
 import os
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
@@ -122,6 +123,7 @@ async def login(
         # Esperamos a que el segundo input esté listo antes de escribir
         input_pass = page.locator("id=pt1:it2::content")
         await input_pass.wait_for(state="visible")
+        time.sleep(1)  # Pequeña pausa para evitar problemas de timing
         await input_pass.fill(password)
         btn_connect = page.locator("id=pt1:cb1")
         await btn_connect.click()

@@ -12,7 +12,9 @@ import streamlit as st
 
 @st.dialog("Credenciales SIIF")
 # --------------------------------------------------
-def request_siif_credentials_modal(automation_callback: Callable[[str, str], None]):
+def request_siif_credentials_modal(
+    automation_callback: Callable[[str, str], None], key: str = ""
+):
     """
     Modal reutilizable para solicitar credenciales del SIIF.
     automation_callback recibe (username, password).
@@ -51,6 +53,7 @@ def request_siif_credentials_modal(automation_callback: Callable[[str, str], Non
                 results = loop.run_until_complete(run_automation())
 
             st.success(f"Proceso finalizado: {len(results)} reportes procesados.")
+            st.session_state[f"{key}_automation_success"] = True
             time.sleep(1)
             st.rerun()
             # st.success("✅ Proceso de actualización completado")

@@ -4,7 +4,7 @@ import streamlit as st
 
 
 # --------------------------------------------------
-def dataframe(data, key: str = "df", **kwargs):
+def dataframe(data, key: str = "df", height: int = 300, **kwargs):
     # --- GENERACIÓN DINÁMICA DE FORMATO ---
     column_config = {}
 
@@ -30,6 +30,7 @@ def dataframe(data, key: str = "df", **kwargs):
         return st.dataframe(
             data,
             key=key,
+            height=height,
             width="stretch",
             column_config=column_config,
             hide_index=True,

@@ -82,10 +82,7 @@ def render() -> None:
 
     # Capturamos el filtro del session_state (que el fragmento actualizó)
     filtro_actual = st.session_state.get(f"{REPORTE}_advanced_filter", "")
-    actual = st.session_state.get(f"{REPORTE}_uploader_iteration")
-    trigger = st.session_state[f"{REPORTE}_uploader_iteration"] = (
-        0 if actual is None else actual + 1
-    )
+    trigger = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
     try:
         df = get_sscc_banco_invico(
             filtro_actual,
@@ -116,6 +113,5 @@ def render() -> None:
         dataframe(
             df,
             key=f"{REPORTE}_df_banco_invico",
-            height=300,
             column_order=orden_dinamico,
         )

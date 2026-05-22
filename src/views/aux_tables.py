@@ -111,10 +111,6 @@ def report_template(
             if button_update("Actualizador automático", key=f"button_update_{key}"):
                 if update_func:
                     update_func()
-                    actual = st.session_state.get(f"{key}_uploader_iteration")
-                    st.session_state[f"{key}_uploader_iteration"] = (
-                        0 if actual is None else actual + 1
-                    )
 
         if has_export:
             # Aquí podrías integrar tu logic de exportación
@@ -166,7 +162,7 @@ def report_template(
     # Sincronizamos con el session_state para que 'render' lo vea
     if st.session_state.get(f"{key}_advanced_filter") != params:
         st.session_state[f"{key}_advanced_filter"] = params
-        st.rerun()  # Forzamos que toda la página (fuera del fragmento) reaccione
+        st.rerun()
 
     # 4. Mostrar resultados (usando session_state para que no desaparezcan)
     # data_key = f"data_{key}"
