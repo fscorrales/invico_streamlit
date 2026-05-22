@@ -2,6 +2,7 @@ import streamlit as st
 from playwright.async_api import async_playwright
 
 from src.automation.siif.rfondos04 import Rfondos04
+from src.components import dataframe
 from src.constants.endpoints import Endpoints
 from src.constants.options import get_ejercicios_list, get_tipos_comprobantes_siif_list
 from src.services import get_siif_rfondos04, post_request
@@ -10,7 +11,6 @@ from src.utils import (
     APIResponseError,
 )
 from src.views import (
-    dataframe_with_buttons,
     report_template,
     request_siif_credentials_modal,
 )
@@ -81,15 +81,24 @@ def render() -> None:
         endpoint=ENDPONT,
         description="Listado de Fondos del Ejercicio por Tipo de Comprobante",
         filters_config=mis_filtros,
-        update_func=lambda: request_siif_credentials_modal(run_automation),
+        update_func=lambda: request_siif_credentials_modal(run_automation, key=REPORTE),
     )
+
+    if st.session_state.get(f"{REPORTE}_automation_success"):
+        # Limpiamos el flag para que no entre en bucle infinito
+        st.session_state[f"{REPORTE}_automation_success"] = False
+
+        # Incrementamos el trigger de forma síncrona y segura
+        actual = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
+        st.session_state[f"{REPORTE}_uploader_iteration"] = actual + 1
+
+        # Forzamos el recálculo total de la página con el nuevo trigger
+        st.rerun()
 
     # Capturamos el filtro del session_state (que el fragmento actualizó)
     filtro_actual = st.session_state.get(f"{REPORTE}_advanced_filter", "")
-    actual = st.session_state.get(f"{REPORTE}_uploader_iteration")
-    trigger = st.session_state[f"{REPORTE}_uploader_iteration"] = (
-        0 if actual is None else actual + 1
-    )
+    trigger = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
+
     try:
         df = get_siif_rfondos04(
             filtro_actual,
@@ -126,9 +135,8 @@ def render() -> None:
             col for col in df.columns if col not in first_cols
         ]
 
-        dataframe_with_buttons(
+        dataframe(
             df,
             key=f"{REPORTE}_df_rfondos04",
             column_order=orden_dinamico,
-            show_buttons=False,
         )
