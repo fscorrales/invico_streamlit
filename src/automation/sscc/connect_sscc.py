@@ -28,45 +28,6 @@ from pywinauto import WindowSpecification, keyboard
 from pywinauto.application import Application
 from pywinauto.timings import TimeoutError
 
-# # --------------------------------------------------
-# def get_args():
-#     """Get command-line arguments"""
-
-#     parser = argparse.ArgumentParser(
-#         description="Connect to SSCC",
-#         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-#     )
-
-#     parser.add_argument(
-#         "-u",
-#         "--username",
-#         help="Username for SSCC access",
-#         metavar="username",
-#         type=str,
-#         default=None,
-#     )
-
-#     parser.add_argument(
-#         "-p",
-#         "--password",
-#         help="Password for SSCC access",
-#         metavar="password",
-#         type=str,
-#         default=None,
-#     )
-
-#     args = parser.parse_args()
-
-#     if args.username is None or args.password is None:
-#         from ...config import settings
-
-#         args.username = settings.SSCC_USERNAME
-#         args.password = settings.SSCC_PASSWORD
-#         if args.username is None or args.password is None:
-#             parser.error("Both --username and --password are required.")
-
-#     return args
-
 
 # --------------------------------------------------
 def logout(window: WindowSpecification = None) -> None:
@@ -240,40 +201,9 @@ class SSCCReportManager(ABC):
             print(f"Error al leer el archivo: {e}")
             return None
 
-    # def from_external_report(self, csv_path:str) -> pd.DataFrame:
-    #     """"Read from csv SGF's report"""
-    #     df = self.read_csv(csv_path, names = list(range(0,70)))
-    #     read_title = df['1'].iloc[0][0:32]
-    #     if read_title == self._REPORT_TITLE:
-    #         self.df = df
-    #         self.transform_df()
-    #     else:
-    #         # Future exception raise
-    #         pass
-    #     return self.df
-
     # --------------------------------------------------
     def logout(self) -> None:
         logout(window=self.main)
-
-
-# # --------------------------------------------------
-# def main():
-#     """Make a jazz noise here"""
-
-#     args = get_args()
-
-#     with login(args.username, args.password) as conn:
-#         print(f"Connected to SSCC as {args.username}")
-#         time.sleep(3)  # o lo que necesites
-#         pass
-#         # Here you can add more operations with the SGF connection
-
-#     # Al salir del bloque, se ejecuta logout automáticamente
-#     print("Sesión cerrada")
-
-#     # connect_sgf = login(args.username, args.password)
-#     # logout()
 
 
 # ──────────────────────────────────────────────
