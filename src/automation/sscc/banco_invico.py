@@ -127,10 +127,10 @@ class BancoINVICO(SSCCReportManager):
                     keyboard.send_keys("{ENTER}")
                     time.sleep(2)
 
-                    # Si llega a aparecer el cartel de "El archivo ya existe, ¿desea reemplazarlo?"
-                    # mandamos una "S" o un "ENTER" para confirmar el reemplazo
-                    keyboard.send_keys("{ENTER}")
-                    time.sleep(2)
+                    # # Si llega a aparecer el cartel de "El archivo ya existe, ¿desea reemplazarlo?"
+                    # # mandamos una "S" o un "ENTER" para confirmar el reemplazo
+                    # keyboard.send_keys("{ENTER}")
+                    # time.sleep(2)
 
                     dlg_consulta_gral_mov = self.sscc.main.child_window(
                         title="Consulta General de Movimientos", control_type="Window"
