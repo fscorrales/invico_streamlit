@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 import typer
 
-from src.utils.handling_files import read_xls
+from src.utils.handling_files import read_xls_file
 from src.utils.print_tables import print_rich_table
 
 
@@ -44,7 +44,7 @@ class PlanillometroHist:
 
     # --------------------------------------------------
     def from_excel(self, excel_path: Path) -> pd.DataFrame:
-        df = read_xls(excel_path, header=0)
+        df = read_xls_file(excel_path, header=0)
         df = df.replace("", None)
         df["desc_programa"] = np.where(
             df["proy"].isna(), df["prog"] + " - " + df["Descripción"], np.nan

@@ -7,7 +7,7 @@ Source: https://realpython.com/working-with-files-in-python/#:~:text=To%20get%20
 
 __all__ = [
     "get_df_from_sql_table",
-    "read_xls",
+    "read_xls_file",
     "read_csv_file",
 ]
 
@@ -27,9 +27,13 @@ def get_df_from_sql_table(sqlite_path: str, table: str) -> pd.DataFrame:
 
 
 # --------------------------------------------------
-def read_xls(PATH: str, header: int = None) -> pd.DataFrame:
+def read_xls_file(
+    file_path: Union[Path, str, BytesIO], header: int = None
+) -> pd.DataFrame:
     """ "Read from xls report"""
-    df = pd.read_excel(PATH, index_col=None, header=header, na_filter=False, dtype=str)
+    df = pd.read_excel(
+        file_path, index_col=None, header=header, na_filter=False, dtype=str
+    )
     if header is None:
         df.columns = [str(x) for x in range(df.shape[1])]
     return df

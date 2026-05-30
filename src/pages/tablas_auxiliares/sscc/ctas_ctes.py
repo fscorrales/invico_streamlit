@@ -2,51 +2,58 @@ import streamlit as st
 
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.constants.options import get_ctas_ctes_list
-from src.services import get_sscc_ctas_ctes
+from src.services import get_sscc_ctas_ctes, process_listado_ctas_ctes
 from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
 from src.views import (
-    report_template,
+    params_preparation,
+    report_template_with_uploader,
 )
 
 ENDPONT = Endpoints.CTAS_CTES.value
 REPORTE = "ctas_ctes"
 
+ayuda_uploader = """
+### 📥 Guía de Importación
+Simplemente importe el archivo ctas_ctes.xlsx el cual debe contener las siguientes columnas...
+"""
+
 
 # --------------------------------------------------
 def render() -> None:
 
-    mis_filtros = [
-        {
-            "label": "Elija la Cta. Cte. a consultar",
-            "options": get_ctas_ctes_list(),
-            "query_param": "cta_cte",
-            "key": "ctas_ctes_" + REPORTE,
-            "default": None,
-        },
-    ]
-
-    report_template(
+    report_template_with_uploader(
         key=REPORTE,
         title="SSCC - Reporte " + REPORTE,
-        endpoint=ENDPONT,
         description="Unificador de Cuentas Corrientes",
-        filters_config=mis_filtros,
-        update_func=None,
-        has_export=False,  # Asumo que este reporte no tiene exportación por ahora
-        has_update=False,  # Asumo que este reporte no necesita actualización manual por ahora
-        allow_no_filters=True,  # Permitimos que el usuario deje este filtro vacío
+        endpoint=ENDPONT,
+        has_export=True,
+        has_upload=True,
+        uploader_help=ayuda_uploader,
+        uploader_func=process_listado_ctas_ctes,
+        upload_file_type="xlsx",
     )
+
+    if st.session_state.get(f"{REPORTE}_automation_success"):
+        # Limpiamos el flag para que no entre en bucle infinito
+        st.session_state[f"{REPORTE}_automation_success"] = False
+
+        # Incrementamos el trigger de forma síncrona y segura
+        actual = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
+        st.session_state[f"{REPORTE}_uploader_iteration"] = actual + 1
+
+        # Forzamos el recálculo total de la página con el nuevo trigger
+        st.rerun()
 
     # Capturamos el filtro del session_state (que el fragmento actualizó)
     filtro_actual = st.session_state.get(f"{REPORTE}_advanced_filter", "")
     trigger = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
+
     try:
         df = get_sscc_ctas_ctes(
-            filtro_actual,
+            params_preparation(filtro_avanzado=filtro_actual),
             update_trigger=trigger,
         )
 

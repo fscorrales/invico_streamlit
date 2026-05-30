@@ -3,6 +3,7 @@ __all__ = [
     "process_resumen_rend_prov",
     "process_certificados_obras",
     "process_listado_proveedores",
+    "process_listado_ctas_ctes",
 ]
 
 import numpy as np
@@ -344,4 +345,11 @@ def process_listado_proveedores(dataframe: pd.DataFrame) -> pd.DataFrame:
         ],
     ]
 
+    return df
+
+
+# --------------------------------------------------
+def process_listado_ctas_ctes(dataframe: pd.DataFrame) -> pd.DataFrame:
+    df = dataframe.copy()
+    df = df.replace("NA", None)
     return df

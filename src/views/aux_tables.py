@@ -1,5 +1,6 @@
 __all__ = [
     "report_template",
+    "report_template_with_uploader",
     "params_preparation",
     "dataframe_with_buttons",
 ]
@@ -28,7 +29,7 @@ from src.services.api_client import (
     fetch_excel_stream,
     post_request,
 )
-from src.utils import read_csv_file
+from src.utils import read_csv_file, read_xls_file
 
 
 # --------------------------------------------------
@@ -244,6 +245,7 @@ def report_template_with_uploader(
     has_upload: bool = False,
     uploader_func=None,
     uploader_help=None,
+    upload_file_type: str = "csv",
 ):
     """
     Vista reutilizable.
@@ -287,8 +289,8 @@ def report_template_with_uploader(
 
         uploaded_file = (
             st.file_uploader(
-                f"Cargar CSV de {title}",
-                type=["csv"],
+                f"Cargar {upload_file_type.upper()} de {title}",
+                type=[upload_file_type],
                 key=f"{key}_upload_file_{st.session_state[f'{key}_uploader_iteration']}",
                 label_visibility="visible",
                 disabled=not has_upload,  # Add this line to disable the uploader if has_upload is False´
@@ -317,7 +319,11 @@ def report_template_with_uploader(
                 )
 
     if uploaded_file:
-        df = read_csv_file(uploaded_file)
+        df = pd.DataFrame()  # DataFrame vacío por defecto
+        if upload_file_type == "csv":
+            df = read_csv_file(uploaded_file)
+        elif upload_file_type == "xls":
+            df = read_xls_file(uploaded_file, header=0)
         if uploader_func:
             df = uploader_func(df)
         # Validación Visual (El "seguro" del usuario)

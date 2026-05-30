@@ -15,7 +15,7 @@ from src.migration.migration_client import MigrationClient
 
 from ...utils import (
     print_rich_table,
-    read_xls,
+    read_xls_file,
 )
 
 
@@ -39,7 +39,7 @@ def validate_excel_file(value: Path):
 
 # --------------------------------------------------
 def get_df_from_excel(excel_path: Path) -> pd.DataFrame:
-    df = read_xls(excel_path, header=0)
+    df = read_xls_file(excel_path, header=0)
     df = df.replace("NA", None)
     return df
 
