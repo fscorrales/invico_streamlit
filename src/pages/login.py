@@ -3,6 +3,7 @@ import streamlit as st
 import src.utils.exceptions as ex
 from src.services import (
     get_current_user,
+    get_grupos_partidas_siif_list,
     get_tipos_comprobantes_siif_list,
     login,
     register,
@@ -53,6 +54,15 @@ def render_login() -> None:
                                 st.session_state.tipos_comprobantes_siif_uploader_iteration = 0
                             get_tipos_comprobantes_siif_list(
                                 update_trigger=st.session_state.tipos_comprobantes_siif_uploader_iteration
+                            )
+                            st.write("Sincronizando Grupos Partidas SIIF...")
+                            if (
+                                "grupos_partidas_siif_uploader_iteration"
+                                not in st.session_state
+                            ):
+                                st.session_state.grupos_partidas_siif_uploader_iteration = 0
+                            get_grupos_partidas_siif_list(
+                                update_trigger=st.session_state.grupos_partidas_siif_uploader_iteration
                             )
                             status.update(
                                 label="Sincronización Completa",
