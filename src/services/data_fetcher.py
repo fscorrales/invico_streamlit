@@ -225,11 +225,11 @@ def get_sscc_banco_invico(
 
 
 # --------------------------------------------------
-@st.cache_data(show_spinner="Consultando base de datos...", ttl=86400)
+@st.cache_data(show_spinner="Consultando base de datos...")
 def get_tipos_comprobantes_siif_list(
     filtro_avanzado: str = "", update_trigger: int = 0
 ):
-    file_path = os.path.join(get_cache_path(), "siif_tipos_comprobantes_cache.parquet")
+    file_path = os.path.join(get_cache_path(), "tipos_comprobantes_siif_cache.parquet")
 
     # 1. Intentar cargar desde archivo local si no se fuerza la actualización
     # Si el trigger es 0, intentamos leer el archivo local primero
