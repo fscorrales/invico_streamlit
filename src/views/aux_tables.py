@@ -4,6 +4,7 @@ __all__ = [
     "dataframe_with_buttons",
 ]
 
+import time
 from typing import Any, Optional
 
 import pandas as pd
@@ -14,6 +15,7 @@ from src.components import (
     button_delete,
     button_edit,
     button_export,
+    button_submit,
     button_update,
     dataframe,
     multiselect_filter,
@@ -24,20 +26,25 @@ from src.services.api_client import (
     APIResponseError,
     fetch_dataframe,
     fetch_excel_stream,
+    post_request,
 )
+from src.utils import read_csv_file
 
 
 # --------------------------------------------------
-def params_preparation(selections: list, filtro_avanzado: str) -> dict[str, Any]:
+def params_preparation(
+    selections: list = [], filtro_avanzado: str = ""
+) -> dict[str, Any]:
     """
     Función auxiliar para preparar los parámetros de la API a partir de las selecciones y el filtro avanzado.
     Devuelve un diccionario listo para ser usado en la petición.
     """
     params_peticion = {"limit": 0, "queryFilter": filtro_avanzado}
 
-    for nombre_param, valores in selections:
-        if valores:
-            params_peticion[nombre_param] = ",".join(map(str, valores))
+    if len(selections) > 0:
+        for nombre_param, valores in selections:
+            if valores:
+                params_peticion[nombre_param] = ",".join(map(str, valores))
 
     return params_peticion
 
@@ -224,3 +231,158 @@ def dataframe_with_buttons(
                             selected_row_index = event.selection.rows[0]
                             datos_eliminar = df.iloc[selected_row_index].to_dict()
                             delete_func(datos_eliminar)
+
+
+@st.fragment  # Permite que los filtros internos no recarguen TODA la página
+# --------------------------------------------------
+def report_template_with_uploader(
+    key: str,
+    title: str,
+    endpoint: str,
+    description: str,
+    has_export: bool = True,
+    has_upload: bool = False,
+    uploader_func=None,
+    uploader_help=None,
+):
+    """
+    Vista reutilizable.
+    filters_config: Lista de dicts con ['label', 'options', 'key', 'default']
+    """
+    st.markdown(f"# {title}")
+    st.write(description)
+
+    # 0. Lógica de Exportación
+    def download_file():
+        # Validamos filtros antes de proceder
+        try:
+            # Limpiamos basura anterior antes de empezar el proceso pesado
+            if f"temp_file_{key}" in st.session_state:
+                del st.session_state[f"temp_file_{key}"]
+            with st.spinner("Preparando archivos Excel..."):
+                # Llamada a la API que devuelve StreamingResponse
+                excel_binario = fetch_excel_stream(
+                    f"{endpoint}/export",
+                    params_preparation(filtro_avanzado=filtro_avanzado),
+                )
+
+                if excel_binario:
+                    # IMPORTANTE: Como st.download_button recarga la página,
+                    # a veces es mejor usar un link o guardarlo en session_state
+                    st.session_state[f"temp_file_{key}"] = excel_binario
+                    st.success("✅ Archivo generado con éxito.")
+                    st.rerun()
+
+        except Exception as e:
+            st.error(f"Error al exportar: {e}")
+
+    # 1. Renderizar Filtros
+    # --- Filtros (Estado local del componente) ---
+    with st.container(horizontal=True, vertical_alignment="bottom"):
+        filtro_avanzado = text_input_advance_filter(
+            key="text_input_advance_filter-" + key
+        )
+        if f"{key}_uploader_iteration" not in st.session_state:
+            st.session_state[f"{key}_uploader_iteration"] = 0
+
+        uploaded_file = (
+            st.file_uploader(
+                f"Cargar CSV de {title}",
+                type=["csv"],
+                key=f"{key}_upload_file_{st.session_state[f'{key}_uploader_iteration']}",
+                label_visibility="visible",
+                disabled=not has_upload,  # Add this line to disable the uploader if has_upload is False´
+                accept_multiple_files=False,
+                help=uploader_help,
+            )
+            if has_upload
+            else None
+        )
+
+        if has_export:
+            # Aquí podrías integrar tu logic de exportación
+            if f"temp_file_{key}" not in st.session_state:
+                if button_export("Exportar a Excel", key=f"button_export_{key}"):
+                    download_file()
+            else:
+                # Si hay archivo, el botón "Exportar" desaparece y aparece el de "Descargar"
+                st.download_button(
+                    label="📥 GUARDAR EXCEL",
+                    data=st.session_state[f"temp_file_{key}"],
+                    file_name=f"reporte_{key}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key=f"btn_dl_{key}",
+                    type="primary",  # Lo ponemos en color para que resalte
+                    on_click=lambda: st.session_state.pop(f"temp_file_{key}"),
+                )
+
+    if uploaded_file:
+        df = read_csv_file(uploaded_file)
+        if uploader_func:
+            df = uploader_func(df)
+        # Validación Visual (El "seguro" del usuario)
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Filas a procesar", len(df))
+        col2.metric("Columnas", len(df.columns))
+        col3.info("Validación: OK" if not df.empty else "Error: CSV Vacío o Incorrecto")
+
+        with st.expander("Ver vista previa de datos limpios"):
+            st.dataframe(df.head(10), width="stretch")
+
+        if not df.empty:
+            with st.container(horizontal=True, horizontal_alignment="center"):
+                if button_submit("Confirmar CARGA BD", key=f"btn_add_{key}"):
+                    with st.spinner("Ejecutando script de carga..."):
+                        # Transformación final para Mongo
+                        registros = df.to_dict(orient="records")
+
+                        res = post_request(endpoint, registros)
+
+                        if res:
+                            # 1. Extraer datos principales
+                            titulo = res.get("title", "Sincronización")
+                            agregados = res.get("added", 0)
+                            eliminados = res.get("deleted", 0)
+                            lista_errores = res.get("errors", [])
+                            num_errores = len(lista_errores)
+
+                            # 2. Toast Combinado (Resumen Ejecutivo)
+                            # Ejemplo: 📊 Epam: +160 agregados, -160 eliminados.
+                            mensaje_toast = f"📊 {titulo}: +{agregados} agregados, -{eliminados} eliminados."
+
+                            if num_errores > 0:
+                                mensaje_toast += f" ({num_errores} con errores)"
+                                st.toast(mensaje_toast, icon="⚠️")
+                            else:
+                                st.toast(mensaje_toast, icon="✅")
+
+                            # 3. Gestión de Errores Detallados (Si existen)
+                            if num_errores > 0:
+                                with st.expander(
+                                    "❌ Detalle de Inconsistencias por Documento",
+                                    expanded=True,
+                                ):
+                                    for error_doc in lista_errores:
+                                        doc_id = error_doc.get(
+                                            "doc_id", "ID Desconocido"
+                                        )
+                                        details = error_doc.get("details", [])
+
+                                        st.markdown(f"**Documento ID:** `{doc_id}`")
+                                        for det in details:
+                                            # Estructura: loc, msg, error_type
+                                            st.caption(
+                                                f"📍 {det['loc']} | 🏷️ {det['error_type']}"
+                                            )
+                                            st.write(f"💬 {det['msg']}")
+                                        st.divider()
+                            else:
+                                st.balloons()
+                                st.session_state[f"{key}_uploader_iteration"] += 1
+                                time.sleep(3)
+                                st.rerun()
+
+    # Sincronizamos con el session_state para que 'render' lo vea
+    if st.session_state.get(f"{key}_advanced_filter") != filtro_avanzado:
+        st.session_state[f"{key}_advanced_filter"] = filtro_avanzado
+        st.rerun()  # Forzamos que toda la página (fuera del fragmento) reaccione
