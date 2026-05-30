@@ -55,6 +55,7 @@ def run_automation(username: str, password: str) -> None:
         creationflags=subprocess.CREATE_NEW_CONSOLE,
         env=env,
     )
+    process.wait()  # Esperamos a que termine el proceso antes de continuar
     return process
 
 
@@ -77,8 +78,19 @@ def render() -> None:
         endpoint=ENDPONT,
         description="",
         filters_config=mis_filtros,
-        update_func=lambda: request_sscc_credentials_modal(run_automation),
+        update_func=lambda: request_sscc_credentials_modal(run_automation, key=REPORTE),
     )
+
+    if st.session_state.get(f"{REPORTE}_automation_success"):
+        # Limpiamos el flag para que no entre en bucle infinito
+        st.session_state[f"{REPORTE}_automation_success"] = False
+
+        # Incrementamos el trigger de forma síncrona y segura
+        actual = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
+        st.session_state[f"{REPORTE}_uploader_iteration"] = actual + 1
+
+        # Forzamos el recálculo total de la página con el nuevo trigger
+        st.rerun()
 
     # Capturamos el filtro del session_state (que el fragmento actualizó)
     filtro_actual = st.session_state.get(f"{REPORTE}_advanced_filter", "")

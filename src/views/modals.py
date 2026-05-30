@@ -86,7 +86,9 @@ def request_siif_credentials_modal(
 
 @st.dialog("Credenciales SSCC")
 # --------------------------------------------------
-def request_sscc_credentials_modal(automation_callback: Callable[[str, str], Any]):
+def request_sscc_credentials_modal(
+    automation_callback: Callable[[str, str], Any], key: str = ""
+):
     """
     Modal reutilizable para SSCC usando Pywinauto (Síncrono).
     automation_callback recibe (username, password) y devuelve la lista de resultados.
@@ -96,8 +98,8 @@ def request_sscc_credentials_modal(automation_callback: Callable[[str, str], Any
     )
 
     # Usamos keys únicas para evitar colisiones con otros modales
-    username = st.text_input("Usuario", key="sscc_user")
-    password = st.text_input("Contraseña", type="password", key="sscc_pass")
+    username = st.text_input("Usuario", key=f"sscc_user_{key}")
+    password = st.text_input("Contraseña", type="password", key=f"sscc_pass_{key}")
 
     if st.button("Lanzar Robot SSCC", type="primary"):
         if not username or not password:
@@ -115,7 +117,8 @@ def request_sscc_credentials_modal(automation_callback: Callable[[str, str], Any
                 results = automation_callback(username, password)
 
             if results:
-                st.success(f"Proceso finalizado: {len(results)} reportes procesados.")
+                st.success(f"Proceso finalizado: {results}.")
+                st.session_state[f"{key}_automation_success"] = True
             else:
                 st.info("Proceso terminado sin resultados nuevos.")
 
