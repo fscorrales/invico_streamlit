@@ -1,7 +1,12 @@
 import streamlit as st
 
 import src.utils.exceptions as ex
-from src.services.auth_service import get_current_user, login, register
+from src.services import (
+    get_current_user,
+    get_tipos_comprobantes_siif_list,
+    login,
+    register,
+)
 
 
 # --------------------------------------------------
@@ -37,14 +42,23 @@ def render_login() -> None:
                                 "id": user_data.id,
                             }
 
-                        # with st.status("Preparando ICARO...", expanded=True) as status:
-                        #     st.write("Sincronizando Estructuras...")
-                        #     if "estructuras_uploader_iteration" not in st.session_state:
-                        #         st.session_state.estructuras_uploader_iteration = 0
-                        #     get_estructuras(
-                        #         update_trigger=st.session_state.estructuras_uploader_iteration
-                        #     )
-
+                        with st.status(
+                            "Preparando Datos Fijos...", expanded=True
+                        ) as status:
+                            st.write("Sincronizando Tipos Comprobantes SIIF...")
+                            if (
+                                "tipos_comprobantes_siif_uploader_iteration"
+                                not in st.session_state
+                            ):
+                                st.session_state.tipos_comprobantes_siif_uploader_iteration = 0
+                            get_tipos_comprobantes_siif_list(
+                                update_trigger=st.session_state.tipos_comprobantes_siif_uploader_iteration
+                            )
+                            status.update(
+                                label="Sincronización Completa",
+                                state="complete",
+                                expanded=False,
+                            )
                         st.rerun()
 
                     except (
