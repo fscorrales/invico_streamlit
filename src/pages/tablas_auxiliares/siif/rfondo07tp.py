@@ -5,7 +5,7 @@ from src.automation.siif.rfondo07tp import Rfondo07tp
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
 from src.services import (
-    get_ejercicios_list,
+    get_ejercicios,
     get_siif_rfondo07tp,
     get_tipos_comprobantes_siif_list,
     post_request,
@@ -67,10 +67,10 @@ def render() -> None:
     mis_filtros = [
         {
             "label": "Elija los ejercicios",
-            "options": get_ejercicios_list(),
+            "options": get_ejercicios(),
             "query_param": "ejercicio",
             "key": "ejercicios_" + REPORTE,
-            "default": get_ejercicios_list()[-1],
+            "default": get_ejercicios()[-1],
         },
         {
             "label": "Elija el tipo de comprobante",

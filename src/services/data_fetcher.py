@@ -1,5 +1,5 @@
 __all__ = [
-    "get_ejercicios_list",
+    "get_ejercicios",
     "get_siif_rf602",
     "get_siif_rog01",
     "get_siif_rvicon03",
@@ -33,7 +33,7 @@ from src.utils import get_cache_path
 
 # --------------------------------------------------
 @st.cache_data()
-def get_ejercicios_list() -> list[int]:
+def get_ejercicios() -> list[int]:
     return list(range(2010, datetime.today().year + 1))
 
 
