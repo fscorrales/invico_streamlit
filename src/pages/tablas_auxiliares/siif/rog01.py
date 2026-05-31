@@ -16,12 +16,7 @@ from src.views import (
 
 ENDPONT = Endpoints.SIIF_ROG01.value
 REPORTE = "rog01"
-# GRUPOS = [
-#     element + "00"
-#     for element in get_grupos_partidas_str_siif_list(
-#         update_trigger=st.session_state.grupos_partidas_str_siif_uploader_iteration
-#     )
-# ]
+
 # 1. Obtenemos el DataFrame de la función
 df_grupos = get_grupos_partidas_str_siif_list(
     update_trigger=st.session_state.get(

@@ -12,6 +12,7 @@ __all__ = [
     "get_siif_rfondo07tp",
     "get_siif_rfondos04",
     "get_ctas_ctes",
+    "get_ctas_ctes_list",
     "get_sscc_banco_invico",
     "get_tipos_comprobantes_siif_list",
     "get_grupos_partidas_siif_list",
@@ -240,6 +241,15 @@ def get_ctas_ctes(filtro_avanzado: str = "", update_trigger: int = 0):
             return pd.read_parquet(file_path)
 
     return pd.DataFrame()
+
+
+@st.cache_data
+# --------------------------------------------------
+def get_ctas_ctes_list() -> list[str]:
+    data = get_ctas_ctes(
+        update_trigger=st.session_state.ctas_ctes_uploader_iteration
+    ).copy()
+    return data["map_to"].tolist()
 
 
 # --------------------------------------------------

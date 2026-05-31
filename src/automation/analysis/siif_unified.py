@@ -1,8 +1,8 @@
 import pandas as pd
+import streamlit as st
 
 from src.constants.endpoints import Endpoints
-from src.constants.options import get_ctas_ctes_df
-from src.services.api_client import fetch_dataframe
+from src.services import fetch_dataframe, get_ctas_ctes
 
 
 # --------------------------------------------------
@@ -14,7 +14,9 @@ def get_siif_rci02_unified_cta_cte(ejercicio: int = None) -> pd.DataFrame:
     params["limit"] = 0
     df = fetch_dataframe(Endpoints.SIIF_RCI02.value, params=params)
     # df.reset_index(drop=True, inplace=True)
-    ctas_ctes = get_ctas_ctes_df()
+    ctas_ctes = get_ctas_ctes(
+        update_trigger=st.session_state.ctas_ctes_uploader_iteration
+    )
     map_to = ctas_ctes.loc[:, ["map_to", "siif_recursos_cta_cte"]]
     df = pd.merge(
         df, map_to, how="left", left_on="cta_cte", right_on="siif_recursos_cta_cte"
