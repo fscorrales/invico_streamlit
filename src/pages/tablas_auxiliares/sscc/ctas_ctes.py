@@ -2,13 +2,12 @@ import streamlit as st
 
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import get_sscc_ctas_ctes, process_listado_ctas_ctes
+from src.services import get_ctas_ctes, process_listado_ctas_ctes
 from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
 from src.views import (
-    params_preparation,
     report_template_with_uploader,
 )
 
@@ -52,8 +51,8 @@ def render() -> None:
     trigger = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
 
     try:
-        df = get_sscc_ctas_ctes(
-            params_preparation(filtro_avanzado=filtro_actual),
+        df = get_ctas_ctes(
+            filtro_avanzado=filtro_actual,
             update_trigger=trigger,
         )
 

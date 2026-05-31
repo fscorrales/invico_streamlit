@@ -10,7 +10,7 @@ __all__ = [
     "get_siif_gto_rpa03g",
     "get_siif_rfondo07tp",
     "get_siif_rfondos04",
-    "get_sscc_ctas_ctes",
+    "get_ctas_ctes",
     "get_sscc_banco_invico",
     "get_tipos_comprobantes_siif_list",
     "get_grupos_partidas_siif_list",
@@ -197,17 +197,42 @@ def get_siif_rfondos04(params: dict[str, Any] | None = None, update_trigger: int
 
 # --------------------------------------------------
 @st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
-def get_sscc_ctas_ctes(params: dict[str, Any] | None = None, update_trigger: int = 0):
-    df = pd.DataFrame()
+def get_ctas_ctes(filtro_avanzado: str = "", update_trigger: int = 0):
+    file_path = os.path.join(get_cache_path(), "ctas_ctes_cache.parquet")
 
-    df = fetch_dataframe(Endpoints.CTAS_CTES.value, params=params)
-    # if not df.empty:
-    #     df = df.sort_values(
-    #         ["ejercicio", "fecha", "tipo_comprobante", "nro_comprobante"],
-    #         ascending=[False, False, False, False],
-    #     )
+    # 1. Intentar cargar desde archivo local si no se fuerza la actualización
+    # Si el trigger es 0, intentamos leer el archivo local primero
+    if update_trigger == 0 and filtro_avanzado == "" and os.path.exists(file_path):
+        mtime = datetime.fromtimestamp(os.path.getmtime(file_path))
+        # Si el archivo tiene menos de 24hs, lo usamos
+        if datetime.now() - mtime < timedelta(hours=24):
+            try:
+                return pd.read_parquet(file_path)
+            except Exception:
+                pass  # Si el parquet está corrupto, seguimos a la API
 
-    return df
+    # 2. Si no hay cache o es viejo, consultar API
+    params_peticion = {
+        "limit": 0,
+        "queryFilter": filtro_avanzado,
+    }
+
+    try:
+        df = fetch_dataframe(Endpoints.CTAS_CTES.value, params=params_peticion)
+        if not df.empty:
+            # df = df.sort_values(["estructura"], ascending=True)
+            # 3. Guardar en disco para la próxima vez
+            if filtro_avanzado == "":
+                df.to_parquet(file_path)
+            return df
+
+    except Exception as e:
+        st.error(f"Error de conexión: {e}")
+        # Si falla la API pero hay un archivo viejo, lo usamos como backup
+        if os.path.exists(file_path):
+            return pd.read_parquet(file_path)
+
+    return pd.DataFrame()
 
 
 # --------------------------------------------------

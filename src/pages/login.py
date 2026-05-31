@@ -2,6 +2,7 @@ import streamlit as st
 
 import src.utils.exceptions as ex
 from src.services import (
+    get_ctas_ctes,
     get_current_user,
     get_grupos_partidas_siif_list,
     get_grupos_partidas_str_siif_list,
@@ -83,6 +84,12 @@ def render_login() -> None:
                                 st.session_state.partidas_principales_siif_uploader_iteration = 0
                             get_partidas_principales_siif_list(
                                 update_trigger=st.session_state.partidas_principales_siif_uploader_iteration
+                            )
+                            st.write("Sincronizando Cuentas Corrientes...")
+                            if "ctas_ctes_uploader_iteration" not in st.session_state:
+                                st.session_state.ctas_ctes_uploader_iteration = 0
+                            get_ctas_ctes(
+                                update_trigger=st.session_state.ctas_ctes_uploader_iteration
                             )
                             status.update(
                                 label="Sincronización Completa",
