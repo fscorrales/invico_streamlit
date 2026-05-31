@@ -18,6 +18,7 @@ __all__ = [
     "get_grupos_partidas_siif_list",
     "get_grupos_partidas_str_siif_list",
     "get_partidas_principales_siif_list",
+    "get_icaro_carga",
 ]
 
 import os
@@ -443,3 +444,18 @@ def get_partidas_principales_siif_list(
             return pd.read_parquet(file_path)
 
     return pd.DataFrame()
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl=3600)
+def get_icaro_carga(params: dict[str, Any] | None = None, update_trigger: int = 0):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(Endpoints.ICARO_CARGA.value, params=params)
+    if not df.empty:
+        df = df.sort_values(
+            ["ejercicio", "fecha", "nro_comprobante", "actividad", "partida", "fuente"],
+            ascending=[False, False, False, True, True, True],
+        )
+
+    return df
