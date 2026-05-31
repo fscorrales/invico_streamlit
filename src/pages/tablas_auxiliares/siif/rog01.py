@@ -4,8 +4,7 @@ from playwright.async_api import async_playwright
 from src.automation.siif.rog01 import Rog01
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.constants.options import get_grupos_partidas_str_siif_list
-from src.services import get_siif_rog01, post_request
+from src.services import get_grupos_partidas_str_siif_list, get_siif_rog01, post_request
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -17,7 +16,25 @@ from src.views import (
 
 ENDPONT = Endpoints.SIIF_ROG01.value
 REPORTE = "rog01"
-GRUPOS = [element + "00" for element in get_grupos_partidas_str_siif_list()]
+# GRUPOS = [
+#     element + "00"
+#     for element in get_grupos_partidas_str_siif_list(
+#         update_trigger=st.session_state.grupos_partidas_str_siif_uploader_iteration
+#     )
+# ]
+# 1. Obtenemos el DataFrame de la función
+df_grupos = get_grupos_partidas_str_siif_list(
+    update_trigger=st.session_state.get(
+        "grupos_partidas_str_siif_uploader_iteration", 0
+    )
+)
+
+# 2. Generamos la lista asegurando el tipo string (.astype(str)) sobre la columna correcta
+# REEMPLAZÁ "codigo" por el nombre real de la columna de tu tabla
+if not df_grupos.empty and 0 in df_grupos.columns:
+    GRUPOS = [str(element) + "00" for element in df_grupos[0]]
+else:
+    GRUPOS = []
 
 
 # --------------------------------------------------
