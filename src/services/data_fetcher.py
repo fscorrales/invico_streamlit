@@ -14,6 +14,7 @@ __all__ = [
     "get_sscc_banco_invico",
     "get_tipos_comprobantes_siif_list",
     "get_grupos_partidas_siif_list",
+    "get_grupos_partidas_str_siif_list",
 ]
 
 import os
@@ -294,6 +295,50 @@ def get_grupos_partidas_siif_list(filtro_avanzado: str = "", update_trigger: int
     try:
         df = fetch_dataframe(
             Endpoints.SIIF.value + "/gruposPartidas", params=params_peticion
+        )
+        if not df.empty:
+            # df = df.sort_values(["estructura"], ascending=True)
+            # 3. Guardar en disco para la próxima vez
+            if filtro_avanzado == "":
+                df.to_parquet(file_path)
+            return df
+
+    except Exception as e:
+        st.error(f"Error de conexión: {e}")
+        # Si falla la API pero hay un archivo viejo, lo usamos como backup
+        if os.path.exists(file_path):
+            return pd.read_parquet(file_path)
+
+    return pd.DataFrame()
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...")
+def get_grupos_partidas_str_siif_list(
+    filtro_avanzado: str = "", update_trigger: int = 0
+):
+    file_path = os.path.join(get_cache_path(), "grupos_partidas_str_siif_cache.parquet")
+
+    # 1. Intentar cargar desde archivo local si no se fuerza la actualización
+    # Si el trigger es 0, intentamos leer el archivo local primero
+    if update_trigger == 0 and filtro_avanzado == "" and os.path.exists(file_path):
+        mtime = datetime.fromtimestamp(os.path.getmtime(file_path))
+        # Si el archivo tiene menos de 24hs, lo usamos
+        if datetime.now() - mtime < timedelta(hours=24):
+            try:
+                return pd.read_parquet(file_path)
+            except Exception:
+                pass  # Si el parquet está corrupto, seguimos a la API
+
+    # 2. Si no hay cache o es viejo, consultar API
+    params_peticion = {
+        "limit": 0,
+        "queryFilter": filtro_avanzado,
+    }
+
+    try:
+        df = fetch_dataframe(
+            Endpoints.SIIF.value + "/gruposPartidasStr", params=params_peticion
         )
         if not df.empty:
             # df = df.sort_values(["estructura"], ascending=True)

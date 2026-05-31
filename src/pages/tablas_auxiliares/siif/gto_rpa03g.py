@@ -6,9 +6,12 @@ from src.components import dataframe
 from src.constants.endpoints import Endpoints
 from src.constants.options import (
     get_ejercicios_list,
-    get_grupos_partidas_str_siif_list,
 )
-from src.services import get_siif_gto_rpa03g, post_request
+from src.services import (
+    get_grupos_partidas_str_siif_list,
+    get_siif_gto_rpa03g,
+    post_request,
+)
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -20,7 +23,9 @@ from src.views import (
 
 ENDPONT = Endpoints.SIIF_GTO_RPA03G.value
 REPORTE = "gto_rpa03g"
-GRUPOS = get_grupos_partidas_str_siif_list()
+GRUPOS = get_grupos_partidas_str_siif_list(
+    update_trigger=st.session_state.grupos_partidas_str_siif_uploader_iteration
+)
 
 
 # --------------------------------------------------
