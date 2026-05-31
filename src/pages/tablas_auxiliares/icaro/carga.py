@@ -1,5 +1,5 @@
 from src.constants.endpoints import Endpoints
-from src.constants.options import get_ejercicios_list
+from src.services import get_ejercicios_list
 from src.views.aux_tables import report_template
 
 ENDPONT = Endpoints.ICARO_CARGA.value

@@ -4,8 +4,7 @@ from playwright.async_api import async_playwright
 from src.automation.siif.rfp_p605b import RfpP605b
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.constants.options import get_ejercicios_list
-from src.services import get_siif_rfp_p605b, post_request
+from src.services import get_ejercicios_list, get_siif_rfp_p605b, post_request
 from src.utils import (
     APIConnectionError,
     APIResponseError,

@@ -13,7 +13,7 @@ import streamlit as st
 
 from src.automation.analysis import control_recursos
 from src.constants.endpoints import Endpoints
-from src.constants.options import get_ejercicios_list
+from src.services import get_ejercicios_list
 from src.views.aux_tables import report_template
 from src.views.modals import request_siif_and_sscc_credentials_modal
 

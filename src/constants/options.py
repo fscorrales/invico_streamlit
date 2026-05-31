@@ -1,5 +1,4 @@
 __all__ = [
-    "get_ejercicios_list",
     "get_tipos_comprobantes_siif_list",
     "get_grupos_partidas_siif_list",
     "get_grupos_partidas_str_siif_list",
@@ -8,7 +7,7 @@ __all__ = [
     "get_ctas_ctes_list",
 ]
 
-import datetime as dt
+
 from typing import Any
 
 import pandas as pd
@@ -16,12 +15,6 @@ import streamlit as st
 
 from src.constants.endpoints import Endpoints
 from src.services.api_client import fetch_data
-
-
-@st.cache_data
-# --------------------------------------------------
-def get_ejercicios_list() -> list[int]:
-    return list(range(2010, dt.date.today().year + 1))
 
 
 @st.cache_data

@@ -6,8 +6,7 @@ import streamlit as st
 
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.constants.options import get_ejercicios_list
-from src.services import get_sscc_banco_invico
+from src.services import get_ejercicios_list, get_sscc_banco_invico
 from src.utils import (
     APIConnectionError,
     APIResponseError,

@@ -1,4 +1,5 @@
 __all__ = [
+    "get_ejercicios_list",
     "get_siif_rf602",
     "get_siif_rog01",
     "get_siif_rvicon03",
@@ -28,6 +29,12 @@ import streamlit as st
 from src.constants import Endpoints
 from src.services.api_client import fetch_dataframe
 from src.utils import get_cache_path
+
+
+# --------------------------------------------------
+@st.cache_data()
+def get_ejercicios_list() -> list[int]:
+    return list(range(2010, datetime.today().year + 1))
 
 
 # --------------------------------------------------

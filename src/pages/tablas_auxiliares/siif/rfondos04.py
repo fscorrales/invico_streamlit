@@ -4,8 +4,8 @@ from playwright.async_api import async_playwright
 from src.automation.siif.rfondos04 import Rfondos04
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.constants.options import get_ejercicios_list
 from src.services import (
+    get_ejercicios_list,
     get_siif_rfondos04,
     get_tipos_comprobantes_siif_list,
     post_request,

@@ -3,8 +3,8 @@ from playwright.async_api import async_playwright
 
 from src.automation.siif.rf602 import Rf602
 from src.components import dataframe
-from src.constants import Endpoints, get_ejercicios_list
-from src.services import get_siif_rf602, post_request
+from src.constants import Endpoints
+from src.services import get_ejercicios_list, get_siif_rf602, post_request
 from src.utils import (
     APIConnectionError,
     APIResponseError,

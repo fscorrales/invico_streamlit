@@ -4,8 +4,7 @@ from playwright.async_api import async_playwright
 from src.automation.siif.rvicon03 import Rvicon03
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.constants.options import get_ejercicios_list
-from src.services import get_siif_rvicon03, post_request
+from src.services import get_ejercicios_list, get_siif_rvicon03, post_request
 from src.utils import (
     APIConnectionError,
     APIResponseError,
