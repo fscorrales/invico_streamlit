@@ -19,6 +19,7 @@ __all__ = [
     "get_grupos_partidas_str_siif_list",
     "get_partidas_principales_siif_list",
     "get_icaro_carga",
+    "get_icaro_estructuras",
 ]
 
 import os
@@ -456,6 +457,27 @@ def get_icaro_carga(params: dict[str, Any] | None = None, update_trigger: int = 
         df = df.sort_values(
             ["ejercicio", "fecha", "nro_comprobante", "actividad", "partida", "fuente"],
             ascending=[False, False, False, True, True, True],
+        )
+
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_icaro_estructuras(filtro_avanzado: str = "", update_trigger: int = 0):
+    df = pd.DataFrame()
+
+    params_peticion = {
+        "limit": 0,
+        "queryFilter": filtro_avanzado,
+    }
+
+    df = fetch_dataframe(Endpoints.ICARO_ESTRUCTURAS.value, params=params_peticion)
+    if not df.empty:
+        df = df.loc[:, ["estructura", "desc_estructura"]]
+        df = df.sort_values(
+            ["estructura"],
+            ascending=[True],
         )
 
     return df

@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from src.pages.tablas_auxiliares.icaro import carga
+from src.pages.tablas_auxiliares.icaro import carga, estructuras
 
 
 def main() -> None:
@@ -12,7 +12,7 @@ def main() -> None:
         carga.render()
 
     with tab_estructura:
-        st.write("Contenido de la pestaña Estructura")
+        estructuras.render()
 
 
 if __name__ == "__main__":
