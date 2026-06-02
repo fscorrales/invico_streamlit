@@ -49,7 +49,15 @@ def render() -> None:
     if not df.empty:
         # Definimos las columnas que NO queremos mostrar
         first_cols = [
-            "estructura",
+            "actividad",
+            "partida",
+            "fuente",
+            "desc_obra",
+            "cuit",
+            "cta_cte",
+            "norma_legal",
+            "localidad",
+            "info_adicional",
         ]
 
         # Generamos el orden dinámico: todas las del DF que no estén en la lista negra
