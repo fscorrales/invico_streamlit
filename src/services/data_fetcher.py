@@ -21,6 +21,7 @@ __all__ = [
     "get_icaro_carga",
     "get_icaro_estructuras",
     "get_icaro_obras",
+    "get_control_recursos",
 ]
 
 import os
@@ -499,5 +500,24 @@ def get_icaro_obras(filtro_avanzado: str = "", update_trigger: int = 0):
         df = df.sort_values(
             ["actividad", "partida", "fuente", "desc_obra"], ascending=True
         )
+
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_control_recursos(filtro_avanzado: str = "", update_trigger: int = 0):
+    df = pd.DataFrame()
+
+    params_peticion = {
+        "limit": 0,
+        "queryFilter": filtro_avanzado,
+    }
+
+    df = fetch_dataframe(Endpoints.CONTROL_RECURSOS.value, params=params_peticion)
+    # if not df.empty:
+    #     df = df.sort_values(
+    #         ["actividad", "partida", "fuente", "desc_obra"], ascending=True
+    #     )
 
     return df

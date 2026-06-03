@@ -82,6 +82,7 @@ def request_siif_credentials_modal(
 
         except Exception as e:
             st.error(f"Error durante la automatización: {e}")
+            st.session_state[f"{key}_automation_success"] = False
 
 
 @st.dialog("Credenciales SSCC")
@@ -128,12 +129,14 @@ def request_sscc_credentials_modal(
 
         except Exception as e:
             st.error(f"❌ Error en la automatización SSCC: {str(e)}")
+            st.session_state[f"{key}_automation_success"] = False
 
 
 @st.dialog("Credenciales SIIF y SSCC")
 # --------------------------------------------------
 def request_siif_and_sscc_credentials_modal(
     automation_callback: Callable[[str, str, str, str], Any],
+    key: str = "",
 ):
     """
     Modal reutilizable para SIIF y SSCC usando Pywinauto (Síncrono) y Playwright (Asíncrono).
@@ -144,10 +147,14 @@ def request_siif_and_sscc_credentials_modal(
     )
 
     # Usamos keys únicas para evitar colisiones con otros modales
-    siif_username = st.text_input("Usuario SIIF", key="siif_user")
-    siif_password = st.text_input("Contraseña SIIF", type="password", key="siif_pass")
-    sscc_username = st.text_input("Usuario SSCC", key="sscc_user")
-    sscc_password = st.text_input("Contraseña SSCC", type="password", key="sscc_pass")
+    siif_username = st.text_input("Usuario SIIF", key=f"siif_user_{key}")
+    siif_password = st.text_input(
+        "Contraseña SIIF", type="password", key=f"siif_pass_{key}"
+    )
+    sscc_username = st.text_input("Usuario SSCC", key=f"sscc_user_{key}")
+    sscc_password = st.text_input(
+        "Contraseña SSCC", type="password", key=f"sscc_pass_{key}"
+    )
 
     if st.button("Lanzar Robot SIIF y SSCC", type="primary"):
         if (
@@ -187,6 +194,7 @@ def request_siif_and_sscc_credentials_modal(
 
             if results:
                 st.success(f"Proceso finalizado: {len(results)} reportes procesados.")
+                st.session_state[f"{key}_automation_success"] = True
             else:
                 st.info("Proceso terminado sin resultados nuevos.")
 
