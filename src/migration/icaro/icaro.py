@@ -379,6 +379,11 @@ class IcaroMongoMigrator:
             inplace=True,
         )
 
+        df = df.drop(["telefono"], axis=1)
+
+        df = df[df["cuit"].notna() & (df["cuit"] != "")]
+        df["codigo"] = df["codigo"].astype(str)
+
         df["updated_at"] = pd.Timestamp.now()
         print_rich_table(df, title=f"Tabla Exportada: {table}")
 
@@ -641,8 +646,8 @@ class IcaroMongoMigrator:
         return_schema.append(self.migrate_obras())
         return_schema.append(self.migrate_carga())
         return_schema.append(self.migrate_retenciones())
-        return_schema.append(self.migrate_certificados())
-        return_schema.append(self.migrate_resumen_rend_obras())
+        # return_schema.append(self.migrate_certificados())
+        # return_schema.append(self.migrate_resumen_rend_obras())
         return return_schema
 
 
@@ -677,7 +682,7 @@ def main(
         migrator = IcaroMongoMigrator(
             sqlite_path=file,
         )
-        migrator.migrate_obras()
+        migrator.migrate_proveedores()
         typer.secho(
             f"✅ Migración completada con éxito desde {file.name}.",
             fg=typer.colors.GREEN,
