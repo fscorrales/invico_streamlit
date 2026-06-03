@@ -23,9 +23,6 @@ from src.components import (
     text_input_advance_filter,
 )
 from src.services.api_client import (
-    APIConnectionError,
-    APIResponseError,
-    fetch_dataframe,
     fetch_excel_stream,
     post_request,
 )
@@ -146,24 +143,24 @@ def report_template(
             return
 
     # 3. Lógica de Fetch Iterativo (El equivalente al v-for de Vue + API calls)
-    try:
-        with st.spinner("Consultando datos..."):
-            df_final = fetch_dataframe(
-                endpoint, params=params_preparation(selections, filtro_avanzado)
-            )
+    # try:
+    #     with st.spinner("Consultando datos..."):
+    #         df_final = fetch_dataframe(
+    #             endpoint, params=params_preparation(selections, filtro_avanzado)
+    #         )
 
-            if df_final is None or df_final.empty:
-                st.info("No se encontraron resultados.")
-                st.session_state[f"data_{key}"] = (
-                    pd.DataFrame()
-                )  # Evita errores de 'None' después
-            else:
-                st.session_state[f"data_{key}"] = df_final
+    #         if df_final is None or df_final.empty:
+    #             st.info("No se encontraron resultados.")
+    #             st.session_state[f"data_{key}"] = (
+    #                 pd.DataFrame()
+    #             )  # Evita errores de 'None' después
+    #         else:
+    #             st.session_state[f"data_{key}"] = df_final
 
-    except APIConnectionError as e:
-        st.error(f"⚠️ Error de conexión: {e}")
-    except APIResponseError as e:
-        st.error(f"⚠️ Error de API: {e}")
+    # except APIConnectionError as e:
+    #     st.error(f"⚠️ Error de conexión: {e}")
+    # except APIResponseError as e:
+    #     st.error(f"⚠️ Error de API: {e}")
 
     params = params_preparation(selections, filtro_avanzado)
 

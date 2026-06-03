@@ -506,18 +506,14 @@ def get_icaro_obras(filtro_avanzado: str = "", update_trigger: int = 0):
 
 # --------------------------------------------------
 @st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
-def get_control_recursos(filtro_avanzado: str = "", update_trigger: int = 0):
+def get_control_recursos(params: dict[str, Any] | None = None, update_trigger: int = 0):
     df = pd.DataFrame()
 
-    params_peticion = {
-        "limit": 0,
-        "queryFilter": filtro_avanzado,
-    }
-
-    df = fetch_dataframe(Endpoints.CONTROL_RECURSOS.value, params=params_peticion)
-    # if not df.empty:
-    #     df = df.sort_values(
-    #         ["actividad", "partida", "fuente", "desc_obra"], ascending=True
-    #     )
+    df = fetch_dataframe(Endpoints.CONTROL_RECURSOS.value, params=params)
+    if not df.empty:
+        df = df.sort_values(
+            ["ejercicio", "mes", "grupo", "cta_cte"],
+            ascending=[False, True, True, True],
+        )
 
     return df
