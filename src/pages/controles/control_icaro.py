@@ -1,6 +1,14 @@
-"""Página: Control Icaro (placeholder).
-
-Endpoint de API pendiente de implementación.
+"""
+Author: Fernando Corrales <fscpython@gmail.com>
+Purpose: Icaro vs SIIF budget execution
+Data required:
+    - Icaro
+    - SIIF rf602
+    - SIIF rf610
+    - SIIF gto_rpa03g
+    - SIIF rcg01_uejp
+    - SIIF rfondo07tp
+    - SSCC ctas_ctes (manual data)
 """
 
 import streamlit as st
