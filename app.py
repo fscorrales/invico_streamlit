@@ -196,7 +196,7 @@ def build_navigation() -> None:
 
         # Bloque de Usuario
         cols = st.columns([0.6, 0.4], vertical_alignment="center")
-        cols[0].write(f"👤 **{username}***")
+        cols[0].write(f"👤 **{username}**")
 
         if cols[1].button("Log out", key="logout_spacer"):
             st.session_state.app_closing = True
