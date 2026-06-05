@@ -19,13 +19,8 @@ from src.automation.siif import (
 )
 from src.constants.endpoints import Endpoints
 from src.services import (
-    get_grupos_partidas_str_siif_list,
-    get_icaro_carga,
+    get_grupos_partidas_siif_list,
     post_request,
-)
-from src.utils import (
-    APIConnectionError,
-    APIResponseError,
 )
 
 
@@ -76,10 +71,22 @@ async def sync_control_icaro_from_siif(
                 )
                 results.append(f"Rcg01Uejp Ejercicio {ej}: {response}")
 
+        # 🔹 Rfondo07tp
+        rfondo07tp = Rfondo07tp(siif=connect_siif)
+        for ej in ejercicios:
+            df_clean = await rfondo07tp.download_and_process_report(ejercicio=ej)
+            if df_clean is not None and not df_clean.empty:
+                # Send to backend
+                json_data = df_clean.to_dict(orient="records")
+                response = post_request(
+                    Endpoints.SIIF_RFONDO07TP.value, json_body=json_data
+                )
+                results.append(f"Rfondo07tp Ejercicio {ej}: {response}")
+
         # 🔹 GtoRpa03g
         gto_rpa03g = GtoRpa03g(siif=connect_siif)
-        GRUPOS = get_grupos_partidas_str_siif_list(
-            update_trigger=st.session_state.grupos_partidas_str_siif_uploader_iteration
+        GRUPOS = get_grupos_partidas_siif_list(
+            update_trigger=st.session_state.grupos_partidas_siif_uploader_iteration
         )
         for ej in ejercicios:
             for grupo in GRUPOS:
@@ -93,18 +100,6 @@ async def sync_control_icaro_from_siif(
                         Endpoints.SIIF_GTO_RPA03G.value, json_body=json_data
                     )
                     results.append(f"GtoRpa03g Ejercicio {ej}: {response}")
-
-        # 🔹 Rfondo07tp
-        rfondo07tp = Rfondo07tp(siif=connect_siif)
-        for ej in ejercicios:
-            df_clean = await rfondo07tp.download_and_process_report(ejercicio=ej)
-            if df_clean is not None and not df_clean.empty:
-                # Send to backend
-                json_data = df_clean.to_dict(orient="records")
-                response = post_request(
-                    Endpoints.SIIF_RFONDO07TP.value, json_body=json_data
-                )
-                results.append(f"Rfondo07tp Ejercicio {ej}: {response}")
 
         await logout(connect=connect_siif)
 

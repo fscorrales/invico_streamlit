@@ -22,6 +22,7 @@ __all__ = [
     "get_icaro_estructuras",
     "get_icaro_obras",
     "get_control_recursos",
+    "get_control_icaro_anual",
 ]
 
 import os
@@ -329,7 +330,9 @@ def get_grupos_partidas_siif_list(filtro_avanzado: str = "", update_trigger: int
         # Si el archivo tiene menos de 24hs, lo usamos
         if datetime.now() - mtime < timedelta(hours=24):
             try:
-                return pd.read_parquet(file_path)
+                df = pd.read_parquet(file_path)
+                return [str(x) for x in df[0].tolist()] if 0 in df.columns else []
+
             except Exception:
                 pass  # Si el parquet está corrupto, seguimos a la API
 
@@ -348,15 +351,16 @@ def get_grupos_partidas_siif_list(filtro_avanzado: str = "", update_trigger: int
             # 3. Guardar en disco para la próxima vez
             if filtro_avanzado == "":
                 df.to_parquet(file_path)
-            return df
+            return [str(x) for x in df[0].tolist()] if 0 in df.columns else []
 
     except Exception as e:
         st.error(f"Error de conexión: {e}")
         # Si falla la API pero hay un archivo viejo, lo usamos como backup
         if os.path.exists(file_path):
-            return pd.read_parquet(file_path)
+            df = pd.read_parquet(file_path)
+            return [str(x) for x in df[0].tolist()] if 0 in df.columns else []
 
-    return pd.DataFrame()
+    return []
 
 
 # --------------------------------------------------
@@ -515,5 +519,22 @@ def get_control_recursos(params: dict[str, Any] | None = None, update_trigger: i
             ["ejercicio", "mes", "grupo", "cta_cte"],
             ascending=[False, True, True, True],
         )
+
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_control_icaro_anual(
+    params: dict[str, Any] | None = None, update_trigger: int = 0
+):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(Endpoints.CONTROL_ICARO_ANUAL.value, params=params)
+    # if not df.empty:
+    #     df = df.sort_values(
+    #         ["ejercicio", "mes", "grupo", "cta_cte"],
+    #         ascending=[False, True, True, True],
+    #     )
 
     return df
