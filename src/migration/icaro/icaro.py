@@ -528,6 +528,8 @@ class IcaroMongoMigrator:
         df.loc[df["tipo"] == "PA6", "id_carga"] = df["nro_comprobante"] + "F"
         df.drop(["nro_comprobante", "tipo"], axis=1, inplace=True)
 
+        df = df.loc[df["ejercicio"].isin(list(range(2020, 2027)))]
+
         df = df.loc[:, ["ejercicio", "id_carga", "codigo", "importe"]]
 
         df["updated_at"] = pd.Timestamp.now()
@@ -682,7 +684,7 @@ def main(
         migrator = IcaroMongoMigrator(
             sqlite_path=file,
         )
-        migrator.migrate_proveedores()
+        migrator.migrate_retenciones()
         typer.secho(
             f"✅ Migración completada con éxito desde {file.name}.",
             fg=typer.colors.GREEN,
