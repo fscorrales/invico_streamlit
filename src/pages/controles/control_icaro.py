@@ -45,15 +45,15 @@ async def run_automation(siif_username: str, siif_password: str) -> None:
 
     # 2. Iniciamos la descarga automática
     results = []
-    # 2.a. Ejecutamos la automatización de SIIF
-    results = await control_icaro.sync_control_icaro_from_siif(
-        siif_username=siif_username,
-        siif_password=siif_password,
-        ejercicios=ejercicios,
-    )
+    # # 2.a. Ejecutamos la automatización de SIIF
+    # results = await control_icaro.sync_control_icaro_from_siif(
+    #     siif_username=siif_username,
+    #     siif_password=siif_password,
+    #     ejercicios=ejercicios,
+    # )
 
-    # 3. Combinamos las tablas y actualizamos el reporte
-    # control_icaro.compute_control_icaro(ejercicios=ejercicios)
+    # 3. Combinamos las tablas y actualizamos los reportes
+    control_icaro.compute_control_anual(ejercicios=ejercicios)
 
     return results
 

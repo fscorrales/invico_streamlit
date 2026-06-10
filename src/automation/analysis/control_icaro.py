@@ -19,9 +19,11 @@ from src.automation.siif import (
 )
 from src.constants.endpoints import Endpoints
 from src.services import (
-    get_grupos_partidas_siif_list,
+    get_icaro_carga,
+    get_siif_rf602,
     post_request,
 )
+from src.views import params_preparation
 
 
 # --------------------------------------------------
@@ -85,9 +87,10 @@ async def sync_control_icaro_from_siif(
 
         # 🔹 GtoRpa03g
         gto_rpa03g = GtoRpa03g(siif=connect_siif)
-        GRUPOS = get_grupos_partidas_siif_list(
-            update_trigger=st.session_state.grupos_partidas_siif_uploader_iteration
-        )
+        # GRUPOS = get_grupos_partidas_siif_list(
+        #     update_trigger=st.session_state.grupos_partidas_siif_uploader_iteration
+        # )
+        GRUPOS = ["1", "2", "3", "4"]
         for ej in ejercicios:
             for grupo in GRUPOS:
                 df_clean = await gto_rpa03g.download_and_process_report(
@@ -121,6 +124,63 @@ async def sync_control_icaro_from_siif(
 #         st.error(f"⚠️ Error de conexión: {e}")
 #     except APIResponseError as e:
 #         st.error(f"⚠️ Error de API: {e}")
+
+
+# --------------------------------------------------
+def compute_control_anual(ejercicios: List[int]) -> None:
+    for ejercicio in ejercicios:
+        try:
+            group_by = ["ejercicio", "estructura", "fuente"]
+            params = params_preparation(
+                selections=[("ejercicio", [ejercicio])], filtro_avanzado="tipo!=PA6"
+            )
+            trigger = st.session_state.get("icaro_carga_uploader_iteration", 0) + 1
+            icaro = get_icaro_carga(
+                params=params,
+                update_trigger=trigger,
+            )
+            icaro["estructura"] = icaro.actividad + "-" + icaro.partida
+            icaro = icaro.groupby(group_by)["importe"].sum()
+            icaro = icaro.reset_index(drop=False)
+            icaro = icaro.rename(columns={"importe": "ejecucion_icaro"})
+            # print(icaro.head())
+            params = params_preparation(
+                selections=[("ejercicio", [ejercicio])],
+                filtro_avanzado="partida~42[1-2]",
+            )
+            trigger = st.session_state.get("siif_rf602_uploader_iteration", 0) + 1
+            siif_obras = get_siif_rf602(
+                params=params,
+                update_trigger=trigger,
+            )
+            params = params_preparation(
+                selections=[("ejercicio", [ejercicio])],
+                filtro_avanzado="estructura~01-00-00-03-354",
+            )
+            siif_autoseg = get_siif_rf602(
+                params=params,
+                update_trigger=trigger + 1,
+            )
+            siif = pd.concat([siif_obras, siif_autoseg], ignore_index=True)
+            siif = siif.loc[:, group_by + ["ordenado"]]
+            siif = siif.rename(columns={"ordenado": "ejecucion_siif"})
+            df = pd.merge(siif, icaro, how="outer", on=group_by, copy=False)
+            df = df.fillna(0)
+            df["diferencia"] = df["ejecucion_siif"] - df["ejecucion_icaro"]
+            # df = df.merge(
+            #     await get_siif_desc_pres(ejercicio_to=ejercicio),
+            #     how="left",
+            #     on="estructura",
+            #     copy=False,
+            # )
+            df = df.loc[(df["diferencia"] < -0.1) | (df["diferencia"] > 0.1)]
+            df = df.reset_index(drop=True)
+            print(df.head())
+            # df["fuente"] = pd.to_numeric(df["fuente"], errors="coerce")
+            # df["ejercicio"] = pd.to_numeric(df["ejercicio"], errors="coerce")
+        except Exception as e:
+            print(f"Error in compute_control_anual for ejercicio {ejercicio}: {e}")
+    # Aquí podrías llamar a las funciones que generan los reportes y enviar los datos al backend
 
 
 # --------------------------------------------------
