@@ -1,8 +1,18 @@
+__all__ = [
+    "get_siif_rci02_unified_cta_cte",
+    "get_siif_desc_pres",
+    "get_siif_comprobantes_gtos_joined",
+]
+
+import datetime as dt
+from typing import List, Union
+
 import pandas as pd
 import streamlit as st
 
 from src.constants.endpoints import Endpoints
-from src.services import fetch_dataframe, get_ctas_ctes
+from src.services import fetch_dataframe, get_ctas_ctes, get_siif_rf610
+from src.views import params_preparation
 
 
 # --------------------------------------------------
@@ -23,4 +33,131 @@ def get_siif_rci02_unified_cta_cte(ejercicio: int = None) -> pd.DataFrame:
     )
     df["cta_cte"] = df["map_to"]
     df.drop(["map_to", "siif_recursos_cta_cte"], axis="columns", inplace=True)
+    return df
+
+
+# --------------------------------------------------
+def get_siif_desc_pres(
+    ejercicio_to: Union[int, List] = int(dt.datetime.now().year),
+) -> pd.DataFrame:
+    """
+    Get the rf610 data from the repository.
+    """
+
+    trigger = st.session_state.get("siif_desc_pres_uploader_iteration", 0)
+    if ejercicio_to is None:
+        df = get_siif_rf610(update_trigger=trigger + 1)
+    elif isinstance(ejercicio_to, list):
+        params = params_preparation(
+            selections=[("ejercicio", ejercicio_to)],
+        )
+        df = get_siif_rf610(params=params, update_trigger=trigger + 1)
+    else:
+        params = params_preparation(
+            filtro_avanzado=f"ejercicio<={ejercicio_to}",
+        )
+        df = get_siif_rf610(params=params, update_trigger=trigger + 1)
+
+    print(df.info())
+
+    df.sort_values(
+        by=["ejercicio", "estructura"], inplace=True, ascending=[False, True]
+    )
+    # Programas únicos
+    df_prog = df.loc[:, ["programa", "desc_programa"]]
+    df_prog.drop_duplicates(subset=["programa"], inplace=True, keep="first")
+    # Subprogramas únicos
+    df_subprog = df.loc[:, ["programa", "subprograma", "desc_subprograma"]]
+    df_subprog.drop_duplicates(
+        subset=["programa", "subprograma"], inplace=True, keep="first"
+    )
+    # Proyectos únicos
+    df_proy = df.loc[:, ["programa", "subprograma", "proyecto", "desc_proyecto"]]
+    df_proy.drop_duplicates(
+        subset=["programa", "subprograma", "proyecto"], inplace=True, keep="first"
+    )
+    # Actividades únicos
+    # Reemplazar los NaN por una cadena vacía en la columna 'desc_actividad'
+    df["desc_actividad"] = df["desc_actividad"].fillna("")
+
+    df_act = df.loc[
+        :,
+        [
+            "estructura",
+            "programa",
+            "subprograma",
+            "proyecto",
+            "actividad",
+            "desc_actividad",
+        ],
+    ]
+
+    df_act.drop_duplicates(subset=["estructura"], inplace=True, keep="first")
+    # Merge all
+    df = df_act.merge(df_prog, how="left", on="programa", copy=False)
+    df = df.merge(df_subprog, how="left", on=["programa", "subprograma"], copy=False)
+    df = df.merge(
+        df_proy, how="left", on=["programa", "subprograma", "proyecto"], copy=False
+    )
+    df["desc_programa"] = df.programa + " - " + df.desc_programa
+    df["desc_subprograma"] = df.subprograma + " - " + df.desc_subprograma
+    df["desc_proyecto"] = df.proyecto + " - " + df.desc_proyecto
+    df["desc_actividad"] = df.actividad + " - " + df.desc_actividad
+    df.drop(
+        labels=["programa", "subprograma", "proyecto", "actividad"],
+        axis=1,
+        inplace=True,
+    )
+    return df
+
+
+# --------------------------------------------------
+def get_siif_comprobantes_gtos_joined(
+    ejercicio: int = None, partidas: list = []
+) -> pd.DataFrame:
+    """
+    Join gto_rpa03g (gtos_gpo_part) with rcg01_uejp (gtos)
+    """
+    params = {"limit": 0}
+    if ejercicio is None:
+        docs_gtos_gpo_part = fetch_dataframe(
+            Endpoints.SIIF_GTO_RPA03G.value, params=params
+        )
+        docs_gtos = fetch_dataframe(Endpoints.SIIF_RCG01_UEJP.value, params=params)
+    else:
+        params["ejercicio"] = ejercicio
+        docs_gtos = fetch_dataframe(Endpoints.SIIF_RCG01_UEJP.value, params=params)
+        # if len(partidas) > 0:
+        #     filters.update(
+        #         {
+        #             "partida__in": partidas,
+        #         }
+        #     )
+        docs_gtos_gpo_part = fetch_dataframe(
+            Endpoints.SIIF_GTO_RPA03G.value, params=params
+        )
+    df_gtos_gpo_part = pd.DataFrame(docs_gtos_gpo_part)
+    df_gtos = pd.DataFrame(docs_gtos)
+    df_gtos_filtered = df_gtos[
+        [
+            "nro_comprobante",
+            "nro_fondo",
+            "fuente",
+            "cta_cte",
+            "cuit",
+            "clase_reg",
+            "clase_mod",
+            "clase_gto",
+            "es_comprometido",
+            "es_verificado",
+            "es_aprobado",
+            "es_pagado",
+        ]
+    ]
+    df = pd.merge(
+        left=df_gtos_gpo_part,
+        right=df_gtos_filtered,
+        on=["nro_comprobante"],
+        how="left",
+    )
     return df

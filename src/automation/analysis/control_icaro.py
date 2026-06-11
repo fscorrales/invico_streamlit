@@ -6,7 +6,11 @@ import pandas as pd
 import streamlit as st
 from playwright.async_api import async_playwright
 
-from src.automation.analysis.siif_unified import get_siif_rci02_unified_cta_cte
+from src.automation.analysis.siif_unified import (
+    get_siif_comprobantes_gtos_joined,
+    get_siif_desc_pres,
+    get_siif_rci02_unified_cta_cte,
+)
 from src.automation.analysis.sscc_unified import get_banco_invico_unified_cta_cte
 from src.automation.siif import (
     GtoRpa03g,
@@ -23,6 +27,7 @@ from src.services import (
     get_siif_rf602,
     post_request,
 )
+from src.utils import sanitize_dataframe_for_json
 from src.views import params_preparation
 
 
@@ -110,20 +115,17 @@ async def sync_control_icaro_from_siif(
         return results
 
 
-# # --------------------------------------------------
-# def sync_control_icaros_from_icaro() -> None:
-#     # Capturamos el filtro del session_state (que el fragmento actualizó)
-#     trigger = st.session_state.get("icaro_carga_uploader_iteration", 0)
-#     try:
-#         get_icaro_carga(
-#             update_trigger=trigger
-#             + 1,  # Incrementamos el trigger para forzar la actualización en get_icaro_carga
-#         )
-#         print("✅ Sync ICARO Carga Finalizado.")
-#     except APIConnectionError as e:
-#         st.error(f"⚠️ Error de conexión: {e}")
-#     except APIResponseError as e:
-#         st.error(f"⚠️ Error de API: {e}")
+# --------------------------------------------------
+def get_siif_comprobantes(ejercicio: int = None) -> pd.DataFrame:
+    df = get_siif_comprobantes_gtos_joined(ejercicio=ejercicio)
+    df = df.loc[
+        (df["partida"].isin(["421", "422"]))
+        | (
+            (df["partida"] == "354")
+            & (~df["cuit"].isin(["30500049460", "30632351514", "20231243527"]))
+        )
+    ]
+    return df
 
 
 # --------------------------------------------------
@@ -143,7 +145,6 @@ def compute_control_anual(ejercicios: List[int]) -> None:
             icaro = icaro.groupby(group_by)["importe"].sum()
             icaro = icaro.reset_index(drop=False)
             icaro = icaro.rename(columns={"importe": "ejecucion_icaro"})
-            # print(icaro.head())
             params = params_preparation(
                 selections=[("ejercicio", [ejercicio])],
                 filtro_avanzado="partida~42[1-2]",
@@ -167,45 +168,114 @@ def compute_control_anual(ejercicios: List[int]) -> None:
             df = pd.merge(siif, icaro, how="outer", on=group_by, copy=False)
             df = df.fillna(0)
             df["diferencia"] = df["ejecucion_siif"] - df["ejecucion_icaro"]
-            # df = df.merge(
-            #     await get_siif_desc_pres(ejercicio_to=ejercicio),
-            #     how="left",
-            #     on="estructura",
-            #     copy=False,
-            # )
-            df = df.loc[(df["diferencia"] < -0.1) | (df["diferencia"] > 0.1)]
+
+            df = df.merge(
+                get_siif_desc_pres(ejercicio_to=ejercicio),
+                how="left",
+                on="estructura",
+                copy=False,
+            )
+            df = df.loc[(df["diferencia"] < -0.2) | (df["diferencia"] > 0.2)]
             df = df.reset_index(drop=True)
-            print(df.head())
-            # df["fuente"] = pd.to_numeric(df["fuente"], errors="coerce")
-            # df["ejercicio"] = pd.to_numeric(df["ejercicio"], errors="coerce")
+            df["fuente"] = pd.to_numeric(df["fuente"], errors="coerce")
+            df["ejercicio"] = pd.to_numeric(df["ejercicio"], errors="coerce")
+            json_data = sanitize_dataframe_for_json(df).to_dict(orient="records")
+            response = post_request(
+                Endpoints.CONTROL_ICARO_ANUAL.value, json_body=json_data
+            )
         except Exception as e:
             print(f"Error in compute_control_anual for ejercicio {ejercicio}: {e}")
-    # Aquí podrías llamar a las funciones que generan los reportes y enviar los datos al backend
 
 
 # --------------------------------------------------
-def compute_control_recursos(ejercicios: List[int]) -> None:
+def compute_control_comprobantes(ejercicios: List[int]) -> None:
     for ejercicio in ejercicios:
         try:
-            group_by = ["ejercicio", "mes", "cta_cte", "grupo"]
-            siif = generate_siif_comprobantes_recursos(ejercicio=int(ejercicio))
-            siif = siif.loc[~siif["es_invico"]]
-            siif = siif.loc[~siif["es_remanente"]]
-            siif = siif.groupby(group_by)["importe"].sum()
-            siif = siif.reset_index(drop=False)
-            siif = siif.rename(columns={"importe": "recursos_siif"})
-            sscc = generate_banco_invico(ejercicio=int(ejercicio))
-            sscc = sscc.groupby(group_by)["importe"].sum()
-            sscc = sscc.reset_index(drop=False)
-            sscc = sscc.rename(columns={"importe": "depositos_banco"})
-            df = pd.merge(siif, sscc, how="outer")
-            df = df.fillna(0)
-            json_data = df.to_dict(orient="records")
-            response = post_request(
-                Endpoints.CONTROL_RECURSOS.value, json_body=json_data
+            select = [
+                "ejercicio",
+                "nro_comprobante",
+                "fuente",
+                "importe",
+                "mes",
+                "cta_cte",
+                "cuit",
+                "partida",
+            ]
+            siif = get_siif_comprobantes(ejercicio=ejercicio)
+            # logger.info(f"siif_gtos.shape: {siif.shape} - siif_gtos.head: {siif.head()}")
+            siif.loc[
+                (siif.clase_reg == "REG") & (siif.nro_fondo.isnull()), "clase_reg"
+            ] = "CYO"
+            siif = siif.loc[:, select + ["clase_reg"]]
+            siif = siif.rename(
+                columns={
+                    "nro_comprobante": "siif_nro",
+                    "clase_reg": "siif_tipo",
+                    "fuente": "siif_fuente",
+                    "importe": "siif_importe",
+                    "mes": "siif_mes",
+                    "cta_cte": "siif_cta_cte",
+                    "cuit": "siif_cuit",
+                    "partida": "siif_partida",
+                }
             )
-            # results.append(f"Ejercicio {ej}: {response}")
+            params = params_preparation(
+                selections=[("ejercicio", [ejercicio])], filtro_avanzado="tipo!=PA6"
+            )
+            trigger = st.session_state.get("icaro_carga_uploader_iteration", 0) + 1
+            icaro = get_icaro_carga(
+                params=params,
+                update_trigger=trigger,
+            )
+            icaro = icaro.loc[:, select + ["tipo"]]
+            icaro = icaro.rename(
+                columns={
+                    "nro_comprobante": "icaro_nro",
+                    "tipo": "icaro_tipo",
+                    "fuente": "icaro_fuente",
+                    "importe": "icaro_importe",
+                    "mes": "icaro_mes",
+                    "cta_cte": "icaro_cta_cte",
+                    "cuit": "icaro_cuit",
+                    "partida": "icaro_partida",
+                }
+            )
+            df = pd.merge(
+                siif,
+                icaro,
+                how="outer",
+                left_on=["ejercicio", "siif_nro"],
+                right_on=["ejercicio", "icaro_nro"],
+            )
+            df["err_nro"] = df.siif_nro != df.icaro_nro
+            df["err_tipo"] = df.siif_tipo != df.icaro_tipo
+            df["err_mes"] = df.siif_mes != df.icaro_mes
+            df["err_partida"] = df.siif_partida != df.icaro_partida
+            df["err_fuente"] = df.siif_fuente != df.icaro_fuente
+            df["siif_importe"] = df["siif_importe"].fillna(0)
+            df["icaro_importe"] = df["icaro_importe"].fillna(0)
+            df["err_importe"] = (df.siif_importe - df.icaro_importe).abs()
+            df["err_importe"] = df["err_importe"] > 0.1
+            df["err_cta_cte"] = df.siif_cta_cte != df.icaro_cta_cte
+            df["err_cuit"] = df.siif_cuit != df.icaro_cuit
+            df = df.loc[
+                (
+                    df.err_nro
+                    + df.err_tipo
+                    + df.err_mes
+                    + df.err_partida
+                    + df.err_fuente
+                    + df.err_importe
+                    + df.err_cta_cte
+                    + df.err_cuit
+                )
+                > 0
+            ]
 
+            json_data = sanitize_dataframe_for_json(df).to_dict(orient="records")
+            response = post_request(
+                Endpoints.CONTROL_ICARO_COMPROBANTES.value, json_body=json_data
+            )
         except Exception as e:
             print(f"Error in compute_control_recursos: {e}")
 

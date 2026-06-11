@@ -53,6 +53,7 @@ async def run_automation(siif_username: str, siif_password: str) -> None:
     # )
 
     # 3. Combinamos las tablas y actualizamos los reportes
+    # control_icaro.compute_control_anual(ejercicios=ejercicios)
     control_icaro.compute_control_anual(ejercicios=ejercicios)
 
     return results

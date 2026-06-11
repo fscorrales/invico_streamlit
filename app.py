@@ -95,7 +95,7 @@ def build_navigation() -> None:
                 icon="💰",
             ),
             st.Page(
-                "src/pages/controles/control_icaro.py",
+                "src/pages/controles/control_icaro/control_icaro.py",
                 title="Control Icaro",
                 icon="🏗️",
             ),
