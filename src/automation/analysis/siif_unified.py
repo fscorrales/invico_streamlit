@@ -11,8 +11,7 @@ import pandas as pd
 import streamlit as st
 
 from src.constants.endpoints import Endpoints
-from src.services import fetch_dataframe, get_ctas_ctes, get_siif_rf610
-from src.views import params_preparation
+from src.services import fetch_dataframe, get_ctas_ctes
 
 
 # --------------------------------------------------
