@@ -187,6 +187,7 @@ def compute_control_anual(ejercicios: List[int]) -> None:
             df = df.reset_index(drop=True)
             df["fuente"] = pd.to_numeric(df["fuente"], errors="coerce")
             df["ejercicio"] = pd.to_numeric(df["ejercicio"], errors="coerce")
+            print(df.head())
             json_data = sanitize_dataframe_for_json(df).to_dict(orient="records")
             response = post_request(
                 Endpoints.CONTROL_ICARO_ANUAL.value, json_body=json_data
@@ -290,50 +291,188 @@ def compute_control_comprobantes(ejercicios: List[int]) -> None:
 
 
 # --------------------------------------------------
-def generate_siif_comprobantes_recursos(
-    ejercicio: int = dt.datetime.now().year,
-) -> pd.DataFrame:
-    df = get_siif_rci02_unified_cta_cte(
-        ejercicio=ejercicio,
-    )
-    df = df.loc[df["es_verificado"]]
-    df = df.loc[~df["es_remanente"]]
-    if not df.empty:
-        keep = ["MACRO"]
-        df.loc[df.glosa.str.contains("|".join(keep)), "cta_cte"] = "Macro"
-        df["grupo"] = np.where(
-            df["cta_cte"] == "10270",
-            "FONAVI",
-            np.where(
-                df["cta_cte"].isin(["130832-12", "334", "Macro", "Patagonia"]),
-                "RECUPEROS",
-                "OTROS",
-            ),
-        )
-        df.reset_index(drop=True, inplace=True)
-    return df
+def compute_control_pa6(ejercicios: List[int]) -> None:
+    for ejercicio in ejercicios:
+        try:
+            params = {"limit": 0, "ejercicio": ejercicio, "tipo_comprobante": "PA6"}
+            siif_fdos = fetch_dataframe(Endpoints.SIIF_RFONDO07TP.value, params=params)
+            siif_fdos = siif_fdos.loc[
+                :, ["ejercicio", "nro_fondo", "mes", "ingresos", "saldo"]
+            ]
+            siif_fdos["nro_fondo"] = (
+                siif_fdos["nro_fondo"].str.zfill(5) + "/" + siif_fdos.mes.str[-2:]
+            )
+            siif_fdos = siif_fdos.rename(
+                columns={
+                    "nro_fondo": "siif_nro_fondo",
+                    "mes": "siif_mes_pa6",
+                    "ingresos": "siif_importe_pa6",
+                    "saldo": "siif_saldo_pa6",
+                }
+            )
+            siif_fdos.dropna(subset=["siif_nro_fondo"], inplace=True)
 
+            select = [
+                "ejercicio",
+                "nro_comprobante",
+                "fuente",
+                "importe",
+                "mes",
+                "cta_cte",
+                "cuit",
+            ]
 
-# --------------------------------------------------
-def generate_banco_invico(ejercicio: int = dt.datetime.now().year) -> pd.DataFrame:
-    df = get_banco_invico_unified_cta_cte(ejercicio=ejercicio)
-    dep_transf_int = ["034", "004"]
-    dep_pf = ["214", "215"]
-    dep_otros = ["003", "055", "005", "013"]
-    dep_cert_neg = ["18"]
-    df = df.loc[df["movimiento"] == "DEPOSITO"]
-    df = df.loc[
-        ~df["cod_imputacion"].isin(dep_transf_int + dep_pf + dep_otros + dep_cert_neg)
-    ]
-    if not df.empty:
-        df["grupo"] = np.where(
-            df["cta_cte"] == "10270",
-            "FONAVI",
-            np.where(
-                df["cta_cte"].isin(["130832-12", "334", "Macro", "Patagonia"]),
-                "RECUPEROS",
-                "OTROS",
-            ),
-        )
-        df.reset_index(drop=True, inplace=True)
-    return df
+            siif_gtos = get_siif_comprobantes(ejercicio=ejercicio)
+            siif_gtos = siif_gtos.loc[siif_gtos["clase_reg"] == "REG"]
+            siif_gtos = siif_gtos.loc[:, select + ["nro_fondo", "clase_reg"]]
+            siif_gtos["nro_fondo"] = (
+                siif_gtos["nro_fondo"].str.zfill(5) + "/" + siif_gtos.mes.str[-2:]
+            )
+            siif_gtos = siif_gtos.rename(
+                columns={
+                    "nro_fondo": "siif_nro_fondo",
+                    "cta_cte": "siif_cta_cte",
+                    "cuit": "siif_cuit",
+                    "clase_reg": "siif_tipo",
+                    "fuente": "siif_fuente",
+                    "nro_comprobante": "siif_nro_reg",
+                    "importe": "siif_importe_reg",
+                    "mes": "siif_mes_reg",
+                }
+            )
+            siif_gtos.dropna(subset=["siif_nro_fondo"], inplace=True)
+
+            params = {"limit": 0, "ejercicio": ejercicio}
+            icaro = fetch_dataframe(Endpoints.ICARO_CARGA.value, params=params)
+            icaro = icaro.loc[:, select + ["tipo"]]
+            icaro = icaro.rename(
+                columns={
+                    "mes": "icaro_mes",
+                    "nro_comprobante": "icaro_nro",
+                    "tipo": "icaro_tipo",
+                    "importe": "icaro_importe",
+                    "cuit": "icaro_cuit",
+                    "cta_cte": "icaro_cta_cte",
+                    "fuente": "icaro_fuente",
+                }
+            )
+
+            icaro_pa6 = icaro.loc[icaro["icaro_tipo"] == "PA6"]
+            icaro_pa6 = icaro_pa6.loc[
+                :, ["ejercicio", "icaro_mes", "icaro_nro", "icaro_importe"]
+            ]
+            icaro_pa6 = icaro_pa6.rename(
+                columns={
+                    "icaro_mes": "icaro_mes_pa6",
+                    "icaro_nro": "icaro_nro_fondo",
+                    "icaro_importe": "icaro_importe_pa6",
+                }
+            )
+
+            icaro_reg = icaro.loc[icaro["icaro_tipo"] != "PA6"]
+            icaro_reg = icaro_reg.rename(
+                columns={
+                    "icaro_mes": "icaro_mes_reg",
+                    "icaro_nro": "icaro_nro_reg",
+                    "icaro_importe": "icaro_importe_reg",
+                }
+            )
+
+            df = pd.merge(
+                siif_fdos,
+                siif_gtos,
+                how="left",
+                on=["ejercicio", "siif_nro_fondo"],
+            )
+
+            df = pd.merge(
+                df,
+                icaro_pa6,
+                how="outer",
+                left_on=["ejercicio", "siif_nro_fondo"],
+                right_on=["ejercicio", "icaro_nro_fondo"],
+            )
+
+            df = pd.merge(
+                df,
+                icaro_reg,
+                how="left",
+                left_on=["ejercicio", "siif_nro_reg"],
+                right_on=["ejercicio", "icaro_nro_reg"],
+            )
+
+            # df = df.fillna(0)
+            df["err_nro_fondo"] = (df.siif_nro_fondo != df.icaro_nro_fondo) & ~(
+                df.siif_nro_fondo.isna() & df.icaro_nro_fondo.isna()
+            )
+            df["err_mes_pa6"] = (df.siif_mes_pa6 != df.icaro_mes_pa6) & ~(
+                df.siif_mes_pa6.isna() & df.icaro_mes_pa6.isna()
+            )
+            df["siif_importe_pa6"] = df["siif_importe_pa6"].fillna(0)
+            df["icaro_importe_pa6"] = df["icaro_importe_pa6"].fillna(0)
+            df["err_importe_pa6"] = (df.siif_importe_pa6 - df.icaro_importe_pa6).abs()
+            df["err_importe_pa6"] = df["err_importe_pa6"] > 0.1
+            # df['err_importe_pa6'] = ~np.isclose((df.siif_importe_pa6 - df.icaro_importe_pa6), 0)
+            df["err_nro_reg"] = (df.siif_nro_reg != df.icaro_nro_reg) & ~(
+                df.siif_nro_reg.isna() & df.icaro_nro_reg.isna()
+            )
+            df["err_mes_reg"] = (df.siif_mes_reg != df.icaro_mes_reg) & ~(
+                df.siif_mes_reg.isna() & df.icaro_mes_reg.isna()
+            )
+            df["siif_importe_reg"] = df["siif_importe_reg"].fillna(0)
+            df["icaro_importe_reg"] = df["icaro_importe_reg"].fillna(0)
+            df["err_importe_reg"] = (df.siif_importe_reg - df.icaro_importe_reg).abs()
+            df["err_importe_reg"] = df["err_importe_reg"] > 0.1
+            # df['err_importe_reg'] = ~np.isclose((df.siif_importe_reg - df.icaro_importe_reg), 0)
+            df["err_tipo"] = (df.siif_tipo != df.icaro_tipo) & ~(
+                df.siif_tipo.isna() & df.icaro_tipo.isna()
+            )
+            df["err_fuente"] = (df.siif_fuente != df.icaro_fuente) & ~(
+                df.siif_fuente.isna() & df.icaro_fuente.isna()
+            )
+            df["err_cta_cte"] = (df.siif_cta_cte != df.icaro_cta_cte) & ~(
+                df.siif_cta_cte.isna() & df.icaro_cta_cte.isna()
+            )
+            df["err_cuit"] = (df.siif_cuit != df.icaro_cuit) & ~(
+                df.siif_cuit.isna() & df.icaro_cuit.isna()
+            )
+            # cols = list(ControlPa6Report.model_fields.keys())
+            # df = df[cols]
+            df = df.loc[
+                (
+                    df.err_nro_fondo
+                    + df.err_mes_pa6
+                    + df.err_importe_pa6
+                    + df.err_nro_reg
+                    + df.err_mes_reg
+                    + df.err_importe_reg
+                    + df.err_fuente
+                    + df.err_tipo
+                    + df.err_cta_cte
+                    + df.err_cuit
+                )
+                > 0
+            ]
+
+            df = df.sort_values(
+                by=[
+                    "err_nro_fondo",
+                    "err_importe_pa6",
+                    "err_nro_reg",
+                    "err_importe_reg",
+                    "err_fuente",
+                    "err_cta_cte",
+                    "err_cuit",
+                    "err_tipo",
+                    "err_mes_pa6",
+                    "err_mes_reg",
+                ],
+                ascending=False,
+            )
+
+            json_data = sanitize_dataframe_for_json(df).to_dict(orient="records")
+            response = post_request(
+                Endpoints.CONTROL_ICARO_PA6.value, json_body=json_data
+            )
+        except Exception as e:
+            print(f"Error in compute_control_recursos: {e}")

@@ -22,6 +22,7 @@ class Endpoints(str, Enum):
     CONTROL_RECURSOS = "/control/controlRecursos"
     CONTROL_ICARO_ANUAL = "/control/controlIcaro/anual"
     CONTROL_ICARO_COMPROBANTES = "/control/controlIcaro/comprobantes"
+    CONTROL_ICARO_PA6 = "/control/controlIcaro/pa6"
     SGF_RESUMEN_REND_PROV = "/sgf/resumenRendProv"
     SSCC_BANCO_INVICO = "/sscc/bancoINVICO"
     CTAS_CTES = "/sscc/ctasCtes"
