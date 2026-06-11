@@ -15,11 +15,11 @@ from src.components import button_cancel, button_robot
 @st.dialog("Credenciales SIIF")
 # --------------------------------------------------
 def request_siif_credentials_modal(
-    automation_callback: Callable[[str, str], None], key: str = ""
+    automation_callback: Callable[[str, str, str], None], key: str = ""
 ):
     """
     Modal reutilizable para solicitar credenciales del SIIF.
-    automation_callback recibe (username, password).
+    automation_callback recibe (username, password, key).
     """
     st.write("Ingrese sus credenciales de SIIF para iniciar la descarga.")
     username = st.text_input("Usuario")
@@ -50,7 +50,7 @@ def request_siif_credentials_modal(
                         )
 
                     async def run_automation():
-                        return await automation_callback(username, password)
+                        return await automation_callback(username, password, key)
 
                 try:
                     results = asyncio.run(run_automation())
