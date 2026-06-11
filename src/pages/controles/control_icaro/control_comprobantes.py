@@ -15,7 +15,6 @@ from typing import Any, Optional
 
 import streamlit as st
 
-from src.automation.analysis import control_icaro
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
 from src.services import get_control_icaro_comprobantes, get_ejercicios
