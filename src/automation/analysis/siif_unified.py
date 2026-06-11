@@ -44,21 +44,28 @@ def get_siif_desc_pres(
     Get the rf610 data from the repository.
     """
 
-    trigger = st.session_state.get("siif_desc_pres_uploader_iteration", 0)
+    # trigger = st.session_state.get("siif_desc_pres_uploader_iteration", 0)
     if ejercicio_to is None:
-        df = get_siif_rf610(update_trigger=trigger + 1)
+        # df = get_siif_rf610(update_trigger=trigger + 1)
+        df = fetch_dataframe(Endpoints.SIIF_RF610.value, params={"limit": 0})
     elif isinstance(ejercicio_to, list):
-        params = params_preparation(
-            selections=[("ejercicio", ejercicio_to)],
+        # params = params_preparation(
+        #     selections=[("ejercicio", ejercicio_to)],
+        # )
+        # df = get_siif_rf610(params=params, update_trigger=trigger + 1)
+        df = fetch_dataframe(
+            Endpoints.SIIF_RF610.value,
+            params={"limit": 0, "ejercicio": ", ".join(ejercicio_to)},
         )
-        df = get_siif_rf610(params=params, update_trigger=trigger + 1)
     else:
-        params = params_preparation(
-            filtro_avanzado=f"ejercicio<={ejercicio_to}",
+        # params = params_preparation(
+        #     filtro_avanzado=f"ejercicio<={ejercicio_to}",
+        # )
+        # df = get_siif_rf610(params=params, update_trigger=trigger + 1)
+        df = fetch_dataframe(
+            Endpoints.SIIF_RF610.value,
+            params={"limit": 0, "queryFilter": f"ejercicio<={ejercicio_to}"},
         )
-        df = get_siif_rf610(params=params, update_trigger=trigger + 1)
-
-    print(df.info())
 
     df.sort_values(
         by=["ejercicio", "estructura"], inplace=True, ascending=[False, True]
@@ -94,11 +101,9 @@ def get_siif_desc_pres(
 
     df_act.drop_duplicates(subset=["estructura"], inplace=True, keep="first")
     # Merge all
-    df = df_act.merge(df_prog, how="left", on="programa", copy=False)
-    df = df.merge(df_subprog, how="left", on=["programa", "subprograma"], copy=False)
-    df = df.merge(
-        df_proy, how="left", on=["programa", "subprograma", "proyecto"], copy=False
-    )
+    df = df_act.merge(df_prog, how="left", on="programa")
+    df = df.merge(df_subprog, how="left", on=["programa", "subprograma"])
+    df = df.merge(df_proy, how="left", on=["programa", "subprograma", "proyecto"])
     df["desc_programa"] = df.programa + " - " + df.desc_programa
     df["desc_subprograma"] = df.subprograma + " - " + df.desc_subprograma
     df["desc_proyecto"] = df.proyecto + " - " + df.desc_proyecto
@@ -127,12 +132,14 @@ def get_siif_comprobantes_gtos_joined(
     else:
         params["ejercicio"] = ejercicio
         docs_gtos = fetch_dataframe(Endpoints.SIIF_RCG01_UEJP.value, params=params)
-        # if len(partidas) > 0:
-        #     filters.update(
-        #         {
-        #             "partida__in": partidas,
-        #         }
-        #     )
+        if len(partidas) > 0:
+            pass
+            # params["queryFilter"] = f"partidas={','.join(partidas)}"
+            # params.update(
+            #     {
+            #         "queryFilter": f"partidas={','.join(partidas)}",
+            #     }
+            # )
         docs_gtos_gpo_part = fetch_dataframe(
             Endpoints.SIIF_GTO_RPA03G.value, params=params
         )

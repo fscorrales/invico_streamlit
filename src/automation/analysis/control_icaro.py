@@ -22,11 +22,7 @@ from src.automation.siif import (
     logout,
 )
 from src.constants.endpoints import Endpoints
-from src.services import (
-    get_icaro_carga,
-    get_siif_rf602,
-    post_request,
-)
+from src.services import fetch_dataframe, get_icaro_carga, get_siif_rf602, post_request
 from src.utils import sanitize_dataframe_for_json
 from src.views import params_preparation
 
@@ -133,35 +129,49 @@ def compute_control_anual(ejercicios: List[int]) -> None:
     for ejercicio in ejercicios:
         try:
             group_by = ["ejercicio", "estructura", "fuente"]
-            params = params_preparation(
-                selections=[("ejercicio", [ejercicio])], filtro_avanzado="tipo!=PA6"
-            )
-            trigger = st.session_state.get("icaro_carga_uploader_iteration", 0) + 1
-            icaro = get_icaro_carga(
-                params=params,
-                update_trigger=trigger,
-            )
+            # params = params_preparation(
+            #     selections=[("ejercicio", [ejercicio])], filtro_avanzado="tipo!=PA6"
+            # )
+            # trigger = st.session_state.get("icaro_carga_uploader_iteration", 0) + 1
+            # icaro = get_icaro_carga(
+            #     params=params,
+            #     update_trigger=trigger,
+            # )
+            params = {"limit": 0, "ejercicio": ejercicio, "queryFilter": "tipo!=PA6"}
+            icaro = fetch_dataframe(Endpoints.ICARO_CARGA.value, params=params)
             icaro["estructura"] = icaro.actividad + "-" + icaro.partida
             icaro = icaro.groupby(group_by)["importe"].sum()
             icaro = icaro.reset_index(drop=False)
             icaro = icaro.rename(columns={"importe": "ejecucion_icaro"})
-            params = params_preparation(
-                selections=[("ejercicio", [ejercicio])],
-                filtro_avanzado="partida~42[1-2]",
-            )
-            trigger = st.session_state.get("siif_rf602_uploader_iteration", 0) + 1
-            siif_obras = get_siif_rf602(
-                params=params,
-                update_trigger=trigger,
-            )
-            params = params_preparation(
-                selections=[("ejercicio", [ejercicio])],
-                filtro_avanzado="estructura~01-00-00-03-354",
-            )
-            siif_autoseg = get_siif_rf602(
-                params=params,
-                update_trigger=trigger + 1,
-            )
+            # params = params_preparation(
+            #     selections=[("ejercicio", [ejercicio])],
+            #     filtro_avanzado="partida~42[1-2]",
+            # )
+            # trigger = st.session_state.get("siif_rf602_uploader_iteration", 0) + 1
+            # siif_obras = get_siif_rf602(
+            #     params=params,
+            #     update_trigger=trigger,
+            # )
+            params = {
+                "limit": 0,
+                "ejercicio": ejercicio,
+                "queryFilter": "partida~42[1-2]",
+            }
+            siif_obras = fetch_dataframe(Endpoints.SIIF_RF602.value, params=params)
+            # params = params_preparation(
+            #     selections=[("ejercicio", [ejercicio])],
+            #     filtro_avanzado="estructura~01-00-00-03-354",
+            # )
+            # siif_autoseg = get_siif_rf602(
+            #     params=params,
+            #     update_trigger=trigger + 1,
+            # )
+            params = {
+                "limit": 0,
+                "ejercicio": ejercicio,
+                "queryFilter": "estructura=01-00-00-03-354",
+            }
+            siif_autoseg = fetch_dataframe(Endpoints.SIIF_RF602.value, params)
             siif = pd.concat([siif_obras, siif_autoseg], ignore_index=True)
             siif = siif.loc[:, group_by + ["ordenado"]]
             siif = siif.rename(columns={"ordenado": "ejecucion_siif"})
@@ -202,7 +212,6 @@ def compute_control_comprobantes(ejercicios: List[int]) -> None:
                 "partida",
             ]
             siif = get_siif_comprobantes(ejercicio=ejercicio)
-            # logger.info(f"siif_gtos.shape: {siif.shape} - siif_gtos.head: {siif.head()}")
             siif.loc[
                 (siif.clase_reg == "REG") & (siif.nro_fondo.isnull()), "clase_reg"
             ] = "CYO"
@@ -219,14 +228,16 @@ def compute_control_comprobantes(ejercicios: List[int]) -> None:
                     "partida": "siif_partida",
                 }
             )
-            params = params_preparation(
-                selections=[("ejercicio", [ejercicio])], filtro_avanzado="tipo!=PA6"
-            )
-            trigger = st.session_state.get("icaro_carga_uploader_iteration", 0) + 1
-            icaro = get_icaro_carga(
-                params=params,
-                update_trigger=trigger,
-            )
+            # params = params_preparation(
+            #     selections=[("ejercicio", [ejercicio])], filtro_avanzado="tipo!=PA6"
+            # )
+            # trigger = st.session_state.get("icaro_carga_uploader_iteration", 0) + 1
+            # icaro = get_icaro_carga(
+            #     params=params,
+            #     update_trigger=trigger,
+            # )
+            params = {"limit": 0, "ejercicio": ejercicio, "queryFilter": "tipo!=PA6"}
+            icaro = fetch_dataframe(Endpoints.ICARO_CARGA.value, params=params)
             icaro = icaro.loc[:, select + ["tipo"]]
             icaro = icaro.rename(
                 columns={
