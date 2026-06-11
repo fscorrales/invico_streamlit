@@ -1,16 +1,12 @@
-import datetime as dt
 from typing import List
 
-import numpy as np
 import pandas as pd
 from playwright.async_api import async_playwright
 
 from src.automation.analysis.siif_unified import (
     get_siif_comprobantes_gtos_joined,
     get_siif_desc_pres,
-    get_siif_rci02_unified_cta_cte,
 )
-from src.automation.analysis.sscc_unified import get_banco_invico_unified_cta_cte
 from src.automation.siif import (
     GtoRpa03g,
     Rcg01Uejp,
@@ -187,7 +183,6 @@ def compute_control_anual(ejercicios: List[int]) -> None:
             df = df.reset_index(drop=True)
             df["fuente"] = pd.to_numeric(df["fuente"], errors="coerce")
             df["ejercicio"] = pd.to_numeric(df["ejercicio"], errors="coerce")
-            print(df.head())
             json_data = sanitize_dataframe_for_json(df).to_dict(orient="records")
             response = post_request(
                 Endpoints.CONTROL_ICARO_ANUAL.value, json_body=json_data
@@ -287,14 +282,18 @@ def compute_control_comprobantes(ejercicios: List[int]) -> None:
                 Endpoints.CONTROL_ICARO_COMPROBANTES.value, json_body=json_data
             )
         except Exception as e:
-            print(f"Error in compute_control_recursos: {e}")
+            print(f"Error in compute_control_comprobantes: {e}")
 
 
 # --------------------------------------------------
 def compute_control_pa6(ejercicios: List[int]) -> None:
     for ejercicio in ejercicios:
         try:
-            params = {"limit": 0, "ejercicio": ejercicio, "tipo_comprobante": "PA6"}
+            params = {
+                "limit": 0,
+                "ejercicio": ejercicio,
+                "tipoComprobante": "PA6",
+            }
             siif_fdos = fetch_dataframe(Endpoints.SIIF_RFONDO07TP.value, params=params)
             siif_fdos = siif_fdos.loc[
                 :, ["ejercicio", "nro_fondo", "mes", "ingresos", "saldo"]
@@ -475,4 +474,4 @@ def compute_control_pa6(ejercicios: List[int]) -> None:
                 Endpoints.CONTROL_ICARO_PA6.value, json_body=json_data
             )
         except Exception as e:
-            print(f"Error in compute_control_recursos: {e}")
+            print(f"Error in compute_control_pa6: {e}")

@@ -3,7 +3,11 @@
 import streamlit as st
 
 from src.automation.analysis import control_icaro
-from src.pages.controles.control_icaro import control_anual, control_comprobantes
+from src.pages.controles.control_icaro import (
+    control_anual,
+    control_comprobantes,
+    control_pa6,
+)
 
 
 # --------------------------------------------------
@@ -30,21 +34,24 @@ async def run_automation(siif_username: str, siif_password: str, key: str) -> No
 
     # 3. Combinamos las tablas y actualizamos los reportes
     # control_icaro.compute_control_anual(ejercicios=ejercicios)
-    control_icaro.compute_control_anual(ejercicios=ejercicios)
+    control_icaro.compute_control_pa6(ejercicios=ejercicios)
 
     return results
 
 
 def main() -> None:
-    tab_anual, tab_comprobantes = st.tabs(
-        ["Control Anual", "Control Comprobantes"], on_change="rerun"
+    tab_anual, tab_comprobantes, tab_pa6 = st.tabs(
+        ["Control Anual", "Control Comprobantes", "Control PA6"], on_change="rerun"
     )
 
     if tab_anual.open:
         control_anual.render(run_automation)
 
     if tab_comprobantes.open:
-        control_comprobantes.render()
+        control_comprobantes.render(run_automation)
+
+    if tab_pa6.open:
+        control_pa6.render(run_automation)
 
 
 if __name__ == "__main__":

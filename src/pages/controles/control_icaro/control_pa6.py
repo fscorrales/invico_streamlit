@@ -15,10 +15,9 @@ from typing import Any, Optional
 
 import streamlit as st
 
-from src.automation.analysis import control_icaro
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import get_control_icaro_comprobantes, get_ejercicios
+from src.services import get_control_icaro_pa6, get_ejercicios
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -28,12 +27,14 @@ from src.views import (
     request_siif_credentials_modal,
 )
 
-ENDPONT = Endpoints.CONTROL_ICARO_COMPROBANTES.value
-REPORTE = "control_icaro_comprobantes"
+ENDPONT = Endpoints.CONTROL_ICARO_PA6.value
+REPORTE = "control_icaro_pa6"
 
 
 # --------------------------------------------------
-def render(automation_func: Optional[Any] = None) -> None:
+def render(
+    automation_func: Optional[Any] = None,
+) -> None:
 
     mis_filtros = [
         {
@@ -72,7 +73,7 @@ def render(automation_func: Optional[Any] = None) -> None:
     trigger = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
 
     try:
-        df = get_control_icaro_comprobantes(
+        df = get_control_icaro_pa6(
             filtro_actual,
             update_trigger=trigger,
         )
@@ -102,7 +103,7 @@ def render(automation_func: Optional[Any] = None) -> None:
 
         dataframe(
             df,
-            key=f"{REPORTE}_df_control_icaro_comprobantes",
+            key=f"{REPORTE}_df_control_icaro_anual",
             column_order=orden_dinamico,
         )
 

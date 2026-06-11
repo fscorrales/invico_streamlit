@@ -24,6 +24,7 @@ __all__ = [
     "get_control_recursos",
     "get_control_icaro_anual",
     "get_control_icaro_comprobantes",
+    "get_control_icaro_pa6",
 ]
 
 import os
@@ -549,6 +550,23 @@ def get_control_icaro_comprobantes(
     df = pd.DataFrame()
 
     df = fetch_dataframe(Endpoints.CONTROL_ICARO_COMPROBANTES.value, params=params)
+    # if not df.empty:
+    #     df = df.sort_values(
+    #         ["ejercicio", "mes", "grupo", "cta_cte"],
+    #         ascending=[False, True, True, True],
+    #     )
+
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_control_icaro_pa6(
+    params: dict[str, Any] | None = None, update_trigger: int = 0
+):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(Endpoints.CONTROL_ICARO_PA6.value, params=params)
     # if not df.empty:
     #     df = df.sort_values(
     #         ["ejercicio", "mes", "grupo", "cta_cte"],
