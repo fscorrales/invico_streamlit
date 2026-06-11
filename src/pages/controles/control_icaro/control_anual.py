@@ -11,6 +11,8 @@ Data required:
     - SSCC ctas_ctes (manual data)
 """
 
+from typing import Any, Optional
+
 import streamlit as st
 
 from src.automation.analysis import control_icaro
@@ -31,36 +33,9 @@ REPORTE = "control_icaro_anual"
 
 
 # --------------------------------------------------
-async def run_automation(siif_username: str, siif_password: str) -> None:
-
-    # 1. Obtenemos los ejercicios seleccionados en el estado de sesión
-    ejercicios = st.session_state.get("ejercicios_" + REPORTE, [])
-    if not ejercicios:
-        st.error("No hay ejercicios seleccionados.")
-        return
-
-    # Ensure we have a list of integers
-    if isinstance(ejercicios, int):
-        ejercicios = [ejercicios]
-
-    # 2. Iniciamos la descarga automática
-    results = []
-    # # 2.a. Ejecutamos la automatización de SIIF
-    # results = await control_icaro.sync_control_icaro_from_siif(
-    #     siif_username=siif_username,
-    #     siif_password=siif_password,
-    #     ejercicios=ejercicios,
-    # )
-
-    # 3. Combinamos las tablas y actualizamos los reportes
-    # control_icaro.compute_control_anual(ejercicios=ejercicios)
-    control_icaro.compute_control_anual(ejercicios=ejercicios)
-
-    return results
-
-
-# --------------------------------------------------
-def render() -> None:
+def render(
+    automation_func: Optional[Any] = None,
+) -> None:
 
     mis_filtros = [
         {
@@ -78,7 +53,9 @@ def render() -> None:
         endpoint=ENDPONT,
         description="",
         filters_config=mis_filtros,
-        update_func=lambda: request_siif_credentials_modal(run_automation, key=REPORTE),
+        update_func=lambda: request_siif_credentials_modal(
+            automation_func, key=REPORTE
+        ),
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):
