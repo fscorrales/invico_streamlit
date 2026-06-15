@@ -20,6 +20,7 @@ class Endpoints(str, Enum):
     SIIF_RFONDOS04 = "/siif/rfondos04"
     USERS = "/users"
     CONTROL_RECURSOS = "/control/controlRecursos"
+    CONTROL_ICARO = "/control/controlIcaro"
     CONTROL_ICARO_ANUAL = "/control/controlIcaro/anual"
     CONTROL_ICARO_COMPROBANTES = "/control/controlIcaro/comprobantes"
     CONTROL_ICARO_PA6 = "/control/controlIcaro/pa6"

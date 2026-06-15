@@ -59,6 +59,7 @@ def report_template(
     allow_no_filters: bool = False,
     has_update: bool = True,
     has_export: bool = True,
+    export_endpoint: Optional[str] = None,
 ):
     """
     Vista reutilizable.
@@ -80,7 +81,7 @@ def report_template(
                 with st.spinner("Preparando archivos Excel..."):
                     # Llamada a la API que devuelve StreamingResponse
                     excel_binario = fetch_excel_stream(
-                        f"{endpoint}/export",
+                        f"{endpoint if export_endpoint is None else export_endpoint}/export",
                         params_preparation(selections, filtro_avanzado),
                     )
 
