@@ -2,6 +2,8 @@ __all__ = [
     "get_siif_rci02_unified_cta_cte",
     "get_siif_desc_pres",
     "get_siif_comprobantes_gtos_joined",
+    "get_siif_comprobantes_gtos_unified_cta_cte",
+    "get_siif_comprobantes_honorarios",
 ]
 
 import datetime as dt
@@ -166,4 +168,46 @@ def get_siif_comprobantes_gtos_joined(
         on=["nro_comprobante"],
         how="left",
     )
+    return df
+
+
+# --------------------------------------------------
+async def get_siif_comprobantes_gtos_unified_cta_cte(
+    ejercicio: int = None, partidas: list = []
+) -> pd.DataFrame:
+    """
+    Get the comprobantes gtos joined data from the repository.
+    """
+    df = get_siif_comprobantes_gtos_joined(ejercicio=ejercicio, partidas=partidas)
+    if not df.empty:
+        ctas_ctes = fetch_dataframe(Endpoints.CTAS_CTES.value, params={"limit": 0})
+        map_to = ctas_ctes.loc[:, ["map_to", "siif_gastos_cta_cte"]]
+        df = pd.merge(
+            df,
+            map_to,
+            how="left",
+            left_on="cta_cte",
+            right_on="siif_gastos_cta_cte",
+        )
+        df["cta_cte"] = df["map_to"]
+        df.drop(["map_to", "siif_gastos_cta_cte"], axis="columns", inplace=True)
+        # logger.info(f"df.shape: {df.shape} - df.head: {df.head()}")
+    return df
+
+
+# --------------------------------------------------
+def get_siif_comprobantes_honorarios(
+    ejercicio: str = None,
+) -> pd.DataFrame:
+    """
+    Get comprobantes honorarios factureros data from the repository.
+    """
+    df = get_siif_comprobantes_gtos_unified_cta_cte(ejercicio=ejercicio)
+    df = df.loc[df["cuit"] == "30632351514"]
+    df = df.loc[df["grupo"] == "300"]
+    df = df.loc[df["partida"] != "384"]
+    df = df.loc[df["cta_cte"].isin(["130832-05", "130832-07"])]
+    keep = ["HONOR", "RECON", "LOC"]
+    df = df.loc[df.glosa.str.contains("|".join(keep))]
+    df = df.reset_index(drop=True)
     return df

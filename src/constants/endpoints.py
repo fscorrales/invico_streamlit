@@ -7,6 +7,7 @@ from enum import Enum
 class Endpoints(str, Enum):
     SIIF = "/siif"
     SIIF_RVICON03 = "/siif/rvicon03"
+    SIIF_RCOCC31 = "/siif/rcocc31"
     SIIF_RFF01 = "/siif/rff01"
     SIIF_ROG01 = "/siif/rog01"
     SIIF_RI102 = "/siif/ri102"
