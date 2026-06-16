@@ -27,9 +27,9 @@ GRUPOS = get_grupos_partidas_str_siif_list(
 
 
 # --------------------------------------------------
-async def run_automation(username: str, password: str) -> None:
-    ejercicios = st.session_state.get("ejercicios_" + REPORTE, [])
-    grupos = st.session_state.get("grupos_" + REPORTE, [])
+async def run_automation(username: str, password: str, reporte: str) -> None:
+    ejercicios = st.session_state.get("ejercicios_" + reporte, [])
+    grupos = st.session_state.get("grupos_" + reporte, [])
     if not ejercicios:
         st.error("No hay ejercicios seleccionados.")
         return

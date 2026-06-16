@@ -11,10 +11,10 @@ from src.pages.controles.control_icaro import (
 
 
 # --------------------------------------------------
-async def run_automation(siif_username: str, siif_password: str, key: str) -> None:
+async def run_automation(siif_username: str, siif_password: str, reporte: str) -> None:
 
     # 1. Obtenemos los ejercicios seleccionados en el estado de sesión
-    ejercicios = st.session_state.get("ejercicios_" + key, [])
+    ejercicios = st.session_state.get("ejercicios_" + reporte, [])
     if not ejercicios:
         st.error("No hay ejercicios seleccionados.")
         return

@@ -25,8 +25,8 @@ REPORTE = "rci02"
 
 
 # --------------------------------------------------
-async def run_automation(username: str, password: str) -> None:
-    ejercicios = st.session_state.get("ejercicios_" + REPORTE, [])
+async def run_automation(username: str, password: str, reporte: str) -> None:
+    ejercicios = st.session_state.get("ejercicios_" + reporte, [])
     if not ejercicios:
         st.error("No hay ejercicios seleccionados.")
         return

@@ -33,7 +33,7 @@ else:
 
 
 # --------------------------------------------------
-async def run_automation(username: str, password: str) -> None:
+async def run_automation(username: str, password: str, reporte: str) -> None:
 
     async with async_playwright() as p:
         siif = Rog01()
