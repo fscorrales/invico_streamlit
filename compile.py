@@ -28,6 +28,7 @@ def build():
         "--additional-hooks-dir=.",
         # Recolección de librerías "rebeldes"
         "--collect-all=streamlit",
+        "--collect-all=typer",
         "--collect-all=httpx",
         "--collect-all=pydantic_settings",
         "--collect-all=playwright",
