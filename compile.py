@@ -4,12 +4,12 @@ import shutil
 import PyInstaller.__main__
 
 # --- CONFIGURACIÓN ---
-APP_NAME = "INVICO Automation"  # Nombre de tu aplicación
+APP_NAME = "INVICO"  # Nombre de tu aplicación
 ENTRY_POINT = "run.py"  # El script lanzador
 STREAMLIT_APP = "app.py"  # Tu app principal
 SRC_DIR = "src"  # Carpeta con tu lógica y .env
 STREAMLIT_CONFIG = ".streamlit"
-ICON_FILE = "logo_invico.ico"  # El archivo de icono de la app
+ICON_FILE = "icono_invico.ico"  # El archivo de icono de la app
 
 
 def build():
@@ -24,6 +24,7 @@ def build():
         ENTRY_POINT,
         f"--name={APP_NAME}",
         "--onefile",
+        "--clean",
         # "--windowed",  # Para que no se abra una consola negra detrás (opcional)
         "--additional-hooks-dir=.",
         # Recolección de librerías "rebeldes"
