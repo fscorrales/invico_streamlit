@@ -156,7 +156,7 @@ def request_sscc_credentials_modal(
 @st.dialog("Credenciales SIIF y SSCC")
 # --------------------------------------------------
 def request_siif_and_sscc_credentials_modal(
-    automation_callback: Callable[[str, str, str, str], Any],
+    automation_callback: Callable[[str, str, str, str, str], Any],
     key: str = "",
 ):
     """
@@ -210,7 +210,11 @@ def request_siif_and_sscc_credentials_modal(
 
                     async def run_automation():
                         return await automation_callback(
-                            siif_username, siif_password, sscc_username, sscc_password
+                            siif_username,
+                            siif_password,
+                            sscc_username,
+                            sscc_password,
+                            key,
                         )
 
                 try:

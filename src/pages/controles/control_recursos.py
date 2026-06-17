@@ -30,11 +30,15 @@ REPORTE = "control_recursos"
 
 # --------------------------------------------------
 async def run_automation(
-    siif_username: str, siif_password: str, sscc_username: str, sscc_password: str
+    siif_username: str,
+    siif_password: str,
+    sscc_username: str,
+    sscc_password: str,
+    reporte: str,
 ) -> None:
 
     # 1. Obtenemos los ejercicios seleccionados en el estado de sesión
-    ejercicios = st.session_state.get("ejercicios_" + REPORTE, [])
+    ejercicios = st.session_state.get("ejercicios_" + reporte, [])
     if not ejercicios:
         st.error("No hay ejercicios seleccionados.")
         return
