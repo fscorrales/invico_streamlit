@@ -292,8 +292,10 @@ class SIIFReportManager(ABC):
             cmb_modulo = self.siif.reports_page.locator(
                 "xpath=//select[@id='pt1:socModulo::content']"
             )
+            await cmb_modulo.wait_for(state="visible")
             await cmb_modulo.select_option(value=module.value)
             await self.siif.reports_page.wait_for_load_state("networkidle")
+            time.sleep(1)  # Pequeña pausa para evitar problemas de timing
 
         except Exception as e:
             print(f"Error al seleccionar el módulo de reportes: {e}")
@@ -304,6 +306,7 @@ class SIIFReportManager(ABC):
             input_filter = self.siif.reports_page.locator(
                 "input[id='_afrFilterpt1_afr_pc1_afr_tableReportes_afr_c1::content']"
             )
+            await input_filter.wait_for(state="visible")
             await input_filter.clear()
             await input_filter.fill(report_id)
             await input_filter.press("Enter")
