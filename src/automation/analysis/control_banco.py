@@ -13,6 +13,9 @@ Google Sheet:
     - https://docs.google.com/spreadsheets/d/1CRQjzIVzHKqsZE8_E1t8aRQDfWfZALhbe64WcxHiSM4
 """
 
+import os
+import subprocess
+import sys
 from enum import Enum
 from typing import List
 
@@ -145,6 +148,37 @@ async def sync_control_banco_from_siif(
 
         print("✅ SIIF Finalizado")
         return results
+
+
+# --------------------------------------------------
+def sync_control_banco_from_sscc(
+    sscc_username: str, sscc_password: str, token: str, ejercicios: List[int]
+) -> None:
+
+    modulo_runner = "src.automation.sscc.banco_invico_runner"
+    ejercicios_str = ",".join(map(str, ejercicios))
+
+    # Aseguramos que el PYTHONPATH sea la raíz actual
+    env = os.environ.copy()
+    env["PYTHONPATH"] = os.getcwd()
+
+    process_sscc = subprocess.Popen(
+        [
+            sys.executable,
+            "-m",
+            modulo_runner,
+            sscc_username,
+            sscc_password,
+            token,
+            ejercicios_str,
+        ],
+        creationflags=subprocess.CREATE_NEW_CONSOLE,
+        env=env,
+    )
+
+    # Esperamos que el SSCC termine antes de devolver el control a Streamlit
+    process_sscc.wait()
+    print("✅ SSCC Finalizado.")
 
 
 # --------------------------------------------------
@@ -372,6 +406,9 @@ def generate_banco_siif(
         ],
     ]
 
+    json_data = sanitize_dataframe_for_json(df).to_dict(orient="records")
+    response = post_request(Endpoints.CONTROL_BANCO_SIIF.value, json_body=json_data)
+
     return df
 
 
@@ -492,11 +529,15 @@ def generate_banco_sscc(
         ["fecha", "movimiento"],
         ascending=[True, True],
     )
+
+    json_data = sanitize_dataframe_for_json(df).to_dict(orient="records")
+    response = post_request(Endpoints.CONTROL_BANCO_SSCC.value, json_body=json_data)
+
     return df
 
 
 # --------------------------------------------------
-def compute_control_anual(ejercicios: List[int]) -> None:
+def compute_control_cruzado(ejercicios: List[int]) -> None:
     for ejercicio in ejercicios:
         try:
             groupby_cols = ["ejercicio", "mes", "fecha", "clase", "cta_cte"]

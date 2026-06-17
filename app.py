@@ -114,6 +114,11 @@ def build_navigation() -> None:
                 title="Control Haberes",
                 icon="👤",
             ),
+            st.Page(
+                "src/pages/controles/control_banco/control_banco.py",
+                title="Control Banco",
+                icon="🏦",
+            ),
         ],
         "Tablas Auxiliares": [
             st.Page(
