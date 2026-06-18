@@ -436,21 +436,22 @@ def generate_banco_sscc(
     # Neteamos los reingresos de cheques
     if netear_reingresos:
         cheques_df = df.loc[df["cod_imputacion"] == "003", :].copy()
-        imputacion_003 = cheques_df["imputacion"].iloc[0]
-        # cheques_df["movimiento"] = cheques_df["concepto"].str.split('\s').str[-1]
-        cheques_df["movimiento"] = cheques_df["concepto"].str.extract(r"(\d+)$")[0]
-        cheques_df = cheques_df.drop(["cod_imputacion", "imputacion"], axis=1)
-        cheques_df = cheques_df.merge(
-            df.loc[:, ["movimiento", "cod_imputacion", "imputacion"]],
-            how="left",
-            on="movimiento",
-        )
-        cheques_df = cheques_df.dropna(subset=["cod_imputacion", "imputacion"])
-        df = pd.concat([df, cheques_df])
-        cheques_df["importe"] = cheques_df["importe"] * (-1)
-        cheques_df["cod_imputacion"] = "003"
-        cheques_df["imputacion"] = imputacion_003
-        df = pd.concat([df, cheques_df])
+        if not cheques_df.empty:
+            imputacion_003 = cheques_df["imputacion"].iloc[0]
+            # cheques_df["movimiento"] = cheques_df["concepto"].str.split('\s').str[-1]
+            cheques_df["movimiento"] = cheques_df["concepto"].str.extract(r"(\d+)$")[0]
+            cheques_df = cheques_df.drop(["cod_imputacion", "imputacion"], axis=1)
+            cheques_df = cheques_df.merge(
+                df.loc[:, ["movimiento", "cod_imputacion", "imputacion"]],
+                how="left",
+                on="movimiento",
+            )
+            cheques_df = cheques_df.dropna(subset=["cod_imputacion", "imputacion"])
+            df = pd.concat([df, cheques_df])
+            cheques_df["importe"] = cheques_df["importe"] * (-1)
+            cheques_df["cod_imputacion"] = "003"
+            cheques_df["imputacion"] = imputacion_003
+            df = pd.concat([df, cheques_df])
 
     # Agregamos columna para clasificar registros
     df["clase"] = Categoria.sin_categoria.value
