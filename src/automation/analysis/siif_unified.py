@@ -172,7 +172,7 @@ def get_siif_comprobantes_gtos_joined(
 
 
 # --------------------------------------------------
-async def get_siif_comprobantes_gtos_unified_cta_cte(
+def get_siif_comprobantes_gtos_unified_cta_cte(
     ejercicio: int = None, partidas: list = []
 ) -> pd.DataFrame:
     """
