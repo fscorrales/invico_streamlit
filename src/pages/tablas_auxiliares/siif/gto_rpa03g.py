@@ -34,6 +34,10 @@ async def run_automation(username: str, password: str, reporte: str) -> None:
         st.error("No hay ejercicios seleccionados.")
         return
 
+    if not grupos:
+        st.error("No hay grupos seleccionados.")
+        return
+
     # Ensure we have a list of integers
     if isinstance(ejercicios, int):
         ejercicios = [ejercicios]

@@ -60,6 +60,7 @@ def report_template(
     has_update: bool = True,
     has_export: bool = True,
     export_endpoint: Optional[str] = None,
+    allow_extra_options: bool = False,
 ):
     """
     Vista reutilizable.
@@ -104,6 +105,7 @@ def report_template(
                 label=f_conf["label"],
                 options=f_conf["options"],
                 default=f_conf.get("default", []),
+                accept_new_options=allow_extra_options,
                 key=f_conf["key"],  # Key única para evitar conflictos en Streamlit
             )
             # El nombre de la clave aquí debe coincidir con lo que espera tu API

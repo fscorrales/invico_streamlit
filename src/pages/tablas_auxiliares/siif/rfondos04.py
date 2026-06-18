@@ -29,13 +29,21 @@ TIPOS_COMPROBANTES = get_tipos_comprobantes_siif_list(
 # --------------------------------------------------
 async def run_automation(username: str, password: str, reporte: str) -> None:
     ejercicios = st.session_state.get("ejercicios_" + reporte, [])
+    tipos_comprobantes = st.session_state.get("tipos_comprobante_" + reporte, [])
     if not ejercicios:
         st.error("No hay ejercicios seleccionados.")
+        return
+
+    if not tipos_comprobantes:
+        st.error("No hay tipos de comprobantes seleccionados.")
         return
 
     # Ensure we have a list of integers
     if isinstance(ejercicios, int):
         ejercicios = [ejercicios]
+
+    if isinstance(tipos_comprobantes, str):
+        tipos_comprobantes = [tipos_comprobantes]
 
     async with async_playwright() as p:
         siif = Rfondos04()
@@ -50,12 +58,15 @@ async def run_automation(username: str, password: str, reporte: str) -> None:
 
         results = []
         for ej in ejercicios:
-            df_clean = await siif.download_and_process_report(ejercicio=ej)
-            if df_clean is not None and not df_clean.empty:
-                # Send to backend
-                json_data = df_clean.to_dict(orient="records")
-                response = post_request(ENDPONT, json_body=json_data)
-                results.append(f"Ejercicio {ej}: {response}")
+            for tipo_comprobante in tipos_comprobantes:
+                df_clean = await siif.download_and_process_report(
+                    ejercicio=ej, tipo_comprobante=tipo_comprobante
+                )
+                if df_clean is not None and not df_clean.empty:
+                    # Send to backend
+                    json_data = df_clean.to_dict(orient="records")
+                    response = post_request(ENDPONT, json_body=json_data)
+                    results.append(f"Ejercicio {ej}: {response}")
 
         await siif.logout()
         return results
@@ -88,6 +99,7 @@ def render() -> None:
         description="Listado de Fondos del Ejercicio por Tipo de Comprobante",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_credentials_modal(run_automation, key=REPORTE),
+        allow_extra_options=True,
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):

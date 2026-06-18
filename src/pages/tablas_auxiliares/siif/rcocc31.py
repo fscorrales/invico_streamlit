@@ -26,13 +26,21 @@ CUENTAS_CONTABLES = ["1112-2-6"]
 # --------------------------------------------------
 async def run_automation(username: str, password: str, reporte: str) -> None:
     ejercicios = st.session_state.get("ejercicios_" + reporte, [])
+    ctas_contables = st.session_state.get("cuentas_contables_" + reporte, [])
     if not ejercicios:
         st.error("No hay ejercicios seleccionados.")
+        return
+
+    if not ctas_contables:
+        st.error("No hay cuentas contables seleccionadas.")
         return
 
     # Ensure we have a list of integers
     if isinstance(ejercicios, int):
         ejercicios = [ejercicios]
+
+    if isinstance(ctas_contables, str):
+        ctas_contables = [ctas_contables]
 
     async with async_playwright() as p:
         siif = Rcocc31()
@@ -47,12 +55,15 @@ async def run_automation(username: str, password: str, reporte: str) -> None:
 
         results = []
         for ej in ejercicios:
-            df_clean = await siif.download_and_process_report(ejercicio=ej)
-            if df_clean is not None and not df_clean.empty:
-                # Send to backend
-                json_data = df_clean.to_dict(orient="records")
-                response = post_request(ENDPONT, json_body=json_data)
-                results.append(f"Ejercicio {ej}: {response}")
+            for cta_contable in ctas_contables:
+                df_clean = await siif.download_and_process_report(
+                    ejercicio=ej, cta_contable=cta_contable
+                )
+                if df_clean is not None and not df_clean.empty:
+                    # Send to backend
+                    json_data = df_clean.to_dict(orient="records")
+                    response = post_request(ENDPONT, json_body=json_data)
+                    results.append(f"Ejercicio {ej}: {response}")
 
         await siif.logout()
         return results
@@ -73,7 +84,7 @@ def render() -> None:
             "label": "Elija la/s cuenta/s contable/s",
             "options": CUENTAS_CONTABLES,
             "query_param": "ctaContable",
-            "key": "cuenta_contable_" + REPORTE,
+            "key": "cuentas_contables_" + REPORTE,
             "default": "1112-2-6",
         },
     ]
@@ -85,6 +96,7 @@ def render() -> None:
         description="Listado de Fondos del Ejercicio por Tipo de Comprobante",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_credentials_modal(run_automation, key=REPORTE),
+        allow_extra_options=True,
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):
