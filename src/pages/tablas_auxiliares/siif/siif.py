@@ -6,6 +6,7 @@ from src.pages.tablas_auxiliares.siif import (
     gto_rpa03g,
     rcg01_uejp,
     rci02,
+    rcocc31,
     rf602,
     rf610,
     rfondo07tp,
@@ -22,6 +23,7 @@ def main() -> None:
     (
         tab_rog01,
         tab_rvicon03,
+        tab_rcocc31,
         tab_ri102,
         tab_rci02,
         tab_rfp_p605b,
@@ -35,6 +37,7 @@ def main() -> None:
         [
             "rog01",
             "rvicon03",
+            "rcocc31",
             "ri102",
             "rci02",
             "rfp_p605b",
@@ -53,6 +56,9 @@ def main() -> None:
 
     if tab_rvicon03.open:
         rvicon03.render()
+
+    if tab_rcocc31.open:
+        rcocc31.render()
 
     if tab_ri102.open:
         ri102.render()

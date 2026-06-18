@@ -3,6 +3,7 @@ __all__ = [
     "get_siif_rf602",
     "get_siif_rog01",
     "get_siif_rvicon03",
+    "get_siif_rcocc31",
     "get_siif_ri102",
     "get_siif_rci02",
     "get_siif_rfp_p605b",
@@ -88,6 +89,21 @@ def get_siif_rvicon03(params: dict[str, Any] | None = None, update_trigger: int 
         df = df.sort_values(
             ["ejercicio", "cta_contable"],
             ascending=[False, True],
+        )
+
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_siif_rcocc31(params: dict[str, Any] | None = None, update_trigger: int = 0):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(Endpoints.SIIF_RCOCC31.value, params=params)
+    if not df.empty:
+        df = df.sort_values(
+            ["ejercicio", "fecha", "nro_entrada", "cta_contable"],
+            ascending=[False, False, False, False],
         )
 
     return df
