@@ -29,20 +29,20 @@ async def run_automation(
 
     # 2. Iniciamos la descarga automática
     results = []
-    # # # 2.a. Ejecutamos la automatización de SIIF
-    # results = await control_banco.sync_control_banco_from_siif(
-    #     siif_username=siif_username,
-    #     siif_password=siif_password,
-    #     ejercicios=ejercicios,
-    # )
-    # # 2.b. Ejecutamos el módulo runner de SSCC en un proceso separado
-    # control_banco.sync_control_banco_from_sscc(
-    #     sscc_username=sscc_username,
-    #     sscc_password=sscc_password,
-    #     ejercicios=ejercicios,
-    #     token=st.session_state.get("token"),
-    # )
-    # results.append("SSCC ejecutado correctamente.")
+    # # 2.a. Ejecutamos la automatización de SIIF
+    results = await control_banco.sync_control_banco_from_siif(
+        siif_username=siif_username,
+        siif_password=siif_password,
+        ejercicios=ejercicios,
+    )
+    # 2.b. Ejecutamos el módulo runner de SSCC en un proceso separado
+    control_banco.sync_control_banco_from_sscc(
+        sscc_username=sscc_username,
+        sscc_password=sscc_password,
+        ejercicios=ejercicios,
+        token=st.session_state.get("token"),
+    )
+    results.append("SSCC ejecutado correctamente.")
 
     # 3. Combinamos las tablas y actualizamos los reportes
     control_banco.compute_control_cruzado(ejercicios=ejercicios)
