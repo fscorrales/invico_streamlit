@@ -15,7 +15,6 @@ import time
 from pathlib import Path
 from typing import List, Optional, Union
 
-import numpy as np
 import pandas as pd
 import typer
 from pywinauto import keyboard
@@ -190,34 +189,57 @@ class ResumenRendObras(SGFReportManager):
             df["salud"] = "0"
             df["mutual"] = "0"
         else:
-            df = df.rename(
-                columns={
-                    "26": "beneficiario",
-                    "27": "destino",
-                    "29": "libramiento",
-                    "30": "fecha",
-                    "31": "movimiento",
-                    "28": "cta_cte",
-                    "32": "importe_bruto",
-                    "33": "gcias",
-                    "34": "sellos",
-                    "35": "iibb",
-                    "36": "suss",
-                    "37": "invico",
-                    "38": "seguro",
-                    "39": "salud",
-                    "40": "mutual",
-                    "41": "importe_neto",
-                }
+            df.loc[df["55"] != "", "desc_obra"] = df["25"]
+            df.loc[df["desc_obra"] == "", "desc_obra"] = df["38"]
+            df["desc_obra"] = df["desc_obra"].ffill()
+            df = df.assign(
+                id_carga="",
+                origen=df["origen"],
+                desc_obra=df["desc_obra"],
+                beneficiario=df["25"].where(df["55"] == "", df["36"]),
+                libramiento=df["26"].where(df["55"] == "", df["37"]),
+                destino=df["27"].where(df["55"] == "", df["38"]),
+                fecha=df["28"].where(df["55"] == "", df["39"]),
+                movimiento=df["29"].where(df["55"] == "", df["40"]),
+                importe_bruto=df["39"].where(df["55"] == "", df["50"]),
+                gcias=df["31"].where(df["55"] == "", df["42"]),
+                sellos=df["32"].where(df["55"] == "", df["43"]),
+                lp=df["33"].where(df["55"] == "", df["44"]),
+                iibb=df["34"].where(df["55"] == "", df["45"]),
+                suss=df["35"].where(df["55"] == "", df["46"]),
+                seguro=df["36"].where(df["55"] == "", df["47"]),
+                salud=df["37"].where(df["55"] == "", df["48"]),
+                mutual=df["38"].where(df["55"] == "", df["49"]),
+                retenciones="0",
+                importe_neto=df["30"].where(df["55"] == "", df["41"]),
             )
-            df["otras"] = "0"
+            # df["otras"] = "0"
 
         df["ejercicio"] = df["fecha"].str[-4:]
         df["mes"] = df["fecha"].str[3:5] + "/" + df["ejercicio"]
-        df["cta_cte"] = np.where(
-            df["beneficiario"] == "CREDITO ESPECIAL", "130832-07", df["cta_cte"]
+        df["fecha"] = pd.to_datetime(df["fecha"], format="%d/%m/%Y")
+        df = df.replace(to_replace="", value="0")
+        to_numeric_cols = [
+            "importe_bruto",
+            "gcias",
+            "sellos",
+            "lp",
+            "iibb",
+            "suss",
+            "seguro",
+            "salud",
+            "mutual",
+            "importe_neto",
+        ]
+        df[to_numeric_cols] = df[to_numeric_cols].apply(
+            lambda x: x.str.replace(",", "").astype(float)
         )
-
+        cols_to_sum = [
+            col
+            for col in to_numeric_cols
+            if col not in ["importe_neto", "importe_bruto"]
+        ]
+        df["retenciones"] = df[cols_to_sum].sum(axis=1)
         df = df.loc[
             :,
             [
@@ -226,47 +248,23 @@ class ResumenRendObras(SGFReportManager):
                 "mes",
                 "fecha",
                 "beneficiario",
+                "desc_obra",
                 "destino",
                 "libramiento",
                 "movimiento",
-                "cta_cte",
                 "importe_bruto",
                 "gcias",
                 "sellos",
+                "lp",
                 "iibb",
                 "suss",
-                "invico",
                 "seguro",
                 "salud",
                 "mutual",
-                "otras",
+                "retenciones",
                 "importe_neto",
             ],
         ]
-
-        df.loc[:, "importe_bruto":] = df.loc[:, "importe_bruto":].apply(
-            lambda x: x.str.replace(",", "").astype(float)
-        )
-
-        df["retenciones"] = df.loc[:, "gcias":"otras"].sum(axis=1)
-
-        df["importe_bruto"] = np.where(
-            df["origen"] == "EPAM",
-            df["importe_bruto"] + df["invico"],
-            df["importe_bruto"],
-        )
-
-        df["ejercicio"] = df["fecha"].str[-4:]
-        df["mes"] = df["fecha"].str[3:5] + "/" + df["ejercicio"]
-        df["ejercicio"] = pd.to_numeric(df["ejercicio"], errors="coerce")
-        df["cta_cte"] = np.where(
-            df["beneficiario"] == "CREDITO ESPECIAL", "130832-07", df["cta_cte"]
-        )
-
-        df["fecha"] = pd.to_datetime(df["fecha"], format="%d/%m/%Y")
-        df["fecha"] = df["fecha"].apply(
-            lambda x: x.to_pydatetime() if pd.notnull(x) else None
-        )
 
         self.clean_df = df
         return self.clean_df
