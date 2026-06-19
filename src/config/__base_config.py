@@ -1,6 +1,5 @@
 import os
 import sys
-from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -27,6 +26,8 @@ class BaseAppSettings(BaseSettings):
     SIIF_PASSWORD: str | None = None
     SSCC_USERNAME: str | None = None
     SSCC_PASSWORD: str | None = None
+    SGF_USERNAME: str | None = None
+    SGF_PASSWORD: str | None = None
     BASE_URL: str | None = None
     GOOGLE_CREDENTIALS: str | None = None  # JSON credentials for Google Sheets
     JWT_SECRET: str = "super_secret_key"
