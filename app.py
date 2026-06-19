@@ -127,7 +127,7 @@ def build_navigation() -> None:
                 icon="📊",
             ),
             st.Page(
-                "src/pages/tablas_auxiliares/sgf.py",
+                "src/pages/tablas_auxiliares/sgf/sgf.py",
                 title="SGF",
                 icon="📑",
             ),

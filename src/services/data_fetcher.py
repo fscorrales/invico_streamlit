@@ -1,5 +1,6 @@
 __all__ = [
     "get_ejercicios",
+    "get_sgf_origenes",
     "get_siif_rf602",
     "get_siif_rog01",
     "get_siif_rvicon03",
@@ -15,6 +16,8 @@ __all__ = [
     "get_ctas_ctes",
     "get_ctas_ctes_list",
     "get_sscc_banco_invico",
+    "get_sgf_resumen_rend_prov",
+    "get_sgf_resumen_rend_obras",
     "get_tipos_comprobantes_siif_list",
     "get_grupos_partidas_siif_list",
     "get_grupos_partidas_str_siif_list",
@@ -47,6 +50,12 @@ from src.utils import get_cache_path
 @st.cache_data()
 def get_ejercicios() -> list[int]:
     return list(range(2010, datetime.today().year + 1))
+
+
+# --------------------------------------------------
+@st.cache_data()
+def get_sgf_origenes() -> list[str]:
+    return ["EPAM", "OBRAS", "FUNCIONAMIENTO"]
 
 
 # --------------------------------------------------
@@ -291,6 +300,40 @@ def get_sscc_banco_invico(
             ["ejercicio", "fecha", "cta_cte"],
             ascending=[False, False, True],
         )
+
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_sgf_resumen_rend_prov(
+    params: dict[str, Any] | None = None, update_trigger: int = 0
+):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(Endpoints.SGF_RESUMEN_REND_PROV.value, params=params)
+    # if not df.empty:
+    #     df = df.sort_values(
+    #         ["ejercicio", "fecha", "cta_cte"],
+    #         ascending=[False, False, True],
+    #     )
+
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_sgf_resumen_rend_obras(
+    params: dict[str, Any] | None = None, update_trigger: int = 0
+):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(Endpoints.SGF_RESUMEN_REND_OBRAS.value, params=params)
+    # if not df.empty:
+    #     df = df.sort_values(
+    #         ["ejercicio", "fecha", "cta_cte"],
+    #         ascending=[False, False, True],
+    #     )
 
     return df
 

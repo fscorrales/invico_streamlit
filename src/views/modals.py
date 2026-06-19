@@ -1,6 +1,7 @@
 __all__ = [
     "request_siif_credentials_modal",
     "request_sscc_credentials_modal",
+    "request_sgf_credentials_modal",
     "request_siif_and_sscc_credentials_modal",
 ]
 
@@ -146,6 +147,62 @@ def request_sscc_credentials_modal(
 
             except Exception as e:
                 st.error(f"❌ Error en la automatización SSCC: {str(e)}")
+                st.session_state[f"{key}_automation_success"] = False
+
+        st.write(
+            "**Debe esperar a que este MODAL se cierre automáticamente al finalizar la automatización.**"
+        )
+
+
+@st.dialog("Credenciales SGF")
+# --------------------------------------------------
+def request_sgf_credentials_modal(
+    automation_callback: Callable[[str, str], Any], key: str = ""
+):
+    """
+    Modal reutilizable para SGF usando Pywinauto (Síncrono).
+    automation_callback recibe (username, password) y devuelve la lista de resultados.
+    """
+    st.write(
+        "Ingrese sus credenciales de SGF para iniciar la automatización de escritorio."
+    )
+
+    # Usamos keys únicas para evitar colisiones con otros modales
+    username = st.text_input("Usuario", key=f"sgf_user_{key}")
+    password = st.text_input("Contraseña", type="password", key=f"sgf_pass_{key}")
+    with st.container(
+        horizontal=True, border=False, horizontal_alignment="center", gap="large"
+    ):
+        if button_cancel("Cancelar", type="secondary", key=f"{key}_btn_cancel"):
+            st.rerun()  # Cierra el modal de forma segura
+
+        if button_robot("Ejecutar", key=f"{key}_btn_robot"):
+            if not username or not password:
+                st.error("Debe completar ambos campos.")
+                return
+
+            try:
+                # En Pywinauto, el spinner es vital porque el navegador/app
+                # puede tardar segundos en reaccionar.
+                with st.spinner(
+                    "🤖 Robot SGF en ejecución... Por favor, no mueva el mouse."
+                ):
+                    # Ejecución Directa (Síncrona)
+                    # Al no ser async, no necesitamos loop, ni Proactor, ni await.
+                    results = automation_callback(username, password)
+
+                if results:
+                    st.success(f"Proceso finalizado: {results}.")
+                    st.session_state[f"{key}_automation_success"] = True
+                else:
+                    st.info("Proceso terminado sin resultados nuevos.")
+
+                # Esperamos un segundo para que el usuario vea el éxito antes de recargar
+                time.sleep(1)
+                st.rerun()
+
+            except Exception as e:
+                st.error(f"❌ Error en la automatización SGF: {str(e)}")
                 st.session_state[f"{key}_automation_success"] = False
 
         st.write(
