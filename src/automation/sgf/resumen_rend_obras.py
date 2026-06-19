@@ -51,6 +51,12 @@ class ResumenRendObras(SGFReportManager):
                     )
                     dlg_resumen_rend.wait("exists")
 
+                    # Localizar el Radio Button "Por Obra" y seleccionarlo de forma nativa
+                    rb_por_obra = dlg_resumen_rend.child_window(
+                        title="Por Obra", control_type="RadioButton"
+                    )
+                    rb_por_obra.click_input()
+
                     int_ejercicio = int(ejercicio)
                     if int_ejercicio > 2010 and int_ejercicio <= dt.datetime.now().year:
                         campo_desde = dlg_resumen_rend.child_window(
