@@ -372,14 +372,17 @@ def cta_cte_unifier(
         ctas_ctes = fetch_dataframe(
             Endpoints.CTAS_CTES.value, params={"limit": 0}, token=token
         )
-        map_to = ctas_ctes.loc[:, ["map_to", cta_cte_nexo]]
-        map_df = pd.merge(
-            original_df,
-            map_to,
-            how="left",
-            left_on="cta_cte",
-            right_on=cta_cte_nexo,
-        )
-        map_df["cta_cte"] = map_df["map_to"]
-        map_df.drop(["map_to", cta_cte_nexo], axis="columns", inplace=True)
-    return map_df
+        if not ctas_ctes.empty:
+            map_to = ctas_ctes.loc[:, ["map_to", cta_cte_nexo]]
+            map_df = pd.merge(
+                original_df,
+                map_to,
+                how="left",
+                left_on="cta_cte",
+                right_on=cta_cte_nexo,
+            )
+            map_df["cta_cte"] = map_df["map_to"]
+            map_df.drop(["map_to", cta_cte_nexo], axis="columns", inplace=True)
+            return map_df
+        else:
+            return original_df
