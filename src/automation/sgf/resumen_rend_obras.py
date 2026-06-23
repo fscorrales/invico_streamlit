@@ -166,54 +166,30 @@ class ResumenRendObras(SGFReportManager):
         df["origen"] = df["origen"].str.replace('"', "")
         df["origen"] = df["origen"].str.strip()
 
-        if df.loc[0, "origen"] == "OBRAS":
-            df = df.rename(
-                columns={
-                    "23": "beneficiario",
-                    "25": "libramiento",
-                    "26": "fecha",
-                    "27": "movimiento",
-                    "24": "cta_cte",
-                    "28": "importe_bruto",
-                    "29": "gcias",
-                    "30": "sellos",
-                    "31": "iibb",
-                    "32": "suss",
-                    "33": "invico",
-                    "34": "otras",
-                    "35": "importe_neto",
-                }
-            )
-            df["destino"] = ""
-            df["seguro"] = "0"
-            df["salud"] = "0"
-            df["mutual"] = "0"
-        else:
-            df.loc[df["55"] != "", "desc_obra"] = df["25"]
-            df.loc[df["desc_obra"] == "", "desc_obra"] = df["38"]
-            df["desc_obra"] = df["desc_obra"].ffill()
-            df = df.assign(
-                id_carga="",
-                origen=df["origen"],
-                desc_obra=df["desc_obra"],
-                beneficiario=df["25"].where(df["55"] == "", df["36"]),
-                libramiento=df["26"].where(df["55"] == "", df["37"]),
-                destino=df["27"].where(df["55"] == "", df["38"]),
-                fecha=df["28"].where(df["55"] == "", df["39"]),
-                movimiento=df["29"].where(df["55"] == "", df["40"]),
-                importe_bruto=df["39"].where(df["55"] == "", df["50"]),
-                gcias=df["31"].where(df["55"] == "", df["42"]),
-                sellos=df["32"].where(df["55"] == "", df["43"]),
-                lp=df["33"].where(df["55"] == "", df["44"]),
-                iibb=df["34"].where(df["55"] == "", df["45"]),
-                suss=df["35"].where(df["55"] == "", df["46"]),
-                seguro=df["36"].where(df["55"] == "", df["47"]),
-                salud=df["37"].where(df["55"] == "", df["48"]),
-                mutual=df["38"].where(df["55"] == "", df["49"]),
-                retenciones="0",
-                importe_neto=df["30"].where(df["55"] == "", df["41"]),
-            )
-            # df["otras"] = "0"
+        df.loc[df["55"] != "", "desc_obra"] = df["25"]
+        df.loc[df["desc_obra"] == "", "desc_obra"] = df["38"]
+        df["desc_obra"] = df["desc_obra"].ffill()
+        df = df.assign(
+            id_carga="",
+            origen=df["origen"],
+            desc_obra=df["desc_obra"],
+            beneficiario=df["25"].where(df["55"] == "", df["36"]),
+            libramiento=df["26"].where(df["55"] == "", df["37"]),
+            destino=df["27"].where(df["55"] == "", df["38"]),
+            fecha=df["28"].where(df["55"] == "", df["39"]),
+            movimiento=df["29"].where(df["55"] == "", df["40"]),
+            importe_bruto=df["39"].where(df["55"] == "", df["50"]),
+            gcias=df["31"].where(df["55"] == "", df["42"]),
+            sellos=df["32"].where(df["55"] == "", df["43"]),
+            lp=df["33"].where(df["55"] == "", df["44"]),
+            iibb=df["34"].where(df["55"] == "", df["45"]),
+            suss=df["35"].where(df["55"] == "", df["46"]),
+            seguro=df["36"].where(df["55"] == "", df["47"]),
+            salud=df["37"].where(df["55"] == "", df["48"]),
+            mutual=df["38"].where(df["55"] == "", df["49"]),
+            retenciones="0",
+            importe_neto=df["30"].where(df["55"] == "", df["41"]),
+        )
 
         df["ejercicio"] = df["fecha"].str[-4:]
         df["mes"] = df["fecha"].str[3:5] + "/" + df["ejercicio"]
