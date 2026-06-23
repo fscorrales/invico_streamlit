@@ -41,7 +41,6 @@ def run():
             print(f"✅ Login exitoso: {username}")
             resumen_rend = ResumenRendProv(sgf=conn)
 
-            results = []
             for origen in origenes:
                 # Quitamos espacios por las dudas que el string
                 origenes = origen.strip()
@@ -65,21 +64,19 @@ def run():
                     )
                     resumen_rend.read_csv_file(Path(os.path.join(save_path, filename)))
                     resumen_rend.process_dataframe()
+                    resumen_rend.cta_cte_unifier(token=token)
                     df_clean = resumen_rend.clean_df
                     if df_clean is not None and not df_clean.empty:
                         # Send to backend
-                        print(f"✅ Enviando ejercicio {ejercicio} a backend...")
+                        print(
+                            f"✅ Enviando ejercicio {ejercicio} y origen {origen} al backend..."
+                        )
                         json_data = df_clean.to_dict(orient="records")
                         response = post_request(
                             Endpoints.SGF_RESUMEN_REND_PROV.value,
                             json_body=json_data,
                             token=token,
                         )
-                        results.append(
-                            f"Ejercicio {ejercicio} y origen {origen}: {response}"
-                        )
-
-            return results
 
     except Exception as e:
         print(f"❌ Error en el runner: {e}")

@@ -7,6 +7,8 @@ __all__ = [
     "cta_cte_unifier",
 ]
 
+from typing import Optional
+
 import numpy as np
 import pandas as pd
 
@@ -360,12 +362,16 @@ def process_listado_ctas_ctes(dataframe: pd.DataFrame) -> pd.DataFrame:
 
 
 # --------------------------------------------------
-def cta_cte_unifier(original_df: pd.DataFrame, cta_cte_nexo: str) -> pd.DataFrame:
+def cta_cte_unifier(
+    original_df: pd.DataFrame, cta_cte_nexo: str, token: Optional[str] = None
+) -> pd.DataFrame:
     """
     Map cta_cte in original_df to map_to in Ctas Ctes collection using cta_cte_nexo
     """
     if not original_df.empty:
-        ctas_ctes = fetch_dataframe(Endpoints.CTAS_CTES.value, params={"limit": 0})
+        ctas_ctes = fetch_dataframe(
+            Endpoints.CTAS_CTES.value, params={"limit": 0}, token=token
+        )
         map_to = ctas_ctes.loc[:, ["map_to", cta_cte_nexo]]
         map_df = pd.merge(
             original_df,
