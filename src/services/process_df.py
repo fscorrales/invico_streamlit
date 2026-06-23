@@ -4,10 +4,14 @@ __all__ = [
     "process_certificados_obras",
     "process_listado_proveedores",
     "process_listado_ctas_ctes",
+    "cta_cte_unifier",
 ]
 
 import numpy as np
 import pandas as pd
+
+from src.constants import Endpoints
+from src.services.api_client import fetch_dataframe
 
 
 # --------------------------------------------------
@@ -353,3 +357,23 @@ def process_listado_ctas_ctes(dataframe: pd.DataFrame) -> pd.DataFrame:
     df = dataframe.copy()
     df = df.replace("NA", None)
     return df
+
+
+# --------------------------------------------------
+def cta_cte_unifier(original_df: pd.DataFrame, cta_cte_nexo: str) -> pd.DataFrame:
+    """
+    Map cta_cte in original_df to map_to in Ctas Ctes collection using cta_cte_nexo
+    """
+    if not original_df.empty:
+        ctas_ctes = fetch_dataframe(Endpoints.CTAS_CTES.value, params={"limit": 0})
+        map_to = ctas_ctes.loc[:, ["map_to", cta_cte_nexo]]
+        map_df = pd.merge(
+            original_df,
+            map_to,
+            how="left",
+            left_on="cta_cte",
+            right_on=cta_cte_nexo,
+        )
+        map_df["cta_cte"] = map_df["map_to"]
+        map_df.drop(["map_to", cta_cte_nexo], axis="columns", inplace=True)
+    return map_df
