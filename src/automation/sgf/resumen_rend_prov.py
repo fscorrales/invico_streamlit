@@ -266,10 +266,15 @@ class ResumenRendProv(SGFReportManager):
         self.clean_df = df
         return self.clean_df
 
+    # --------------------------------------------------
     def cta_cte_unifier(self, token: Optional[str] = None):
         self.clean_df = cta_cte_unifier(
             original_df=self.clean_df, cta_cte_nexo="sgf_cta_cte", token=token
         )
+
+    # --------------------------------------------------
+    def add_cuit_from_desc_prov(self):
+        pass
 
 
 # ──────────────────────────────────────────────

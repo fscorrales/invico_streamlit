@@ -5,6 +5,7 @@ __all__ = [
     "process_listado_proveedores",
     "process_listado_ctas_ctes",
     "cta_cte_unifier",
+    "add_cuit_from_desc_prov",
 ]
 
 from typing import Optional
@@ -384,5 +385,33 @@ def cta_cte_unifier(
             map_df["cta_cte"] = map_df["map_to"]
             map_df.drop(["map_to", cta_cte_nexo], axis="columns", inplace=True)
             return map_df
+        else:
+            return original_df
+
+
+# --------------------------------------------------
+def add_cuit_from_desc_prov(
+    original_df: pd.DataFrame,
+    desc_prov_col: str = "beneficiario",
+    token: Optional[str] = None,
+) -> pd.DataFrame:
+    """
+    Map cta_cte in original_df to map_to in Ctas Ctes collection using cta_cte_nexo
+    """
+    if not original_df.empty:
+        prov_df = fetch_dataframe(
+            Endpoints.ICARO_PROVEEDORES.value, params={"limit": 0}, token=token
+        )
+        if not prov_df.empty:
+            prov_df = prov_df.loc[:, ["cuit", "desc_proveedor"]]
+            df = pd.merge(
+                left=original_df,
+                right=prov_df,
+                left_on=desc_prov_col,
+                right_on="desc_proveedor",
+                how="left",
+            )
+            df.drop(["desc_proveedor"], axis="columns", inplace=True)
+            return df
         else:
             return original_df
