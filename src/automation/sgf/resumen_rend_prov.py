@@ -24,7 +24,7 @@ from src.automation.sgf.connect_sgf import (
     SGFReportManager,
     login,
 )
-from src.services import cta_cte_unifier
+from src.services import add_cuit_from_desc_prov, cta_cte_unifier
 from src.utils.print_tables import print_rich_table
 
 
@@ -273,8 +273,10 @@ class ResumenRendProv(SGFReportManager):
         )
 
     # --------------------------------------------------
-    def add_cuit_from_desc_prov(self):
-        pass
+    def add_cuit_from_desc_prov(self, token: Optional[str] = None):
+        self.clean_df = add_cuit_from_desc_prov(
+            original_df=self.clean_df, desc_prov_col="beneficiario", token=token
+        )
 
 
 # ──────────────────────────────────────────────
