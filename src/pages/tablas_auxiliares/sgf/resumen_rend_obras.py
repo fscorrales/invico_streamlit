@@ -6,7 +6,7 @@ import streamlit as st
 
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import get_ejercicios, get_sgf_origenes, get_sgf_resumen_rend_obras
+from src.services import get_ejercicios, get_sgf_resumen_rend_obras
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -18,7 +18,8 @@ from src.views import (
 
 ENDPONT = Endpoints.SGF_RESUMEN_REND_OBRAS.value
 REPORTE = "sgf_resumen_rend_obras"
-ORIGENES = get_sgf_origenes()
+# ORIGENES = get_sgf_origenes()
+ORIGENES = ["EPAM"]
 
 
 # --------------------------------------------------
