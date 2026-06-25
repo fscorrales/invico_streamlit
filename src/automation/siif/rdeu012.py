@@ -177,7 +177,8 @@ class Rdeu012(SIIFReportManager):
 
         df["fecha"] = pd.to_datetime(df["fecha"], format="%Y-%m-%d", errors="coerce")
 
-        df["ejercicio"] = df["fecha"].dt.year
+        # df["ejercicio"] = df["fecha"].dt.year
+        df["ejercicio"] = df["fecha_hasta"].dt.strftime("%Y")
         df["mes"] = df["fecha"].dt.strftime("%m/%Y")
 
         df["nro_comprobante"] = (
