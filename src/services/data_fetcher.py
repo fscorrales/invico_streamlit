@@ -13,6 +13,7 @@ __all__ = [
     "get_siif_gto_rpa03g",
     "get_siif_rfondo07tp",
     "get_siif_rfondos04",
+    "get_siif_rdeu012",
     "get_ctas_ctes",
     "get_ctas_ctes_list",
     "get_sscc_banco_invico",
@@ -233,6 +234,21 @@ def get_siif_rfondos04(params: dict[str, Any] | None = None, update_trigger: int
         df = df.sort_values(
             ["ejercicio", "fecha", "tipo_comprobante", "nro_comprobante"],
             ascending=[False, False, False, False],
+        )
+
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_siif_rdeu012(params: dict[str, Any] | None = None, update_trigger: int = 0):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(Endpoints.SIIF_RDEU012.value, params=params)
+    if not df.empty:
+        df = df.sort_values(
+            ["ejercicio", "mes", "fecha", "nro_comprobante"],
+            ascending=[False, True, True, True],
         )
 
     return df

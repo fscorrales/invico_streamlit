@@ -19,6 +19,7 @@ class Endpoints(str, Enum):
     SIIF_GTO_RPA03G = "/siif/gtoRpa03g"
     SIIF_RFONDO07TP = "/siif/rfondo07tp"
     SIIF_RFONDOS04 = "/siif/rfondos04"
+    SIIF_RDEU012 = "/siif/rdeu012"
     USERS = "/users"
     CONTROL_RECURSOS = "/control/controlRecursos"
     CONTROL_ICARO = "/control/controlIcaro"
