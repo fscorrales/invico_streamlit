@@ -27,6 +27,7 @@ __all__ = [
     "get_icaro_estructuras",
     "get_icaro_obras",
     "get_control_recursos",
+    "get_control_obras",
     "get_control_icaro_anual",
     "get_control_icaro_comprobantes",
     "get_control_icaro_pa6",
@@ -247,7 +248,7 @@ def get_siif_rdeu012(params: dict[str, Any] | None = None, update_trigger: int =
     df = fetch_dataframe(Endpoints.SIIF_RDEU012.value, params=params)
     if not df.empty:
         df = df.sort_values(
-            ["ejercicio", "mes", "fecha", "nro_comprobante"],
+            ["ejercicio", "mes_hasta", "fecha", "nro_comprobante"],
             ascending=[False, True, True, True],
         )
 
@@ -599,6 +600,21 @@ def get_control_recursos(params: dict[str, Any] | None = None, update_trigger: i
             ["ejercicio", "mes", "grupo", "cta_cte"],
             ascending=[False, True, True, True],
         )
+
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_control_obras(params: dict[str, Any] | None = None, update_trigger: int = 0):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(Endpoints.CONTROL_OBRAS.value, params=params)
+    # if not df.empty:
+    #     df = df.sort_values(
+    #         ["ejercicio", "mes", "grupo", "cta_cte"],
+    #         ascending=[False, True, True, True],
+    #     )
 
     return df
 
