@@ -48,21 +48,21 @@ async def run_automation(
 
     # 2. Iniciamos la descarga automática
     results = []
-    # # 2.a. Ejecutamos la automatización de SIIF
-    # results = await control_obras.sync_control_obras_from_siif(
-    #     siif_username=siif_username,
-    #     siif_password=siif_password,
-    #     ejercicios=ejercicios,
-    # )
+    # 2.a. Ejecutamos la automatización de SIIF
+    results = await control_obras.sync_control_obras_from_siif(
+        siif_username=siif_username,
+        siif_password=siif_password,
+        ejercicios=ejercicios,
+    )
 
-    # # 2.b. Ejecutamos el módulo runner de SGF en un proceso separado
-    # control_obras.sync_control_obras_from_sgf(
-    #     sscc_username=sscc_username,
-    #     sscc_password=sscc_password,
-    #     ejercicios=ejercicios,
-    #     token=st.session_state.get("token"),
-    # )
-    # results.append("SGF ejecutado correctamente.")
+    # 2.b. Ejecutamos el módulo runner de SGF en un proceso separado
+    control_obras.sync_control_obras_from_sgf(
+        sscc_username=sscc_username,
+        sscc_password=sscc_password,
+        ejercicios=ejercicios,
+        token=st.session_state.get("token"),
+    )
+    results.append("SGF ejecutado correctamente.")
 
     # 3. Combinamos las tablas y actualizamos el reporte
     control_obras.compute_control_obras(ejercicios=ejercicios)
