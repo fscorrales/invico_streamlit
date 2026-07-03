@@ -36,6 +36,7 @@
 #     # subprocess.run(["streamlit", "run", "streamlit_app.py"])
 
 
+import importlib
 import os
 import sys
 
@@ -80,6 +81,39 @@ def run_streamlit_app():
 
 
 if __name__ == "__main__":
+    # 🔥 INTERCEPCIÓN GENÉRICA PARA MÚLTIPLES RUNNERS
+    if len(sys.argv) > 1 and sys.argv[1] == "--automation":
+        # 1. Removemos el flag '--automation' de su posición original (índice 1)
+        sys.argv.pop(1)
+
+        # Ahora sys.argv es: [0: "INVICO.exe", 1: "src.automation.sscc...", 2: "username", ...]
+        # 2. El nombre del módulo real quedó en el índice 1
+        if len(sys.argv) > 1:
+            target_module = sys.argv.pop(
+                1
+            )  # 🚀 EXTRAEMOS EL ÍNDICE 1 (El string del módulo)
+
+            try:
+                print(f"📦 Cargando de forma dinámica el módulo: {target_module}")
+                modulo_runner = importlib.import_module(target_module)
+
+                # Ejecuta la función run() de ese runner
+                modulo_runner.run()
+                sys.exit(0)
+            except Exception as e:
+                print(f"\n❌ ERROR CRÍTICO EN EL ARRANQUE DEL RUNNER:\n{e}")
+                import traceback
+
+                traceback.print_exc()
+                input("\nPresioná Enter para cerrar la ventana...")
+                sys.exit(1)
+        else:
+            print(
+                "❌ Error: Se especificó '--automation' pero no se indicó qué módulo ejecutar."
+            )
+            sys.exit(1)
+
+    # Si no tiene el flag, arranca Streamlit normalmente
     run_streamlit_app()
 
 # poetry run python -m run
