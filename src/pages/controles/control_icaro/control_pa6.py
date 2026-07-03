@@ -29,6 +29,7 @@ from src.views import (
 
 ENDPONT = Endpoints.CONTROL_ICARO_PA6.value
 REPORTE = "control_icaro_pa6"
+URL_SHEET = "https://docs.google.com/spreadsheets/d/1KKeeoop_v_Nf21s7eFp4sS6SmpxRZQ9DPa1A5wVqnZ0"
 
 
 # --------------------------------------------------
@@ -50,7 +51,7 @@ def render(
         key=REPORTE,
         title=REPORTE.replace("_", " ").title(),
         endpoint=ENDPONT,
-        description="La automatización y la exportación impactan en los 3 subreportes/pestañas",
+        description=f"La automatización y la exportación impactan en los 3 subreportes/pestañas. Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_credentials_modal(
             automation_func, key=REPORTE
@@ -104,7 +105,7 @@ def render(
 
         dataframe(
             df,
-            key=f"{REPORTE}_df_control_icaro_anual",
+            key=f"{REPORTE}_df_control_icaro_pa6",
             column_order=orden_dinamico,
         )
 

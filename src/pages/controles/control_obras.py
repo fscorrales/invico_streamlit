@@ -25,6 +25,7 @@ from src.views import report_template, request_siif_and_sgf_credentials_modal
 
 ENDPONT = Endpoints.CONTROL_OBRAS.value
 REPORTE = "control_obras"
+URL_SHEET = "https://docs.google.com/spreadsheets/d/16v2ovmQnS1v73-WxTOK6b9Tx9DRugGc70ufpjVi-rPA"
 
 
 # --------------------------------------------------
@@ -87,7 +88,7 @@ def render() -> None:
         key=REPORTE,
         title=REPORTE.replace("_", " ").title(),
         endpoint=ENDPONT,
-        description="Cruce de Ejecución Obras entre ICARO y Sistema de Gestión Financiera",
+        description=f"Cruce de Ejecución Obras entre ICARO y Sistema de Gestión Financiera. Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_and_sgf_credentials_modal(
             run_automation, key=REPORTE
