@@ -23,12 +23,22 @@ def sync_control_recursos_from_sscc(
     modulo_runner = "src.automation.sscc.banco_invico_runner"
     ejercicios_str = ",".join(map(str, ejercicios))
 
-    # Aseguramos que el PYTHONPATH sea la raíz actual
-    env = os.environ.copy()
-    env["PYTHONPATH"] = os.getcwd()
+    is_frozen = getattr(sys, "frozen", False)
 
-    process_sscc = subprocess.Popen(
-        [
+    if is_frozen:
+        # En PRODUCCIÓN (.exe): Pasamos el flag genérico Y LUEGO el string del módulo
+        args = [
+            sys.executable,
+            "--automation",
+            modulo_runner,  # 🚀 Se convierte en sys.argv[1] antes de que el arranque lo limpie
+            sscc_username,
+            sscc_password,
+            token,
+            ejercicios_str,
+        ]
+    else:
+        # En DESARROLLO (.py): Tu comando tradicional por consola con -m
+        args = [
             sys.executable,
             "-m",
             modulo_runner,
@@ -36,7 +46,14 @@ def sync_control_recursos_from_sscc(
             sscc_password,
             token,
             ejercicios_str,
-        ],
+        ]
+
+    # Aseguramos que el PYTHONPATH sea la raíz actual
+    env = os.environ.copy()
+    env["PYTHONPATH"] = os.getcwd()
+
+    process_sscc = subprocess.Popen(
+        args,
         creationflags=subprocess.CREATE_NEW_CONSOLE,
         env=env,
     )

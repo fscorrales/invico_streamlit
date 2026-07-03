@@ -48,21 +48,39 @@ def run_automation(username: str, password: str) -> None:
 
     modulo_runner = "src.automation.sgf.resumen_rend_obras_runner"
 
-    # Aseguramos que el PYTHONPATH sea la raíz actual
-    env = os.environ.copy()
-    env["PYTHONPATH"] = os.getcwd()
+    is_frozen = getattr(sys, "frozen", False)
 
-    process = subprocess.Popen(
-        [
+    if is_frozen:
+        # En PRODUCCIÓN (.exe): Pasamos el flag genérico Y LUEGO el string del módulo
+        args = [
+            sys.executable,
+            "--automation",
+            modulo_runner,  # 🚀 Se convierte en sys.argv[1] antes de que el arranque lo limpie
+            username,
+            password,
+            st.session_state.get("token", ""),
+            ejercicios_str,
+            origenes_str,
+        ]
+    else:
+        # En DESARROLLO (.py): Tu comando tradicional por consola con -m
+        args = [
             sys.executable,
             "-m",
             modulo_runner,
             username,
             password,
-            st.session_state.get("token"),
+            st.session_state.get("token", ""),
             ejercicios_str,
             origenes_str,
-        ],
+        ]
+
+    # Aseguramos que el PYTHONPATH sea la raíz actual
+    env = os.environ.copy()
+    env["PYTHONPATH"] = os.getcwd()
+
+    process = subprocess.Popen(
+        args,
         creationflags=subprocess.CREATE_NEW_CONSOLE,
         env=env,
     )
