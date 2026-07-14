@@ -83,7 +83,7 @@ def get_df_from_sqlite(sqlite_path: str) -> pd.DataFrame:
         df = get_df_from_sql_table(sqlite_path, table="ppto_gtos_fte_rf602")
         df.drop(columns=["id"], inplace=True)
         df["ejercicio"] = pd.to_numeric(df["ejercicio"], errors="coerce")
-        df = df.loc[df["ejercicio"] < 2025]
+        df = df.loc[df["ejercicio"] < 2026]
         # df = df.loc[df["ejercicio"] == 2025]
 
         return df
@@ -111,6 +111,7 @@ def migrate_df_to_mongodb(endpoint: str, df: pd.DataFrame) -> None:
 def sync_rf602_to_mongodb(sqlite_path: str, endpoint: str) -> None:
     """Download, process and sync the rf602 report to the repository."""
     try:
+        print(f"SQLite path: {sqlite_path}")
         df = get_df_from_sqlite(sqlite_path=sqlite_path)
         ejercicios = df["ejercicio"].unique()
         for ejercicio in ejercicios:

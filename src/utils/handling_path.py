@@ -129,7 +129,7 @@ def get_siif_rdeu012b2_cuit_path():
 
 # --------------------------------------------------
 def get_sqlite_path():
-    db_path = os.path.join(get_outside_path(), "Python Output")
+    db_path = os.path.join(get_outside_path(), "Python", "Python Output")
     db_path = os.path.join(db_path, "SQLite Files")
     return db_path
 
