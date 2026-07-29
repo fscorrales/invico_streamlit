@@ -82,7 +82,9 @@ def report_template(
                 with st.spinner("Preparando archivos Excel..."):
                     # Llamada a la API que devuelve StreamingResponse
                     excel_binario = fetch_excel_stream(
-                        f"{endpoint if export_endpoint is None else export_endpoint}/export",
+                        endpoint + "/export"
+                        if export_endpoint is None
+                        else export_endpoint,
                         params_preparation(selections, filtro_avanzado),
                     )
 

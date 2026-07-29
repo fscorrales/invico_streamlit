@@ -54,7 +54,7 @@ def render(automation_func: Optional[Any] = None) -> None:
         update_func=lambda: request_siif_credentials_modal(
             automation_func, key=REPORTE
         ),
-        export_endpoint=Endpoints.CONTROL_ICARO.value,
+        export_endpoint=Endpoints.CONTROL_ICARO.value + "/export",
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):

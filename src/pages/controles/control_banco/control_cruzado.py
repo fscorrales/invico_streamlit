@@ -43,7 +43,7 @@ def render(
         update_func=lambda: request_siif_and_sscc_credentials_modal(
             automation_func, key=REPORTE
         ),
-        export_endpoint=Endpoints.CONTROL_BANCO.value,
+        export_endpoint=Endpoints.CONTROL_BANCO.value + "/export",
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):

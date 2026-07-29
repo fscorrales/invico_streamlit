@@ -144,8 +144,8 @@ def build_navigation() -> None:
         ],
         "Reportes": [
             st.Page(
-                "src/pages/reportes/reportes_home.py",
-                title="Reportes",
+                "src/pages/reportes/reporte_planillometro_eecc/reporte_planillometro.py",
+                title="Reporte Planillometro EECC",
                 icon="📈",
             ),
         ],

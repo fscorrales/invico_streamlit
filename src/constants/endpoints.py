@@ -32,6 +32,7 @@ class Endpoints(str, Enum):
     CONTROL_BANCO_SIIF = "/control/controlBanco/siif"
     CONTROL_BANCO_SSCC = "/control/controlBanco/sscc"
     CONTROL_BANCO_CRUZADO = "/control/controlBanco/cruzado"
+    REPORTE_PLANILLOMETRO = "/reporte/reportePlanillometro"
     SGF_RESUMEN_REND_PROV = "/sgf/resumenRendProv"
     SGF_RESUMEN_REND_OBRAS = "/sgf/resumenRendObras"
     SSCC_BANCO_INVICO = "/sscc/bancoINVICO"

@@ -1,22 +1,32 @@
+"""
+Author: Fernando Corrales <fscpython@gmail.com>
+Purpose: EECC's Planillometro (Cecilia)
+Data required:
+    - Icaro Carga
+    - SIIF rf602
+    - SIIF rf610
+    - Planillomtro Histórico (Patricia)
+"""
+
 from typing import Any, Optional
 
 import streamlit as st
 
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import get_control_banco_sscc, get_ejercicios
+from src.services import get_ejercicios, get_reporte_planillometro_eecc
 from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
 from src.views import (
     report_template,
-    request_siif_and_sscc_credentials_modal,
+    request_siif_credentials_modal,
 )
 
-ENDPONT = Endpoints.CONTROL_BANCO_SSCC.value
-REPORTE = "control_banco_sscc"
-URL_SHEET = "https://docs.google.com/spreadsheets/d/1CRQjzIVzHKqsZE8_E1t8aRQDfWfZALhbe64WcxHiSM4"
+ENDPONT = Endpoints.REPORTE_PLANILLOMETRO.value
+REPORTE = "reporte_planillometro_eecc"
+URL_SHEET = "https://docs.google.com/spreadsheets/d/1Hmb7xmzhZBoicnL5_tN7mr1kOj-r3gw8lCkPErR8Xd4"
 
 
 # --------------------------------------------------
@@ -40,10 +50,10 @@ def render(
         endpoint=ENDPONT,
         description=f"La automatización y la exportación impactan en los 3 subreportes/pestañas. Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
-        update_func=lambda: request_siif_and_sscc_credentials_modal(
+        update_func=lambda: request_siif_credentials_modal(
             automation_func, key=REPORTE
         ),
-        export_endpoint=Endpoints.CONTROL_BANCO.value + "/export",
+        export_endpoint=ENDPONT + "/exportEECC",
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):
@@ -62,7 +72,7 @@ def render(
     trigger = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
 
     try:
-        df = get_control_banco_sscc(
+        df = get_reporte_planillometro_eecc(
             filtro_actual,
             update_trigger=trigger,
         )
@@ -92,7 +102,7 @@ def render(
 
         dataframe(
             df,
-            key=f"{REPORTE}_df_control_banco_sscc",
+            key=f"{REPORTE}_df_planillometro_eecc",
             column_order=orden_dinamico,
         )
 

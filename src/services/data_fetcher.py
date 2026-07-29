@@ -34,6 +34,7 @@ __all__ = [
     "get_control_banco_cruzado",
     "get_control_banco_siif",
     "get_control_banco_sscc",
+    "get_reporte_planillometro_eecc",
 ]
 
 import os
@@ -712,6 +713,24 @@ def get_control_banco_sscc(
     df = pd.DataFrame()
 
     df = fetch_dataframe(Endpoints.CONTROL_BANCO_SSCC.value, params=params)
+    # if not df.empty:
+    #     df = df.sort_values(
+    #         ["ejercicio", "mes", "grupo", "cta_cte"],
+    #         ascending=[False, True, True, True],
+    #     )
+
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_reporte_planillometro_eecc(
+    params: dict[str, Any] | None = None, update_trigger: int = 0
+):
+    df = pd.DataFrame()
+    print(params)
+
+    df = fetch_dataframe(Endpoints.REPORTE_PLANILLOMETRO.value, params=params)
     # if not df.empty:
     #     df = df.sort_values(
     #         ["ejercicio", "mes", "grupo", "cta_cte"],
