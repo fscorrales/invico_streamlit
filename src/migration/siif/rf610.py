@@ -83,7 +83,7 @@ def get_df_from_sqlite(sqlite_path: str) -> pd.DataFrame:
         df = get_df_from_sql_table(sqlite_path, table="ppto_gtos_desc_rf610")
         df.drop(columns=["id"], inplace=True)
         df["ejercicio"] = pd.to_numeric(df["ejercicio"], errors="coerce")
-        df = df.loc[df["ejercicio"] < 2026]
+        df = df.loc[df["ejercicio"] < 2025]
         df = df.rename(
             columns={
                 "desc_prog": "desc_programa",
@@ -104,7 +104,8 @@ def get_df_from_sqlite(sqlite_path: str) -> pd.DataFrame:
 # --------------------------------------------------
 def migrate_df_to_mongodb(endpoint: str, df: pd.DataFrame) -> None:
     """Migrate DataFrame to MongoDB."""
-    client = MigrationClient(token="token_bypassed")
+    # client = MigrationClient(token="token_bypassed")
+    client = MigrationClient()
     try:
         records = df.to_dict(orient="records")
         # El cliente maneja internamente el login y el POST
