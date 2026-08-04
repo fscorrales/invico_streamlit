@@ -54,6 +54,8 @@ def render(
             automation_func, key=REPORTE
         ),
         export_endpoint=ENDPONT + "/exportEECC",
+        has_advanced_filter=False,
+        max_selections=1,  # Limitar a un solo ejercicio por vez
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):

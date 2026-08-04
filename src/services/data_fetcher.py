@@ -728,7 +728,6 @@ def get_reporte_planillometro_eecc(
     params: dict[str, Any] | None = None, update_trigger: int = 0
 ):
     df = pd.DataFrame()
-    print(params)
 
     df = fetch_dataframe(Endpoints.REPORTE_PLANILLOMETRO.value, params=params)
     # if not df.empty:

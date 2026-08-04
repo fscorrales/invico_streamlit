@@ -61,6 +61,8 @@ def report_template(
     has_export: bool = True,
     export_endpoint: Optional[str] = None,
     allow_extra_options: bool = False,
+    has_advanced_filter: bool = True,
+    max_selections: Optional[int] = None,
 ):
     """
     Vista reutilizable.
@@ -70,6 +72,7 @@ def report_template(
     st.write(description)
 
     selections = []
+    filtro_avanzado = ""
 
     # 0. Lógica de Exportación
     def download_file():
@@ -109,13 +112,15 @@ def report_template(
                 default=f_conf.get("default", []),
                 accept_new_options=allow_extra_options,
                 key=f_conf["key"],  # Key única para evitar conflictos en Streamlit
+                max_selections=max_selections,  # Permite limitar el número de selecciones
             )
             # El nombre de la clave aquí debe coincidir con lo que espera tu API
             selections.append((f_conf["query_param"], val))
 
-        filtro_avanzado = text_input_advance_filter(
-            key="text_input_advance_filter-" + key
-        )
+        if has_advanced_filter:
+            filtro_avanzado = text_input_advance_filter(
+                key="text_input_advance_filter-" + key
+            )
 
         if has_update:
             if button_update("Actualizador automático", key=f"button_update_{key}"):
