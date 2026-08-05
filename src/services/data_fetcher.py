@@ -36,6 +36,9 @@ __all__ = [
     "get_control_banco_sscc",
     "get_reporte_planillometro_eecc",
     "get_reporte_formulacion_planillometro",
+    "get_reporte_formulacion_carga",
+    "get_reporte_formulacion_gastos",
+    "get_reporte_formulacion_recursos",
 ]
 
 import os
@@ -750,6 +753,57 @@ def get_reporte_formulacion_planillometro(
     df = fetch_dataframe(
         Endpoints.REPORTE_FORMULACION_PLANILLOMETRO.value, params=params
     )
+    # if not df.empty:
+    #     df = df.sort_values(
+    #         ["ejercicio", "mes", "grupo", "cta_cte"],
+    #         ascending=[False, True, True, True],
+    #     )
+
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_reporte_formulacion_carga(
+    params: dict[str, Any] | None = None, update_trigger: int = 0
+):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(Endpoints.REPORTE_FORMULACION_CARGA.value, params=params)
+    # if not df.empty:
+    #     df = df.sort_values(
+    #         ["ejercicio", "mes", "grupo", "cta_cte"],
+    #         ascending=[False, True, True, True],
+    #     )
+
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_reporte_formulacion_gastos(
+    params: dict[str, Any] | None = None, update_trigger: int = 0
+):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(Endpoints.REPORTE_FORMULACION_GASTOS.value, params=params)
+    # if not df.empty:
+    #     df = df.sort_values(
+    #         ["ejercicio", "mes", "grupo", "cta_cte"],
+    #         ascending=[False, True, True, True],
+    #     )
+
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_reporte_formulacion_recursos(
+    params: dict[str, Any] | None = None, update_trigger: int = 0
+):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(Endpoints.REPORTE_FORMULACION_RECURSOS.value, params=params)
     # if not df.empty:
     #     df = df.sort_values(
     #         ["ejercicio", "mes", "grupo", "cta_cte"],

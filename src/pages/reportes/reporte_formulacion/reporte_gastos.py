@@ -1,14 +1,14 @@
 """
 Author: Fernando Corrales <fscpython@gmail.com>
-Purpose: Icaro vs SIIF budget execution
+Purpose: Reportes base para la formulación presupuestaria
 Data required:
     - Icaro
     - SIIF rf602
     - SIIF rf610
-    - SIIF gto_rpa03g
-    - SIIF rcg01_uejp
-    - SIIF rfondo07tp
-    - SSCC ctas_ctes (manual data)
+    - SIIF ri102
+    - SIIF rfp_p605b
+    - SSCC ctas_ctes
+    - Planillomtro Histórico (Patricia)
 """
 
 from typing import Any, Optional
@@ -17,7 +17,7 @@ import streamlit as st
 
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import get_control_icaro_comprobantes, get_ejercicios
+from src.services import get_ejercicios, get_reporte_formulacion_gastos
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -27,9 +27,9 @@ from src.views import (
     request_siif_credentials_modal,
 )
 
-ENDPONT = Endpoints.CONTROL_ICARO_COMPROBANTES.value
-REPORTE = "control_icaro_comprobantes"
-URL_SHEET = "https://docs.google.com/spreadsheets/d/1KKeeoop_v_Nf21s7eFp4sS6SmpxRZQ9DPa1A5wVqnZ0"
+ENDPONT = Endpoints.REPORTE_FORMULACION_GASTOS.value
+REPORTE = "reporte_formulacion_gastos"
+URL_SHEET = "https://docs.google.com/spreadsheets/d/1hJyBOkA8sj5otGjYGVOzYViqSpmv_b4L8dXNju_GJ5Q/edit?gid=793724089#gid=793724089"
 
 
 # --------------------------------------------------
@@ -49,12 +49,14 @@ def render(automation_func: Optional[Any] = None) -> None:
         key=REPORTE,
         title=REPORTE.replace("_", " ").title(),
         endpoint=ENDPONT,
-        description=f"La automatización y la exportación impactan en los 3 subreportes/pestañas. Datos exportados en [Google Sheet]({URL_SHEET}).",
+        description=f"La automatización y la exportación impactan en los 4 subreportes/pestañas. Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_credentials_modal(
             automation_func, key=REPORTE
         ),
-        export_endpoint=Endpoints.CONTROL_ICARO.value + "/export",
+        export_endpoint=Endpoints.REPORTE_FORMULACION.value + "/export",
+        has_advanced_filter=False,
+        max_selections=1,  # Limitar a un solo ejercicio por vez
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):
@@ -73,7 +75,7 @@ def render(automation_func: Optional[Any] = None) -> None:
     trigger = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
 
     try:
-        df = get_control_icaro_comprobantes(
+        df = get_reporte_formulacion_gastos(
             filtro_actual,
             update_trigger=trigger,
         )
@@ -103,7 +105,7 @@ def render(automation_func: Optional[Any] = None) -> None:
 
         dataframe(
             df,
-            key=f"{REPORTE}_df_control_icaro_comprobantes",
+            key=f"{REPORTE}_df_reporte_formulacion_gastos",
             column_order=orden_dinamico,
         )
 

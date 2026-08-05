@@ -146,7 +146,12 @@ def build_navigation() -> None:
             st.Page(
                 "src/pages/reportes/reporte_planillometro_eecc/reporte_planillometro.py",
                 title="Reporte Planillometro EECC",
-                icon="📈",
+                icon="📽️",
+            ),
+            st.Page(
+                "src/pages/reportes/reporte_formulacion/reporte_formulacion.py",
+                title="Reporte Formulación",
+                icon="🔮",
             ),
         ],
     }
@@ -194,7 +199,7 @@ def build_navigation() -> None:
         # Generamos espacio en blanco dinámico
         # Si tienes 6 páginas, unos 12 a 15 st.write("") suelen bastar
         # para mandarlo al fondo en una pantalla estándar.
-        for _ in range(15):
+        for _ in range(1):
             st.write("")
 
         st.divider()
