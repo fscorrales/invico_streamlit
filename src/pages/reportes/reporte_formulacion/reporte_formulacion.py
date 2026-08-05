@@ -1,5 +1,6 @@
 import streamlit as st
 
+from src.automation.analysis import reporte_formulacion
 from src.pages.reportes.reporte_formulacion import (
     reporte_carga_formulacion,
     reporte_gastos,
@@ -10,32 +11,27 @@ from src.pages.reportes.reporte_formulacion import (
 
 # --------------------------------------------------
 async def run_automation(siif_username: str, siif_password: str, reporte: str) -> None:
-    pass
-    # # 1. Obtenemos los ejercicios seleccionados en el estado de sesión
-    # ejercicios = st.session_state.get("ejercicios_" + reporte, [])
-    # if not ejercicios:
-    #     st.error("No hay ejercicios seleccionados.")
-    #     return
 
-    # # Ensure we have a list of integers
-    # if isinstance(ejercicios, int):
-    #     ejercicios = [ejercicios]
+    # 1. Obtenemos los ejercicios seleccionados en el estado de sesión
+    ejercicios = st.session_state.get("ejercicios_" + reporte, [])
+    if not ejercicios:
+        st.error("No hay ejercicios seleccionados.")
+        return
 
-    # # 2. Iniciamos la descarga automática
-    # results = []
-    # # # 2.a. Ejecutamos la automatización de SIIF
-    # results = await control_icaro.sync_control_icaro_from_siif(
-    #     siif_username=siif_username,
-    #     siif_password=siif_password,
-    #     ejercicios=ejercicios,
-    # )
+    # Ensure we have a list of integers
+    if isinstance(ejercicios, int):
+        ejercicios = [ejercicios]
 
-    # # 3. Combinamos las tablas y actualizamos los reportes
-    # control_icaro.compute_control_anual(ejercicios=ejercicios)
-    # control_icaro.compute_control_comprobantes(ejercicios=ejercicios)
-    # control_icaro.compute_control_pa6(ejercicios=ejercicios)
+    # 2. Iniciamos la descarga automática
+    results = []
+    # # 2.a. Ejecutamos la automatización de SIIF
+    results = await reporte_formulacion.sync_reporte_formulacion_from_siif(
+        siif_username=siif_username,
+        siif_password=siif_password,
+        ejercicios=ejercicios,
+    )
 
-    # return results
+    return results
 
 
 def main() -> None:

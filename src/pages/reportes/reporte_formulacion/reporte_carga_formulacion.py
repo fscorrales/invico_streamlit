@@ -8,7 +8,7 @@ Data required:
     - SIIF ri102
     - SIIF rfp_p605b
     - SSCC ctas_ctes
-    - Planillomtro Histórico (Patricia)
+    - Planillometro Histórico (Patricia)
 """
 
 from datetime import datetime
