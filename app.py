@@ -120,6 +120,18 @@ def build_navigation() -> None:
                 icon="🏦",
             ),
         ],
+        "Reportes": [
+            st.Page(
+                "src/pages/reportes/reporte_planillometro_eecc/reporte_planillometro.py",
+                title="Reporte Planillometro EECC",
+                icon="📽️",
+            ),
+            st.Page(
+                "src/pages/reportes/reporte_formulacion/reporte_formulacion.py",
+                title="Reporte Formulación",
+                icon="🔮",
+            ),
+        ],
         "Tablas Auxiliares": [
             st.Page(
                 "src/pages/tablas_auxiliares/siif/siif.py",
@@ -140,18 +152,6 @@ def build_navigation() -> None:
                 "src/pages/tablas_auxiliares/icaro/icaro.py",
                 title="ICARO",
                 icon="🏗️",
-            ),
-        ],
-        "Reportes": [
-            st.Page(
-                "src/pages/reportes/reporte_planillometro_eecc/reporte_planillometro.py",
-                title="Reporte Planillometro EECC",
-                icon="📽️",
-            ),
-            st.Page(
-                "src/pages/reportes/reporte_formulacion/reporte_formulacion.py",
-                title="Reporte Formulación",
-                icon="🔮",
             ),
         ],
     }
