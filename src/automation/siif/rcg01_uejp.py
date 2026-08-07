@@ -90,20 +90,34 @@ class Rcg01Uejp(SIIFReportManager):
             await input_fecha_desde.fill(fecha_desde)
             # Fecha Hasta
             await input_fecha_hasta.clear()
-            fecha_hasta = dt.datetime(year=(int(ejercicio) + 1), month=12, day=31)
+            fecha_hasta = dt.datetime(year=(int(ejercicio)), month=12, day=31)
             fecha_hasta = min(fecha_hasta, dt.datetime.now())
             fecha_hasta = dt.datetime.strftime(fecha_hasta, "%d/%m/%Y")
             await input_fecha_hasta.fill(fecha_hasta)
 
+            # 1. Esperar la apertura de la ventana (popup) Y el evento de descarga a nivel contexto
             async with self.siif.context.expect_page() as popup_info:
-                async with self.siif.reports_page.expect_download() as download_info:
-                    await btn_get_reporte.click()  # Se abre el popup aquí
+                await btn_get_reporte.click()
 
-            popup_page = await popup_info.value  # Obtener la ventana emergente
-            self.download = await download_info.value  # Obtener el archivo descargado
+            popup_page = await popup_info.value
 
-            # Cerrar la ventana emergente (si realmente se abrió)
-            if popup_page:
+            # Si el popup se redirigió al login, lanzamos error explícito para reloguear
+            await popup_page.wait_for_load_state("domcontentloaded")
+            if "login.jspx" in popup_page.url:
+                await popup_page.close()
+                raise Exception(
+                    "La sesión expiro al intentar generar el reporte en SIIF."
+                )
+
+            # 2. Esperar la descarga directamente desde el popup o el contexto
+            async with popup_page.expect_download(timeout=120000) as download_info:
+                # Si el popup requiere una acción o auto-descarga:
+                pass
+
+            self.download = await download_info.value
+
+            # Cierre limpio del popup
+            if not popup_page.is_closed():
                 await popup_page.close()
 
             await self.go_back_to_reports_list()

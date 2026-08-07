@@ -29,9 +29,7 @@ from src.utils.print_tables import print_rich_table
 # --------------------------------------------------
 class Rff01(SIIFReportManager):
     # --------------------------------------------------
-    async def download_and_process_report(
-        self
-    ) -> pd.DataFrame:
+    async def download_and_process_report(self) -> pd.DataFrame:
         """Download and process the rff01 report"""
         try:
             await self.go_to_specific_report()
@@ -49,9 +47,7 @@ class Rff01(SIIFReportManager):
         await self.select_specific_report_by_id(report_id="62")
 
     # --------------------------------------------------
-    async def download_report(
-        self
-    ) -> Download:
+    async def download_report(self) -> Download:
         try:
             self.download = None
             # Getting DOM elements
@@ -63,15 +59,29 @@ class Rff01(SIIFReportManager):
             )
             await btn_xls.click()
 
+            # 1. Esperar la apertura de la ventana (popup) Y el evento de descarga a nivel contexto
             async with self.siif.context.expect_page() as popup_info:
-                async with self.siif.reports_page.expect_download() as download_info:
-                    await btn_get_reporte.click()  # Se abre el popup aquí
+                await btn_get_reporte.click()
 
-            popup_page = await popup_info.value  # Obtener la ventana emergente
-            self.download = await download_info.value  # Obtener el archivo descargado
+            popup_page = await popup_info.value
 
-            # Cerrar la ventana emergente (si realmente se abrió)
-            if popup_page:
+            # Si el popup se redirigió al login, lanzamos error explícito para reloguear
+            await popup_page.wait_for_load_state("domcontentloaded")
+            if "login.jspx" in popup_page.url:
+                await popup_page.close()
+                raise Exception(
+                    "La sesión expiro al intentar generar el reporte en SIIF."
+                )
+
+            # 2. Esperar la descarga directamente desde el popup o el contexto
+            async with popup_page.expect_download(timeout=120000) as download_info:
+                # Si el popup requiere una acción o auto-descarga:
+                pass
+
+            self.download = await download_info.value
+
+            # Cierre limpio del popup
+            if not popup_page.is_closed():
                 await popup_page.close()
 
             await self.go_back_to_reports_list()
@@ -90,15 +100,18 @@ class Rff01(SIIFReportManager):
         else:
             df = dataframe.copy()
 
-        df = df.iloc[16:,[5, 10, 18]]
+        df = df.iloc[16:, [5, 10, 18]]
         df.columns = [
-            'fuente', 'desc_fuente', 'codigo',         ]
-        df = df.replace('', np.nan)
+            "fuente",
+            "desc_fuente",
+            "codigo",
+        ]
+        df = df.replace("", np.nan)
         # df['grupo'] = df.grupo.ffill()
         # df['part_parcial'] = df.part_parcial.ffill()
         # df['desc_grupo']  = df.desc_grupo.ffill()
         # df['desc_part_parcial']  = df.desc_part_parcial.ffill()
-        df = df.dropna(axis=0, how='any')
+        df = df.dropna(axis=0, how="any")
 
         self.clean_df = df
         return self.clean_df
@@ -170,14 +183,16 @@ def main(
             raise typer.Exit(code=1)
 
     # 3. Ejecución de la lógica asíncrona
-    asyncio.run(
-        run_automation(username, password, download, headless, file)
-    )
+    asyncio.run(run_automation(username, password, download, headless, file))
 
 
 # --------------------------------------------------
 async def run_automation(
-        username:str, password:str, download:bool, headless:bool, file:Optional[Path]=None
+    username: str,
+    password: str,
+    download: bool,
+    headless: bool,
+    file: Optional[Path] = None,
 ):
     """
     Lógica de ejecución asíncrona de Playwright.
@@ -224,9 +239,7 @@ async def run_automation(
                     "✅ Reporte procesado con éxito.",
                     fg=typer.colors.GREEN,
                 )
-                print_rich_table(
-                    siif.clean_df, title="Resultados"
-                )
+                print_rich_table(siif.clean_df, title="Resultados")
 
                 # 5. Logout
                 await siif.logout()

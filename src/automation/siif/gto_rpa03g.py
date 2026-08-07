@@ -181,15 +181,29 @@ class GtoRpa03g(SIIFReportManager):
             await input_gpo_partida.clear()
             await input_gpo_partida.fill(grupo_partida_str)
 
+            # 1. Esperar la apertura de la ventana (popup) Y el evento de descarga a nivel contexto
             async with self.siif.context.expect_page() as popup_info:
-                async with self.siif.reports_page.expect_download() as download_info:
-                    await btn_get_reporte.click()  # Se abre el popup aquí
+                await btn_get_reporte.click()
 
-            popup_page = await popup_info.value  # Obtener la ventana emergente
-            self.download = await download_info.value  # Obtener el archivo descargado
+            popup_page = await popup_info.value
 
-            # Cerrar la ventana emergente (si realmente se abrió)
-            if popup_page:
+            # Si el popup se redirigió al login, lanzamos error explícito para reloguear
+            await popup_page.wait_for_load_state("domcontentloaded")
+            if "login.jspx" in popup_page.url:
+                await popup_page.close()
+                raise Exception(
+                    "La sesión expiro al intentar generar el reporte en SIIF."
+                )
+
+            # 2. Esperar la descarga directamente desde el popup o el contexto
+            async with popup_page.expect_download(timeout=120000) as download_info:
+                # Si el popup requiere una acción o auto-descarga:
+                pass
+
+            self.download = await download_info.value
+
+            # Cierre limpio del popup
+            if not popup_page.is_closed():
                 await popup_page.close()
 
             await self.go_back_to_reports_list()
