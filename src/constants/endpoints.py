@@ -23,6 +23,7 @@ class Endpoints(str, Enum):
     SIIF_PLANILLOMETRO_HIST = "/siif/planillometroHist"
     USERS = "/users"
     CONTROL_RECURSOS = "/control/controlRecursos"
+    CONTROL_APORTE_EMPRESARIO = "/control/controlAporteEmpresario"
     CONTROL_ICARO = "/control/controlIcaro"
     CONTROL_ICARO_ANUAL = "/control/controlIcaro/anual"
     CONTROL_ICARO_COMPROBANTES = "/control/controlIcaro/comprobantes"

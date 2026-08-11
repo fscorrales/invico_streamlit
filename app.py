@@ -90,7 +90,7 @@ def build_navigation() -> None:
     pages: dict[str, list] = {
         "Controles": [
             st.Page(
-                "src/pages/controles/control_recursos.py",
+                "src/pages/controles/control_recursos/main_tabs.py",
                 title="Control Recursos",
                 icon="💰",
             ),
