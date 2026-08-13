@@ -76,12 +76,12 @@ def render() -> None:
         key=REPORTE,
         title=REPORTE.replace("_", " ").title(),
         endpoint=ENDPONT,
-        description=f"Cruce de recursos SIIF vs Depósitos Bancarios por tipo de recurso y cta. cte. Datos exportados en [Google Sheet]({URL_SHEET}).",
+        description=f"Cruce de Recurso 3% (rci02) vs Retención 337 (rcocc31). Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_credentials_modal(
             run_automation,
             key=REPORTE,
-            downloaded_info="rci02 - rcocc31 (1112-2-6 y 2122-1-2)",
+            downloaded_info="SIIF: rci02 y rcocc31 (1112-2-6 y 2122-1-2)",
         ),
         max_selections=1,
     )
