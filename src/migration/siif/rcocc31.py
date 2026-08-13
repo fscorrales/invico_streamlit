@@ -101,7 +101,7 @@ def migrate_df_to_mongodb(endpoint: str, df: pd.DataFrame) -> None:
         # El cliente maneja internamente el login y el POST
         result = client.post_batch(endpoint=endpoint, records=records)
         # post_request(endpoint=endpoint, json_body=records, token=token)
-        print(f"Successfully migrated Ri102's {len(records)} records to MongoDB.")
+        print(f"Successfully migrated Rcocc31's {len(records)} records to MongoDB.")
 
     except Exception as e:
         print(f"Error migrar el DataFrame a MongoDB: {e}")
@@ -113,10 +113,16 @@ def sync_rcocc31_to_mongodb(sqlite_path: str, endpoint: str) -> None:
     try:
         print(f"SQLite path: {sqlite_path}")
         df = get_df_from_sqlite(sqlite_path=sqlite_path)
-        ejercicios = df["ejercicio"].unique()
-        for ejercicio in ejercicios:
-            df_ejercicio = df.loc[df["ejercicio"] == ejercicio]
-            migrate_df_to_mongodb(endpoint=endpoint, df=df_ejercicio)
+
+        if df.empty:
+            print("El DataFrame traído desde SQLite está vacío.")
+            return
+
+        for (ejercicio, cta_contable), df_grupo in df.groupby(
+            ["ejercicio", "cta_contable"]
+        ):
+            if not df_grupo.empty:
+                migrate_df_to_mongodb(endpoint=endpoint, df=df_grupo)
 
     except Exception as e:
         print(f"Error migrar y sincronizar el reporte: {e}")
