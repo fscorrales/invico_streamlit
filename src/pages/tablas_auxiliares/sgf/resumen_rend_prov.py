@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 
+import pandas as pd
 import streamlit as st
 
 from src.components import dataframe
@@ -130,6 +131,10 @@ def render() -> None:
     # Capturamos el filtro del session_state (que el fragmento actualizó)
     filtro_actual = st.session_state.get(f"{REPORTE}_advanced_filter", "")
     trigger = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
+
+    # 1. Inicializamos df con un DataFrame vacío para evitar el UnboundLocalError
+    df = pd.DataFrame()
+
     try:
         df = get_sgf_resumen_rend_prov(
             filtro_actual,

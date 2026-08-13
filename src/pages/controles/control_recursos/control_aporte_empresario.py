@@ -9,6 +9,7 @@ Google Sheet:
     - https://docs.google.com/spreadsheets/d/1bZnvl9YkHC-N1HbIbnFNrqU3Iq03PG81u7fdHe_v_pw
 """
 
+import pandas as pd
 import streamlit as st
 
 from src.automation.analysis import control_aporte_empresario
@@ -100,6 +101,9 @@ def render() -> None:
     filtro_actual = st.session_state.get(f"{REPORTE}_advanced_filter", "")
     trigger = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
 
+    # 1. Inicializamos df con un DataFrame vacío para evitar el UnboundLocalError
+    df = pd.DataFrame()
+
     try:
         df = get_control_aporte_empresario(
             filtro_actual,
@@ -108,16 +112,13 @@ def render() -> None:
 
         if df.empty:
             st.info("No se encontraron resultados.")
-        # else:
-        #     st.session_state[f"data_{key}_carga"] = df_final
-        #     st.session_state[f"data_{key}_retenciones"] = df_final_ret
 
     except APIConnectionError as e:
         st.error(f"⚠️ Error de conexión: {e}")
     except APIResponseError as e:
         st.error(f"⚠️ Error de API: {e}")
 
-    # 4. Mostrar resultados (usando session_state para que no desaparezcan)
+    # 2. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
         # Definimos las columnas que NO queremos mostrar
         first_cols = [

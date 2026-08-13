@@ -1,5 +1,6 @@
 from typing import Any, Optional
 
+import pandas as pd
 import streamlit as st
 
 from src.components import dataframe
@@ -58,6 +59,9 @@ def render(automation_func: Optional[Any] = None) -> None:
     # Capturamos el filtro del session_state (que el fragmento actualizó)
     filtro_actual = st.session_state.get(f"{REPORTE}_advanced_filter", "")
     trigger = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
+
+    # 1. Inicializamos df con un DataFrame vacío para evitar el UnboundLocalError
+    df = pd.DataFrame()
 
     try:
         df = get_control_banco_siif(

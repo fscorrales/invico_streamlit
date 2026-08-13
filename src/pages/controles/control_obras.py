@@ -11,6 +11,7 @@ Google Sheet:
     - https://docs.google.com/spreadsheets/d/16v2ovmQnS1v73-WxTOK6b9Tx9DRugGc70ufpjVi-rPA
 """
 
+import pandas as pd
 import streamlit as st
 
 from src.automation.analysis import control_obras
@@ -109,6 +110,9 @@ def render() -> None:
     # Capturamos el filtro del session_state (que el fragmento actualizó)
     filtro_actual = st.session_state.get(f"{REPORTE}_advanced_filter", "")
     trigger = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
+
+    # 1. Inicializamos df con un DataFrame vacío para evitar el UnboundLocalError
+    df = pd.DataFrame()
 
     try:
         df = get_control_obras(
