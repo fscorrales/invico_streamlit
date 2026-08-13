@@ -17,7 +17,9 @@ from src.components import button_cancel, button_robot
 @st.dialog("Credenciales SIIF")
 # --------------------------------------------------
 def request_siif_credentials_modal(
-    automation_callback: Callable[[str, str, str], None], key: str = ""
+    automation_callback: Callable[[str, str, str], None],
+    key: str = "",
+    downloaded_info: str = "-",
 ):
     """
     Modal reutilizable para solicitar credenciales del SIIF.
@@ -26,6 +28,7 @@ def request_siif_credentials_modal(
     st.write("Ingrese sus credenciales de SIIF para iniciar la descarga.")
     username = st.text_input("Usuario")
     password = st.text_input("Contraseña", type="password")
+    st.write("**Reportes ha descargar:** " + downloaded_info)
 
     with st.container(
         horizontal=True, border=False, horizontal_alignment="center", gap="large"

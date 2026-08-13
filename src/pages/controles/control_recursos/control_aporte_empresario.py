@@ -11,17 +11,17 @@ Google Sheet:
 
 import streamlit as st
 
-from src.automation.analysis import control_recursos
+from src.automation.analysis import control_aporte_empresario
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import get_control_recursos, get_ejercicios
+from src.services import get_control_aporte_empresario, get_ejercicios
 from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
 from src.views import (
     report_template,
-    request_siif_and_sscc_credentials_modal,
+    request_siif_credentials_modal,
 )
 
 ENDPONT = Endpoints.CONTROL_APORTE_EMPRESARIO.value
@@ -33,8 +33,6 @@ URL_SHEET = "https://docs.google.com/spreadsheets/d/1rbc5eMwJeW1fB5F5eKpczFmTrC6
 async def run_automation(
     siif_username: str,
     siif_password: str,
-    sscc_username: str,
-    sscc_password: str,
     reporte: str,
 ) -> None:
 
@@ -51,23 +49,11 @@ async def run_automation(
     # 2. Iniciamos la descarga automática
     results = []
     # 2.a. Ejecutamos la automatización de SIIF
-    results = await control_recursos.sync_control_recursos_from_siif(
+    results = await control_aporte_empresario.sync_control_aporte_empresario_from_siif(
         siif_username=siif_username,
         siif_password=siif_password,
         ejercicios=ejercicios,
     )
-
-    # 2.b. Ejecutamos el módulo runner de SSCC en un proceso separado
-    control_recursos.sync_control_recursos_from_sscc(
-        sscc_username=sscc_username,
-        sscc_password=sscc_password,
-        ejercicios=ejercicios,
-        token=st.session_state.get("token"),
-    )
-    results.append("SSCC ejecutado correctamente.")
-
-    # 3. Combinamos las tablas y actualizamos el reporte
-    control_recursos.compute_control_recursos(ejercicios=ejercicios)
 
     return results
 
@@ -91,9 +77,12 @@ def render() -> None:
         endpoint=ENDPONT,
         description=f"Cruce de recursos SIIF vs Depósitos Bancarios por tipo de recurso y cta. cte. Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
-        update_func=lambda: request_siif_and_sscc_credentials_modal(
-            run_automation, key=REPORTE
+        update_func=lambda: request_siif_credentials_modal(
+            run_automation,
+            key=REPORTE,
+            downloaded_info="rci02 - rcocc31 (1112-2-6 y 2122-1-2)",
         ),
+        max_selections=1,
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):
@@ -112,7 +101,7 @@ def render() -> None:
     trigger = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
 
     try:
-        df = get_control_recursos(
+        df = get_control_aporte_empresario(
             filtro_actual,
             update_trigger=trigger,
         )
