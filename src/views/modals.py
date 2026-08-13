@@ -105,7 +105,9 @@ def request_siif_credentials_modal(
 @st.dialog("Credenciales SSCC")
 # --------------------------------------------------
 def request_sscc_credentials_modal(
-    automation_callback: Callable[[str, str], Any], key: str = ""
+    automation_callback: Callable[[str, str], Any],
+    key: str = "",
+    downloaded_info: str = "-",
 ):
     """
     Modal reutilizable para SSCC usando Pywinauto (Síncrono).
@@ -118,6 +120,8 @@ def request_sscc_credentials_modal(
     # Usamos keys únicas para evitar colisiones con otros modales
     username = st.text_input("Usuario", key=f"sscc_user_{key}")
     password = st.text_input("Contraseña", type="password", key=f"sscc_pass_{key}")
+    st.write("**Reportes ha descargar:** " + downloaded_info)
+
     with st.container(
         horizontal=True, border=False, horizontal_alignment="center", gap="large"
     ):
@@ -161,7 +165,9 @@ def request_sscc_credentials_modal(
 @st.dialog("Credenciales SGF")
 # --------------------------------------------------
 def request_sgf_credentials_modal(
-    automation_callback: Callable[[str, str], Any], key: str = ""
+    automation_callback: Callable[[str, str], Any],
+    key: str = "",
+    downloaded_info: str = "-",
 ):
     """
     Modal reutilizable para SGF usando Pywinauto (Síncrono).
@@ -174,6 +180,8 @@ def request_sgf_credentials_modal(
     # Usamos keys únicas para evitar colisiones con otros modales
     username = st.text_input("Usuario", key=f"sgf_user_{key}")
     password = st.text_input("Contraseña", type="password", key=f"sgf_pass_{key}")
+    st.write("**Reportes ha descargar:** " + downloaded_info)
+
     with st.container(
         horizontal=True, border=False, horizontal_alignment="center", gap="large"
     ):
@@ -219,6 +227,7 @@ def request_sgf_credentials_modal(
 def request_siif_and_sscc_credentials_modal(
     automation_callback: Callable[[str, str, str, str, str], Any],
     key: str = "",
+    downloaded_info: str = "-",
 ):
     """
     Modal reutilizable para SIIF y SSCC usando Pywinauto (Síncrono) y Playwright (Asíncrono).
@@ -237,6 +246,7 @@ def request_siif_and_sscc_credentials_modal(
     sscc_password = st.text_input(
         "Contraseña SSCC", type="password", key=f"sscc_pass_{key}"
     )
+    st.write("**Reportes ha descargar:** " + downloaded_info)
 
     with st.container(
         horizontal=True, border=False, horizontal_alignment="center", gap="large"
@@ -311,6 +321,7 @@ def request_siif_and_sscc_credentials_modal(
 def request_siif_and_sgf_credentials_modal(
     automation_callback: Callable[[str, str, str, str, str], Any],
     key: str = "",
+    downloaded_info: str = "-",
 ):
     """
     Modal reutilizable para SIIF y SGF usando Pywinauto (Síncrono) y Playwright (Asíncrono).
@@ -329,6 +340,8 @@ def request_siif_and_sgf_credentials_modal(
     sgf_password = st.text_input(
         "Contraseña SGF", type="password", key=f"sscc_pass_{key}"
     )
+
+    st.write("**Reportes ha descargar:** " + downloaded_info)
 
     with st.container(
         horizontal=True, border=False, horizontal_alignment="center", gap="large"

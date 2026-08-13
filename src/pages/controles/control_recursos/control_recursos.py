@@ -93,7 +93,9 @@ def render() -> None:
         description=f"Cruce de recursos SIIF vs Depósitos Bancarios por tipo de recurso y cta. cte. Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_and_sscc_credentials_modal(
-            run_automation, key=REPORTE
+            run_automation,
+            key=REPORTE,
+            downloaded_info="SIIF's rci02 y SSCC's Banco INVICO",
         ),
     )
 

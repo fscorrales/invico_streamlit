@@ -55,7 +55,9 @@ def render(
         description=f"La automatización y la exportación impactan en los 3 subreportes/pestañas. Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_credentials_modal(
-            automation_func, key=REPORTE
+            automation_func,
+            key=REPORTE,
+            downloaded_info="SIIF's rf602, rf610, gto_rpa03g, rcg01_uejp y rfondo07tp",
         ),
         export_endpoint=Endpoints.CONTROL_ICARO.value + "/export",
     )

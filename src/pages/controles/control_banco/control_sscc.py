@@ -42,7 +42,9 @@ def render(
         description=f"La automatización y la exportación impactan en los 3 subreportes/pestañas. Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_and_sscc_credentials_modal(
-            automation_func, key=REPORTE
+            automation_func,
+            key=REPORTE,
+            downloaded_info="SIIF: rcocc31 (ctas. contables del rvicon03), rcg01uejp y gto_rpa03g. SSCC's Banco INVICO",
         ),
         export_endpoint=Endpoints.CONTROL_BANCO.value + "/export",
     )

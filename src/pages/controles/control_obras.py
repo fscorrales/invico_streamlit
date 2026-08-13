@@ -92,7 +92,9 @@ def render() -> None:
         description=f"Cruce de Ejecución Obras entre ICARO y Sistema de Gestión Financiera. Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_and_sgf_credentials_modal(
-            run_automation, key=REPORTE
+            run_automation,
+            key=REPORTE,
+            downloaded_info="SIIF's rdeu012. SGF: Resumen de Rendiciones por Proveedor y Listado Proveedores (desde ICARO)",
         ),
     )
 

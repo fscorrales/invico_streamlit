@@ -54,7 +54,9 @@ def render(automation_func: Optional[Any] = None) -> None:
         description=f"La automatización y la exportación impactan en los 4 subreportes/pestañas. Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_credentials_modal(
-            automation_func, key=REPORTE
+            automation_func,
+            key=REPORTE,
+            downloaded_info="SIIF's rfp_p605b",
         ),
         export_endpoint=Endpoints.REPORTE_FORMULACION.value + "/export",
         has_advanced_filter=False,
