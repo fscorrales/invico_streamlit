@@ -1,4 +1,4 @@
-import padas as pd
+import pandas as pd
 import streamlit as st
 from playwright.async_api import async_playwright
 
