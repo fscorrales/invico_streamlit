@@ -617,7 +617,9 @@ def get_control_aporte_empresario(
 ):
     df = pd.DataFrame()
 
-    df = fetch_dataframe(Endpoints.CONTROL_APORTE_EMPRESARIO.value, params=params)
+    df = fetch_dataframe(
+        Endpoints.CONTROL_APORTE_EMPRESARIO.value + "/generateICARO", params=params
+    )
     # if not df.empty:
     #     df = df.sort_values(
     #         ["ejercicio", "mes", "grupo", "cta_cte"],
