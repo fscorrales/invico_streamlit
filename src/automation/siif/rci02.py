@@ -24,6 +24,7 @@ from src.automation.siif.connect_siif import (
     SIIFReportManager,
     login,
 )
+from src.services import cta_cte_unifier
 from src.utils.print_tables import print_rich_table
 
 
@@ -179,6 +180,14 @@ class Rci02(SIIFReportManager):
         df["ejercicio"] = pd.to_numeric(df["ejercicio"], errors="coerce")
         self.clean_df = df
         return self.clean_df
+
+    # --------------------------------------------------
+    def cta_cte_unifier(self, token: Optional[str] = None):
+        self.clean_df = cta_cte_unifier(
+            original_df=self.clean_df,
+            cta_cte_nexo="siif_recursos_cta_cte",
+            token=token,
+        )
 
 
 # ──────────────────────────────────────────────

@@ -48,7 +48,9 @@ async def run_automation(username: str, password: str, reporte: str) -> None:
 
         results = []
         for ej in ejercicios:
-            df_clean = await siif.download_and_process_report(ejercicio=ej)
+            await siif.download_and_process_report(ejercicio=ej)
+            siif.cta_cte_unifier()
+            df_clean = siif.clean_df
             if df_clean is not None and not df_clean.empty:
                 # Send to backend
                 json_data = df_clean.to_dict(orient="records")
