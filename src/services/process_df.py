@@ -363,30 +363,60 @@ def process_listado_ctas_ctes(dataframe: pd.DataFrame) -> pd.DataFrame:
 
 
 # --------------------------------------------------
+# def cta_cte_unifier(
+#     original_df: pd.DataFrame, cta_cte_nexo: str, token: Optional[str] = None
+# ) -> pd.DataFrame:
+#     """
+#     Map cta_cte in original_df to map_to in Ctas Ctes collection using cta_cte_nexo
+#     """
+#     if not original_df.empty:
+#         ctas_ctes = fetch_dataframe(
+#             Endpoints.CTAS_CTES.value, params={"limit": 0}, token=token
+#         )
+#         if not ctas_ctes.empty:
+#             map_to = ctas_ctes.loc[:, ["map_to", cta_cte_nexo]]
+#             map_df = pd.merge(
+#                 original_df,
+#                 map_to,
+#                 how="left",
+#                 left_on="cta_cte",
+#                 right_on=cta_cte_nexo,
+#             )
+#             map_df["cta_cte"] = map_df["map_to"]
+#             map_df.drop(["map_to", cta_cte_nexo], axis="columns", inplace=True)
+#             return map_df
+#         else:
+#             return original_df
 def cta_cte_unifier(
     original_df: pd.DataFrame, cta_cte_nexo: str, token: Optional[str] = None
 ) -> pd.DataFrame:
     """
-    Map cta_cte in original_df to map_to in Ctas Ctes collection using cta_cte_nexo
+    Map cta_cte in original_df to map_to in Ctas Ctes collection using cta_cte_nexo.
+    If no match is found, the original cta_cte value is preserved.
     """
-    if not original_df.empty:
-        ctas_ctes = fetch_dataframe(
-            Endpoints.CTAS_CTES.value, params={"limit": 0}, token=token
-        )
-        if not ctas_ctes.empty:
-            map_to = ctas_ctes.loc[:, ["map_to", cta_cte_nexo]]
-            map_df = pd.merge(
-                original_df,
-                map_to,
-                how="left",
-                left_on="cta_cte",
-                right_on=cta_cte_nexo,
-            )
-            map_df["cta_cte"] = map_df["map_to"]
-            map_df.drop(["map_to", cta_cte_nexo], axis="columns", inplace=True)
-            return map_df
-        else:
-            return original_df
+    if original_df.empty:
+        return original_df
+
+    ctas_ctes = fetch_dataframe(
+        Endpoints.CTAS_CTES.value, params={"limit": 0}, token=token
+    )
+
+    if ctas_ctes.empty or cta_cte_nexo not in ctas_ctes.columns:
+        return original_df
+
+    df = original_df.copy()
+
+    # 🔹 Opción A (Recomendada): Usar map() para una homologación directa sin alterar la estructura del DF
+    mapping = (
+        ctas_ctes.dropna(subset=[cta_cte_nexo])
+        .drop_duplicates(subset=[cta_cte_nexo])
+        .set_index(cta_cte_nexo)["map_to"]
+    )
+
+    # Reemplaza valores con el mapa; si no encuentra coincidencia (NaN), conserva la cta_cte original
+    df["cta_cte"] = df["cta_cte"].map(mapping).fillna(df["cta_cte"])
+
+    return df
 
 
 # --------------------------------------------------
