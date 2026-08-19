@@ -53,6 +53,7 @@ def run():
                 )
                 banco_invico.read_csv_file(Path(os.path.join(save_path, filename)))
                 banco_invico.process_dataframe()
+                banco_invico.cta_cte_unifier(token=token)
                 df_clean = banco_invico.clean_df
                 if df_clean is not None and not df_clean.empty:
                     # Send to backend
