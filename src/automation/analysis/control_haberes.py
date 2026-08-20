@@ -77,7 +77,9 @@ async def sync_control_haberes_from_siif(
         rcg01_uejp = Rcg01Uejp(siif=connect_siif)
         await rcg01_uejp.go_to_reports()
         for ej in ejercicios:
-            df_clean = await rcg01_uejp.download_and_process_report(ejercicio=ej)
+            await rcg01_uejp.download_and_process_report(ejercicio=ej)
+            rcg01_uejp.cta_cte_unifier()
+            df_clean = rcg01_uejp.clean_df
             if df_clean is not None and not df_clean.empty:
                 # Send to backend
                 json_data = df_clean.to_dict(orient="records")
@@ -133,7 +135,9 @@ async def sync_control_haberes_from_siif(
 
         rdeu012 = Rdeu012(siif=connect_siif)
         for mes in meses:
-            df_clean = await rdeu012.download_and_process_report(mes=mes)
+            await rdeu012.download_and_process_report(mes=mes)
+            rdeu012.cta_cte_unifier()
+            df_clean = rdeu012.clean_df
             if df_clean is not None and not df_clean.empty:
                 # Send to backend
                 json_data = df_clean.to_dict(orient="records")
