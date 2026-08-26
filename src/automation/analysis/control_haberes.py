@@ -114,7 +114,7 @@ async def sync_control_haberes_from_siif(
         anio_actual = ahora.year
         mes_actual = ahora.month
 
-        meses = []
+        meses = [f"12/{str(int(sorted(ejercicios)[0]) - 1)}"]
 
         # 2. Iteramos por cada año y por cada mes
         for anio in sorted(ejercicios):

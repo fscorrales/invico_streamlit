@@ -12,13 +12,15 @@ Google Sheet:
     - https://docs.google.com/spreadsheets/d/1A9ypUkwm4kfLqUAwr6-55crcFElisOO9fOdI6iflMAc
 """
 
+from typing import Any
+
 import pandas as pd
 import streamlit as st
 
 from src.automation.analysis import control_haberes
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import get_control_haberes, get_ejercicios
+from src.services import fetch_dataframe, get_ejercicios
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -31,6 +33,21 @@ from src.views import (
 ENDPONT = Endpoints.CONTROL_HABERES.value
 REPORTE = "control_haberes"
 URL_SHEET = "https://docs.google.com/spreadsheets/d/1A9ypUkwm4kfLqUAwr6-55crcFElisOO9fOdI6iflMAc"
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_control_haberes(params: dict[str, Any] | None = None, update_trigger: int = 0):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(ENDPONT + "/compute", params=params)
+    # if not df.empty:
+    #     df = df.sort_values(
+    #         ["ejercicio", "mes", "grupo", "cta_cte"],
+    #         ascending=[False, True, True, True],
+    #     )
+
+    return df
 
 
 # --------------------------------------------------
