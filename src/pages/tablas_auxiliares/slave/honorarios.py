@@ -1,101 +1,63 @@
-import os
-import subprocess
-import sys
+from datetime import datetime
 
 import pandas as pd
 import streamlit as st
 
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import get_ejercicios, get_sscc_banco_invico
+from src.services import fetch_dataframe, process_slave_honorarios
 from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
-from src.views import (
-    report_template,
-    request_sscc_credentials_modal,
-)
+from src.views import report_template_with_uploader
 
 ENDPONT = Endpoints.SLAVE_HONORARIOS.value
 REPORTE = "slave_honorarios"
 
+ayuda_uploader = """
+### 📥 Guía de Importación
+Simplemente importe el archivo Slave.accdb (es necesario convertirlo desde su versión antigua .mdb a una más moderna .accdb dentro de Access)
+"""
+
 
 # --------------------------------------------------
-def run_automation(username: str, password: str) -> None:
-    ejercicios = st.session_state.get("ejercicios_" + REPORTE, [])
-    if not ejercicios:
-        st.error("No hay ejercicios seleccionados.")
-        return
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_slave_honorarios(filtro_avanzado: str = "", update_trigger: int = 0):
+    df = pd.DataFrame()
 
-    # Ensure we have a list of integers
-    if isinstance(ejercicios, int):
-        ejercicios = [ejercicios]
+    if filtro_avanzado == "":
+        filtro_avanzado = f"ejercicio={datetime.today().year}"
 
-    ejercicios_str = ",".join(map(str, ejercicios))
+    params_peticion = {
+        "limit": 0,
+        "queryFilter": filtro_avanzado,
+    }
 
-    # En lugar de la ruta al archivo, usamos el nombre del módulo
-    # Esto equivale a hacer: python -m src.automation.sscc.banco_invico_runner
-    modulo_runner = "src.automation.sscc.banco_invico_runner"
+    df = fetch_dataframe(Endpoints.SLAVE_HONORARIOS.value, params=params_peticion)
+    if not df.empty:
+        df = df.sort_values(
+            ["ejercicio", "fecha"],
+            ascending=[False, True],
+        )
 
-    is_frozen = getattr(sys, "frozen", False)
-
-    if is_frozen:
-        # En PRODUCCIÓN (.exe): Pasamos el flag genérico Y LUEGO el string del módulo
-        args = [
-            sys.executable,
-            "--automation",
-            modulo_runner,  # 🚀 Se convierte en sys.argv[1] antes de que el arranque lo limpie
-            username,
-            password,
-            st.session_state.get("token", ""),
-            ejercicios_str,
-        ]
-    else:
-        # En DESARROLLO (.py): Tu comando tradicional por consola con -m
-        args = [
-            sys.executable,
-            "-m",
-            modulo_runner,
-            username,
-            password,
-            st.session_state.get("token", ""),
-            ejercicios_str,
-        ]
-
-    # Aseguramos que el PYTHONPATH sea la raíz actual
-    env = os.environ.copy()
-    env["PYTHONPATH"] = os.getcwd()
-
-    process = subprocess.Popen(
-        args,
-        creationflags=subprocess.CREATE_NEW_CONSOLE,
-        env=env,
-    )
-    process.wait()  # Esperamos a que termine el proceso antes de continuar
-    return process
+    return df
 
 
 # --------------------------------------------------
 def render() -> None:
 
-    mis_filtros = [
-        {
-            "label": "Elija los ejercicios a consultar",
-            "options": get_ejercicios(),
-            "query_param": "ejercicio",
-            "key": "ejercicios_" + REPORTE,
-            "default": get_ejercicios()[-1],
-        },
-    ]
-
-    report_template(
+    report_template_with_uploader(
         key=REPORTE,
-        title="SSCC - Reporte " + REPORTE,
+        title="Slave - Tabla Honorarios",
+        description="Tabla Honorarios de Slave",
         endpoint=ENDPONT,
-        description="",
-        filters_config=mis_filtros,
-        update_func=lambda: request_sscc_credentials_modal(run_automation, key=REPORTE),
+        has_export=True,
+        has_upload=True,
+        uploader_help=ayuda_uploader,
+        uploader_func=process_slave_honorarios,
+        upload_file_type="accdb",
+        upload_table_name="LIQUIDACIONHONORARIOS",
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):
@@ -117,7 +79,7 @@ def render() -> None:
     df = pd.DataFrame()
 
     try:
-        df = get_sscc_banco_invico(
+        df = get_slave_honorarios(
             filtro_actual,
             update_trigger=trigger,
         )
@@ -136,7 +98,7 @@ def render() -> None:
     # 4. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
         # Definimos las columnas que NO queremos mostrar
-        first_cols = ["ejercicio", "mes", "fecha", "cta_cte", "importe"]
+        first_cols = ["ejercicio"]
 
         # Generamos el orden dinámico: todas las del DF que no estén en la lista negra
         orden_dinamico = first_cols + [
@@ -145,6 +107,6 @@ def render() -> None:
 
         dataframe(
             df,
-            key=f"{REPORTE}_df_banco_invico",
+            key=f"{REPORTE}_df_slave_honorarios",
             column_order=orden_dinamico,
         )

@@ -16,7 +16,7 @@ import pandas as pd
 import typer
 
 from ...constants.endpoints import Endpoints
-from ...utils import get_df_from_mdb, print_rich_table
+from ...utils import print_rich_table, read_mdb_file
 from ..migration_client import MigrationClient
 
 # Firma oficial de encabezado para archivos Microsoft Access Jet Database (.mdb)
@@ -107,7 +107,7 @@ class SlaveMongoMigrator:
     def migrate_factureros(self):
         """Migrate FACTUREROS table to MongoDB."""
         table = "PRECARIZADOS"
-        df = get_df_from_mdb(mdb_path=self.mdb, table_name=table)
+        df = read_mdb_file(mdb_path=self.mdb, table_name=table)
 
         # Validación defensiva por si la lectura devolvió un DataFrame vacío
         if df.empty:
@@ -135,7 +135,7 @@ class SlaveMongoMigrator:
     def migrate_honorarios(self):
         """Migrate HONORARIOS Facturareros table to MongoDB."""
         table = "LIQUIDACIONHONORARIOS"
-        df = get_df_from_mdb(mdb_path=self.mdb, table_name=table)
+        df = read_mdb_file(mdb_path=self.mdb, table_name=table)
 
         # Validación defensiva por si la lectura devolvió un DataFrame vacío
         if df.empty:

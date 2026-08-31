@@ -6,8 +6,11 @@ __all__ = [
     "process_listado_ctas_ctes",
     "cta_cte_unifier",
     "add_cuit_from_desc_prov",
+    "process_slave_honorarios",
+    "process_slave_factureros",
 ]
 
+from datetime import datetime
 from typing import Optional
 
 import numpy as np
@@ -363,30 +366,6 @@ def process_listado_ctas_ctes(dataframe: pd.DataFrame) -> pd.DataFrame:
 
 
 # --------------------------------------------------
-# def cta_cte_unifier(
-#     original_df: pd.DataFrame, cta_cte_nexo: str, token: Optional[str] = None
-# ) -> pd.DataFrame:
-#     """
-#     Map cta_cte in original_df to map_to in Ctas Ctes collection using cta_cte_nexo
-#     """
-#     if not original_df.empty:
-#         ctas_ctes = fetch_dataframe(
-#             Endpoints.CTAS_CTES.value, params={"limit": 0}, token=token
-#         )
-#         if not ctas_ctes.empty:
-#             map_to = ctas_ctes.loc[:, ["map_to", cta_cte_nexo]]
-#             map_df = pd.merge(
-#                 original_df,
-#                 map_to,
-#                 how="left",
-#                 left_on="cta_cte",
-#                 right_on=cta_cte_nexo,
-#             )
-#             map_df["cta_cte"] = map_df["map_to"]
-#             map_df.drop(["map_to", cta_cte_nexo], axis="columns", inplace=True)
-#             return map_df
-#         else:
-#             return original_df
 def cta_cte_unifier(
     original_df: pd.DataFrame, cta_cte_nexo: str, token: Optional[str] = None
 ) -> pd.DataFrame:
@@ -445,3 +424,60 @@ def add_cuit_from_desc_prov(
             return df
         else:
             return original_df
+
+
+# --------------------------------------------------
+def process_slave_honorarios(dataframe: pd.DataFrame) -> pd.DataFrame:
+    df = dataframe.copy()
+    df.rename(
+        columns={
+            "Fecha": "fecha",
+            "Proveedor": "beneficiario",
+            "Sellos": "sellos",
+            "Seguro": "seguro",
+            "Tipo": "tipo",
+            "Comprobante": "nro_comprobante",
+            "MontoBruto": "importe_bruto",
+            "IIBB": "iibb",
+            "LibramientoPago": "lp",
+            "OtraRetencion": "otras_retenciones",
+            "Anticipo": "anticipo",
+            "Descuento": "descuento",
+            "Actividad": "actividad",
+            "Partida": "partida",
+        },
+        inplace=True,
+    )
+
+    # df["fecha"] = pd.to_timedelta(df["fecha"], unit="D") + pd.Timestamp(
+    #     "1970-01-01"
+    # )
+    df["ejercicio"] = df["fecha"].dt.year
+    df["mes"] = df["fecha"].dt.strftime("%m/%Y")
+    df["mutual"] = 0
+    df["embargo"] = 0
+    keep = ["NoSIIF"]
+    df = df.loc[~df.nro_comprobante.str.contains("|".join(keep))]
+
+    # Solo procesamos el año actual
+    df = df.loc[df.ejercicio == datetime.today().year]
+
+    df["updated_at"] = pd.Timestamp.now()
+    return df
+
+
+# --------------------------------------------------
+def process_slave_factureros(dataframe: pd.DataFrame) -> pd.DataFrame:
+    df = dataframe.copy()
+    df.rename(
+        columns={
+            "Agentes": "beneficiario",
+            "Actividad": "actividad",
+            "Partida": "partida",
+        },
+        inplace=True,
+    )
+
+    df = df.drop_duplicates()
+    df["updated_at"] = pd.Timestamp.now()
+    return df

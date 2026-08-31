@@ -26,7 +26,7 @@ from src.services.api_client import (
     fetch_excel_stream,
     post_request,
 )
-from src.utils import read_csv_file, read_xls_file
+from src.utils import read_csv_file, read_mdb_file, read_xls_file
 
 
 # --------------------------------------------------
@@ -253,6 +253,7 @@ def report_template_with_uploader(
     uploader_func=None,
     uploader_help=None,
     upload_file_type: str = "csv",
+    upload_table_name: str = "",
 ):
     """
     Vista reutilizable.
@@ -329,15 +330,19 @@ def report_template_with_uploader(
         df = pd.DataFrame()  # DataFrame vacío por defecto
         if upload_file_type == "csv":
             df = read_csv_file(uploaded_file)
-        elif upload_file_type == "xls":
+        elif upload_file_type == "xlsx":
             df = read_xls_file(uploaded_file, header=0)
+        elif upload_file_type == "accdb":
+            df = read_mdb_file(uploaded_file, table_name=upload_table_name)
         if uploader_func:
             df = uploader_func(df)
         # Validación Visual (El "seguro" del usuario)
         col1, col2, col3 = st.columns(3)
         col1.metric("Filas a procesar", len(df))
         col2.metric("Columnas", len(df.columns))
-        col3.info("Validación: OK" if not df.empty else "Error: CSV Vacío o Incorrecto")
+        col3.info(
+            "Validación: OK" if not df.empty else "Error: Archivo Vacío o Incorrecto"
+        )
 
         with st.expander("Ver vista previa de datos limpios"):
             st.dataframe(df.head(10), width="stretch")

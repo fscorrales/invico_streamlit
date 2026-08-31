@@ -3,7 +3,10 @@ import streamlit as st
 
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import get_ctas_ctes, process_listado_ctas_ctes
+from src.services import (
+    fetch_dataframe,
+    process_slave_factureros,
+)
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -17,8 +20,27 @@ REPORTE = "slave_factureros"
 
 ayuda_uploader = """
 ### 📥 Guía de Importación
-Simplemente importe el archivo ctas_ctes.xlsx el cual debe contener las siguientes columnas...
+Simplemente importe el archivo Slave.accdb (es necesario convertirlo desde su versión antigua .mdb a una más moderna .accdb dentro de Access)
 """
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_slave_factureros(filtro_avanzado: str = "", update_trigger: int = 0):
+    df = pd.DataFrame()
+
+    params_peticion = {
+        "limit": 0,
+        "queryFilter": filtro_avanzado,
+    }
+
+    df = fetch_dataframe(ENDPONT, params=params_peticion)
+    if not df.empty:
+        df = df.sort_values(
+            ["beneficiario", "actividad", "partida"],
+        )
+
+    return df
 
 
 # --------------------------------------------------
@@ -26,14 +48,15 @@ def render() -> None:
 
     report_template_with_uploader(
         key=REPORTE,
-        title="SSCC - Reporte " + REPORTE,
-        description="Listado de Factureros SLAVE",
+        title="Slave - Tabla Factureros",
+        description="Listado de Personal Facturero de Slave",
         endpoint=ENDPONT,
         has_export=True,
         has_upload=True,
         uploader_help=ayuda_uploader,
-        uploader_func=process_listado_ctas_ctes,
-        upload_file_type="xlsx",
+        uploader_func=process_slave_factureros,
+        upload_file_type="accdb",
+        upload_table_name="PRECARIZADOS",
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):
@@ -55,8 +78,8 @@ def render() -> None:
     df = pd.DataFrame()
 
     try:
-        df = get_ctas_ctes(
-            filtro_avanzado=filtro_actual,
+        df = get_slave_factureros(
+            filtro_actual,
             update_trigger=trigger,
         )
 
@@ -74,9 +97,7 @@ def render() -> None:
     # 4. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
         # Definimos las columnas que NO queremos mostrar
-        first_cols = [
-            "map_to",
-        ]
+        first_cols = ["beneficiario"]
 
         # Generamos el orden dinámico: todas las del DF que no estén en la lista negra
         orden_dinamico = first_cols + [
@@ -85,6 +106,6 @@ def render() -> None:
 
         dataframe(
             df,
-            key=f"{REPORTE}_df_ctas_ctes",
+            key=f"{REPORTE}_df_slave_factureros",
             column_order=orden_dinamico,
         )

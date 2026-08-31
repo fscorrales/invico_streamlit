@@ -153,6 +153,11 @@ def build_navigation() -> None:
                 title="ICARO",
                 icon="🏗️",
             ),
+            st.Page(
+                "src/pages/tablas_auxiliares/slave/slave.py",
+                title="SLAVE",
+                icon="🏗️",
+            ),
         ],
     }
 
