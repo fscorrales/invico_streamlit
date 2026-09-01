@@ -105,14 +105,14 @@ def build_navigation() -> None:
                 icon="🔨",
             ),
             st.Page(
-                "src/pages/controles/control_honorarios.py",
-                title="Control Honorarios",
-                icon="📋",
-            ),
-            st.Page(
                 "src/pages/controles/control_haberes.py",
                 title="Control Haberes",
-                icon="👤",
+                icon="👷‍♂️",
+            ),
+            st.Page(
+                "src/pages/controles/control_honorarios/control_honorarios.py",
+                title="Control Honorarios",
+                icon="⛓️",
             ),
             st.Page(
                 "src/pages/controles/control_banco/control_banco.py",
@@ -156,7 +156,7 @@ def build_navigation() -> None:
             st.Page(
                 "src/pages/tablas_auxiliares/slave/slave.py",
                 title="SLAVE",
-                icon="🏗️",
+                icon="⛓️",
             ),
         ],
     }

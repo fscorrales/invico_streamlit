@@ -4,6 +4,7 @@ __all__ = [
     "request_sgf_credentials_modal",
     "request_siif_and_sscc_credentials_modal",
     "request_siif_and_sgf_credentials_modal",
+    "request_siif_sscc_and_sgf_credentials_modal",
 ]
 
 import time
@@ -378,6 +379,109 @@ def request_siif_and_sgf_credentials_modal(
                         return await automation_callback(
                             siif_username,
                             siif_password,
+                            sgf_username,
+                            sgf_password,
+                            key,
+                        )
+
+                try:
+                    results = asyncio.run(run_automation())
+                except RuntimeError:
+                    # Si ya hay un loop corriendo (común en Streamlit)
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    results = loop.run_until_complete(run_automation())
+
+                if results:
+                    st.success(
+                        f"Proceso finalizado: {len(results)} reportes procesados."
+                    )
+                    st.session_state[f"{key}_automation_success"] = True
+                else:
+                    st.info("Proceso terminado sin resultados nuevos.")
+
+                # Esperamos un segundo para que el usuario vea el éxito antes de recargar
+                time.sleep(1)
+                st.rerun()
+
+            except Exception as e:
+                st.error(f"❌ Error en la automatización SIIF y SGF: {str(e)}")
+
+        st.write(
+            "**Debe esperar a que este MODAL se cierre automáticamente al finalizar la automatización.**"
+        )
+
+
+@st.dialog("Credenciales SIIF, SSCC y SGF")
+# --------------------------------------------------
+def request_siif_sscc_and_sgf_credentials_modal(
+    automation_callback: Callable[[str, str, str, str, str, str, str], Any],
+    key: str = "",
+    downloaded_info: str = "-",
+):
+    """
+    Modal reutilizable para SIIF y SGF usando Pywinauto (Síncrono) y Playwright (Asíncrono).
+    automation_callback recibe (username, password) y devuelve la lista de resultados.
+    """
+    st.write(
+        "Ingrese sus credenciales de SIIF, SSCC y SGF para iniciar la automatización de escritorio."
+    )
+
+    # Usamos keys únicas para evitar colisiones con otros modales
+    siif_username = st.text_input("Usuario SIIF", key=f"siif_user_{key}")
+    siif_password = st.text_input(
+        "Contraseña SIIF", type="password", key=f"siif_pass_{key}"
+    )
+    sscc_username = st.text_input("Usuario SSCC", key=f"sscc_user_{key}")
+    sscc_password = st.text_input(
+        "Contraseña SSCC", type="password", key=f"sscc_pass_{key}"
+    )
+    sgf_username = st.text_input("Usuario SGF", key=f"sgf_user_{key}")
+    sgf_password = st.text_input(
+        "Contraseña SGF", type="password", key=f"sgf_pass_{key}"
+    )
+
+    st.write("**Reportes ha descargar:** " + downloaded_info)
+
+    with st.container(
+        horizontal=True, border=False, horizontal_alignment="center", gap="large"
+    ):
+        if button_cancel("Cancelar", type="secondary", key=f"{key}_btn_cancel"):
+            st.rerun()  # Cierra el modal de forma segura
+
+        if button_robot("Ejecutar", key=f"{key}_btn_robot"):
+            if (
+                not siif_username
+                or not siif_password
+                or not sscc_username
+                or not sscc_password
+                or not sgf_username
+                or not sgf_password
+            ):
+                st.error("Debe completar todos los campos.")
+                return
+
+            try:
+                # En Pywinauto, el spinner es vital porque el navegador/app
+                # puede tardar segundos en reaccionar.
+                with st.spinner(
+                    "🤖 Robot en ejecución... Por favor, no mueva el mouse."
+                ):
+                    import asyncio
+                    import sys
+
+                    # SOLUCIÓN PARA WINDOWS
+                    if sys.platform == "win32":
+                        asyncio.set_event_loop_policy(
+                            asyncio.WindowsProactorEventLoopPolicy()
+                        )
+
+                    async def run_automation():
+                        return await automation_callback(
+                            siif_username,
+                            siif_password,
+                            sscc_username,
+                            sscc_password,
                             sgf_username,
                             sgf_password,
                             key,
