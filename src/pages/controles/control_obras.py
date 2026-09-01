@@ -33,8 +33,8 @@ URL_SHEET = "https://docs.google.com/spreadsheets/d/16v2ovmQnS1v73-WxTOK6b9Tx9DR
 async def run_automation(
     siif_username: str,
     siif_password: str,
-    sscc_username: str,
-    sscc_password: str,
+    sgf_username: str,
+    sgf_password: str,
     reporte: str,
 ) -> None:
 
@@ -59,8 +59,8 @@ async def run_automation(
 
     # 2.b. Ejecutamos el módulo runner de SGF en un proceso separado
     control_obras.sync_control_obras_from_sgf(
-        sscc_username=sscc_username,
-        sscc_password=sscc_password,
+        sgf_username=sgf_username,
+        sgf_password=sgf_password,
         ejercicios=ejercicios,
         token=st.session_state.get("token"),
     )

@@ -21,21 +21,20 @@ from playwright.async_api import async_playwright
 
 from src.automation.siif.rdeu012 import Rdeu012
 from src.constants.endpoints import Endpoints
-from src.services import post_request
+from src.services import get_sgf_origenes, post_request
 
 
 # --------------------------------------------------
 def sync_control_obras_from_sgf(
-    sscc_username: str,
-    sscc_password: str,
+    sgf_username: str,
+    sgf_password: str,
     token: str,
     ejercicios: List[int],
-    origenes: List[str],
 ) -> None:
 
     modulo_runner = "src.automation.sgf.resumen_rend_prov_runner"
     ejercicios_str = ",".join(map(str, ejercicios))
-    origenes_str = ",".join(map(str, origenes))
+    origenes_str = ",".join(get_sgf_origenes())
 
     is_frozen = getattr(sys, "frozen", False)
 
@@ -45,8 +44,8 @@ def sync_control_obras_from_sgf(
             sys.executable,
             "--automation",
             modulo_runner,  # 🚀 Se convierte en sys.argv[1] antes de que el arranque lo limpie
-            sscc_username,
-            sscc_password,
+            sgf_username,
+            sgf_password,
             token,
             ejercicios_str,
             origenes_str,
@@ -57,8 +56,8 @@ def sync_control_obras_from_sgf(
             sys.executable,
             "-m",
             modulo_runner,
-            sscc_username,
-            sscc_password,
+            sgf_username,
+            sgf_password,
             token,
             ejercicios_str,
             origenes_str,
@@ -76,7 +75,7 @@ def sync_control_obras_from_sgf(
 
     # Esperamos que el SSCC termine antes de devolver el control a Streamlit
     process_sscc.wait()
-    print("✅ SSCC Finalizado.")
+    print("✅ SGF Finalizado.")
 
 
 # --------------------------------------------------
