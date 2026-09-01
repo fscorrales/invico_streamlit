@@ -88,8 +88,10 @@ async def sync_control_banco_from_siif(
             if df_clean is not None and not df_clean.empty:
                 # Send to backend
                 json_data = df_clean.to_dict(orient="records")
-                response = post_request(Endpoints.SIIF_RF602.value, json_body=json_data)
-                results.append(f"RF602 Ejercicio {ej}: {response}")
+                response = post_request(
+                    Endpoints.SIIF_RVICON03.value, json_body=json_data
+                )
+                results.append(f"RVICON03 Ejercicio {ej}: {response}")
 
         # 🔹 Rcocc31
         rcocc31 = Rcocc31(siif=connect_siif)
@@ -109,9 +111,9 @@ async def sync_control_banco_from_siif(
                     # Send to backend
                     json_data = df_clean.to_dict(orient="records")
                     response = post_request(
-                        Endpoints.SIIF_RF610.value, json_body=json_data
+                        Endpoints.SIIF_RCOCC31.value, json_body=json_data
                     )
-                    results.append(f"RF610 Ejercicio {ej}: {response}")
+                    results.append(f"RCOCC31 Ejercicio {ej}: {response}")
 
         # 🔹 Rcg01Uejp
         rcg01uejp = Rcg01Uejp(siif=connect_siif)
