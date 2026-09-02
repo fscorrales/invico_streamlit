@@ -407,23 +407,40 @@ def add_cuit_from_desc_prov(
     """
     Map cta_cte in original_df to map_to in Ctas Ctes collection using cta_cte_nexo
     """
-    if not original_df.empty:
-        prov_df = fetch_dataframe(
-            Endpoints.ICARO_PROVEEDORES.value, params={"limit": 0}, token=token
-        )
-        if not prov_df.empty:
-            prov_df = prov_df.loc[:, ["cuit", "desc_proveedor"]]
-            df = pd.merge(
-                left=original_df,
-                right=prov_df,
-                left_on=desc_prov_col,
-                right_on="desc_proveedor",
-                how="left",
-            )
-            df.drop(["desc_proveedor"], axis="columns", inplace=True)
-            return df
-        else:
-            return original_df
+    if original_df.empty:
+        return original_df
+
+    prov_df = fetch_dataframe(
+        Endpoints.ICARO_PROVEEDORES.value, params={"limit": 0}, token=token
+    )
+
+    if prov_df.empty or "desc_proveedor" not in prov_df.columns:
+        return original_df
+
+    # 1. Nos quedamos solo con campos clave y eliminamos duplicados en proveedores
+    prov_clean = (
+        prov_df.loc[:, ["cuit", "desc_proveedor"]]
+        .dropna(subset=["desc_proveedor"])
+        .drop_duplicates(subset=["desc_proveedor"], keep="first")
+    )
+
+    # 2. Hacemos el Merge asegurando que no se elimine ninguna fila original
+    df = pd.merge(
+        left=original_df,
+        right=prov_clean,
+        left_on=desc_prov_col,
+        right_on="desc_proveedor",
+        how="left",
+    )
+
+    # 3. Limpiamos columna auxiliar
+    if "desc_proveedor" in df.columns:
+        df.drop(columns=["desc_proveedor"], inplace=True)
+
+    # 4. Aseguramos que los valores sin CUIT sean None (compatibles con JSON/FastAPI)
+    df["cuit"] = df["cuit"].replace({np.nan: None})
+
+    return df
 
 
 # --------------------------------------------------
