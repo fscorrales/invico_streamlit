@@ -18,7 +18,7 @@ import streamlit as st
 
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import get_control_icaro_anual, get_ejercicios
+from src.services import fetch_dataframe, get_ejercicios
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -28,9 +28,26 @@ from src.views import (
     request_siif_credentials_modal,
 )
 
-ENDPONT = Endpoints.CONTROL_ICARO_ANUAL.value
+ENDPOINT = Endpoints.CONTROL_ICARO.value
 REPORTE = "control_icaro_anual"
 URL_SHEET = "https://docs.google.com/spreadsheets/d/1KKeeoop_v_Nf21s7eFp4sS6SmpxRZQ9DPa1A5wVqnZ0"
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_control_icaro_anual(
+    params: dict[str, Any] | None = None, update_trigger: int = 0
+):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(ENDPOINT + "/computeControlAnual", params=params)
+    # if not df.empty:
+    #     df = df.sort_values(
+    #         ["ejercicio", "mes", "grupo", "cta_cte"],
+    #         ascending=[False, True, True, True],
+    #     )
+
+    return df
 
 
 # --------------------------------------------------
@@ -51,7 +68,7 @@ def render(
     report_template(
         key=REPORTE,
         title=REPORTE.replace("_", " ").title(),
-        endpoint=ENDPONT,
+        endpoint=ENDPOINT,
         description=f"La automatización y la exportación impactan en los 3 subreportes/pestañas. Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_credentials_modal(
@@ -60,6 +77,7 @@ def render(
             downloaded_info="SIIF's rf602, rf610, gto_rpa03g, rcg01_uejp y rfondo07tp",
         ),
         export_endpoint=Endpoints.CONTROL_ICARO.value + "/export",
+        max_selections=1,
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):

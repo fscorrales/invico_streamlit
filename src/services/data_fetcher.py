@@ -29,9 +29,6 @@ __all__ = [
     "get_control_recursos",
     "get_control_aporte_empresario",
     "get_control_obras",
-    "get_control_icaro_anual",
-    "get_control_icaro_comprobantes",
-    "get_control_icaro_pa6",
     "get_control_banco_cruzado",
     "get_control_banco_siif",
     "get_control_banco_sscc",
@@ -635,57 +632,6 @@ def get_control_obras(params: dict[str, Any] | None = None, update_trigger: int 
     df = pd.DataFrame()
 
     df = fetch_dataframe(Endpoints.CONTROL_OBRAS.value, params=params)
-    # if not df.empty:
-    #     df = df.sort_values(
-    #         ["ejercicio", "mes", "grupo", "cta_cte"],
-    #         ascending=[False, True, True, True],
-    #     )
-
-    return df
-
-
-# --------------------------------------------------
-@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
-def get_control_icaro_anual(
-    params: dict[str, Any] | None = None, update_trigger: int = 0
-):
-    df = pd.DataFrame()
-
-    df = fetch_dataframe(Endpoints.CONTROL_ICARO_ANUAL.value, params=params)
-    # if not df.empty:
-    #     df = df.sort_values(
-    #         ["ejercicio", "mes", "grupo", "cta_cte"],
-    #         ascending=[False, True, True, True],
-    #     )
-
-    return df
-
-
-# --------------------------------------------------
-@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
-def get_control_icaro_comprobantes(
-    params: dict[str, Any] | None = None, update_trigger: int = 0
-):
-    df = pd.DataFrame()
-
-    df = fetch_dataframe(Endpoints.CONTROL_ICARO_COMPROBANTES.value, params=params)
-    # if not df.empty:
-    #     df = df.sort_values(
-    #         ["ejercicio", "mes", "grupo", "cta_cte"],
-    #         ascending=[False, True, True, True],
-    #     )
-
-    return df
-
-
-# --------------------------------------------------
-@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
-def get_control_icaro_pa6(
-    params: dict[str, Any] | None = None, update_trigger: int = 0
-):
-    df = pd.DataFrame()
-
-    df = fetch_dataframe(Endpoints.CONTROL_ICARO_PA6.value, params=params)
     # if not df.empty:
     #     df = df.sort_values(
     #         ["ejercicio", "mes", "grupo", "cta_cte"],
