@@ -17,7 +17,7 @@ from src.views import (
     request_sgf_credentials_modal,
 )
 
-ENDPONT = Endpoints.SGF_RESUMEN_REND_OBRAS.value
+ENDPOINT = Endpoints.SGF_RESUMEN_REND_OBRAS.value
 REPORTE = "sgf_resumen_rend_obras"
 # ORIGENES = get_sgf_origenes()
 ORIGENES = ["EPAM"]
@@ -112,7 +112,7 @@ def render() -> None:
     report_template(
         key=REPORTE,
         title="Reporte " + REPORTE.replace("_", " ").title(),
-        endpoint=ENDPONT,
+        endpoint=ENDPOINT,
         description="",
         filters_config=mis_filtros,
         update_func=lambda: request_sgf_credentials_modal(run_automation, key=REPORTE),

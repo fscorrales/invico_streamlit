@@ -25,7 +25,7 @@ from src.views import (
     request_siif_credentials_modal,
 )
 
-ENDPONT = Endpoints.CONTROL_APORTE_EMPRESARIO.value
+ENDPOINT = Endpoints.CONTROL_APORTE_EMPRESARIO.value
 REPORTE = "control_aporte_empresario"
 URL_SHEET = "https://docs.google.com/spreadsheets/d/1rbc5eMwJeW1fB5F5eKpczFmTrC6rpiJu89xTdhkWfZY"
 
@@ -75,7 +75,7 @@ def render() -> None:
     report_template(
         key=REPORTE,
         title=REPORTE.replace("_", " ").title(),
-        endpoint=ENDPONT,
+        endpoint=ENDPOINT,
         description=f"Cruce de Recurso 3% (rci02) vs Retención 337 (rcocc31). Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_credentials_modal(

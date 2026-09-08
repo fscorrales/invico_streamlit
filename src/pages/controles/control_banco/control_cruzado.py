@@ -15,7 +15,7 @@ from src.views import (
     request_siif_and_sscc_credentials_modal,
 )
 
-ENDPONT = Endpoints.CONTROL_BANCO_CRUZADO.value
+ENDPOINT = Endpoints.CONTROL_BANCO_CRUZADO.value
 REPORTE = "control_banco_cruzado"
 URL_SHEET = "https://docs.google.com/spreadsheets/d/1CRQjzIVzHKqsZE8_E1t8aRQDfWfZALhbe64WcxHiSM4"
 
@@ -38,7 +38,7 @@ def render(
     report_template(
         key=REPORTE,
         title=REPORTE.replace("_", " ").title(),
-        endpoint=ENDPONT,
+        endpoint=ENDPOINT,
         description=f"La automatización y la exportación impactan en los 3 subreportes/pestañas. Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_and_sscc_credentials_modal(

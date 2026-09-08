@@ -10,7 +10,7 @@ from src.utils import (
 )
 from src.views.aux_tables import report_template
 
-ENDPONT = Endpoints.ICARO_CARGA.value
+ENDPOINT = Endpoints.ICARO_CARGA.value
 REPORTE = "icaro_carga"
 
 
@@ -30,7 +30,7 @@ def render() -> None:
     report_template(
         key=REPORTE,
         title="ICARO - Reporte " + REPORTE,
-        endpoint=ENDPONT,
+        endpoint=ENDPOINT,
         description="Tabla de Carga de Datos en ICARO",
         filters_config=mis_filtros,
         update_func=None,

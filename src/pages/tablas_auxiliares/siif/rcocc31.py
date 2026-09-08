@@ -19,7 +19,7 @@ from src.views import (
     request_siif_credentials_modal,
 )
 
-ENDPONT = Endpoints.SIIF_RCOCC31.value
+ENDPOINT = Endpoints.SIIF_RCOCC31.value
 REPORTE = "rcocc31"
 CUENTAS_CONTABLES = ["1112-2-6"]
 
@@ -63,7 +63,7 @@ async def run_automation(username: str, password: str, reporte: str) -> None:
                 if df_clean is not None and not df_clean.empty:
                     # Send to backend
                     json_data = df_clean.to_dict(orient="records")
-                    response = post_request(ENDPONT, json_body=json_data)
+                    response = post_request(ENDPOINT, json_body=json_data)
                     results.append(f"Ejercicio {ej}: {response}")
 
         await siif.logout()
@@ -93,7 +93,7 @@ def render() -> None:
     report_template(
         key=REPORTE,
         title="SIIF - Reporte " + REPORTE,
-        endpoint=ENDPONT,
+        endpoint=ENDPOINT,
         description="Listado de Fondos del Ejercicio por Tipo de Comprobante",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_credentials_modal(run_automation, key=REPORTE),

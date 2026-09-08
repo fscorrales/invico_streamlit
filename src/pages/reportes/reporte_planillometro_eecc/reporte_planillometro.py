@@ -25,7 +25,7 @@ from src.views import (
     request_siif_credentials_modal,
 )
 
-ENDPONT = Endpoints.REPORTE_PLANILLOMETRO.value
+ENDPOINT = Endpoints.REPORTE_PLANILLOMETRO.value
 REPORTE = "reporte_planillometro_eecc"
 URL_SHEET = "https://docs.google.com/spreadsheets/d/1Hmb7xmzhZBoicnL5_tN7mr1kOj-r3gw8lCkPErR8Xd4"
 
@@ -48,7 +48,7 @@ def render(
     report_template(
         key=REPORTE,
         title=REPORTE.replace("_", " ").title(),
-        endpoint=ENDPONT,
+        endpoint=ENDPOINT,
         description=f"La automatización y la exportación impactan en los 3 subreportes/pestañas. Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_credentials_modal(
@@ -56,7 +56,7 @@ def render(
             key=REPORTE,
             downloaded_info="SIIF's rf610 y Planillometro Histórico de Patricia.",
         ),
-        export_endpoint=ENDPONT + "/exportEECC",
+        export_endpoint=ENDPOINT + "/exportEECC",
         has_advanced_filter=False,
         max_selections=1,  # Limitar a un solo ejercicio por vez
     )

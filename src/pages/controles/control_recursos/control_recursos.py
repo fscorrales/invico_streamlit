@@ -25,7 +25,7 @@ from src.views import (
     request_siif_and_sscc_credentials_modal,
 )
 
-ENDPONT = Endpoints.CONTROL_RECURSOS.value
+ENDPOINT = Endpoints.CONTROL_RECURSOS.value
 REPORTE = "control_recursos"
 URL_SHEET = "https://docs.google.com/spreadsheets/d/1rbc5eMwJeW1fB5F5eKpczFmTrC6rpiJu89xTdhkWfZY"
 
@@ -89,7 +89,7 @@ def render() -> None:
     report_template(
         key=REPORTE,
         title=REPORTE.replace("_", " ").title(),
-        endpoint=ENDPONT,
+        endpoint=ENDPOINT,
         description=f"Cruce de recursos SIIF vs Depósitos Bancarios por tipo de recurso y cta. cte. Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_and_sscc_credentials_modal(

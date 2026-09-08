@@ -29,7 +29,7 @@ from src.views import (
     request_siif_sscc_and_sgf_credentials_modal,
 )
 
-ENDPONT = Endpoints.CONTROL_HONORARIOS.value
+ENDPOINT = Endpoints.CONTROL_HONORARIOS.value
 REPORTE = "control_siif_vs_slave"
 URL_SHEET = "https://docs.google.com/spreadsheets/d/1fQhp1CdESnvqzrp3QMV5bFSHmGdi7SNoaBRWtmw-JgA"
 
@@ -41,7 +41,7 @@ def get_control_siif_vs_slave(
 ):
     df = pd.DataFrame()
 
-    df = fetch_dataframe(ENDPONT + "/computeSIIFVsSlave", params=params)
+    df = fetch_dataframe(ENDPOINT + "/computeSIIFVsSlave", params=params)
     # if not df.empty:
     #     df = df.sort_values(
     #         ["ejercicio", "mes", "grupo", "cta_cte"],
@@ -69,7 +69,7 @@ def render(
     report_template(
         key=REPORTE,
         title=REPORTE.replace("_", " ").title(),
-        endpoint=ENDPONT,
+        endpoint=ENDPOINT,
         description=f"Cruce de SIIF vs SLAVE. Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_sscc_and_sgf_credentials_modal(
@@ -78,7 +78,7 @@ def render(
             downloaded_info="SIIF: rcg01_uejp y rpa03g. SSCC's Resumen General de Movimientos y ctas_ctes. SGF: Resumen de Rendiciones Proveedores. SLAVE debe ser actualizado en el menu tablas auxiliares.",
         ),
         max_selections=1,
-        export_endpoint=ENDPONT + "/export",
+        export_endpoint=ENDPOINT + "/export",
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):

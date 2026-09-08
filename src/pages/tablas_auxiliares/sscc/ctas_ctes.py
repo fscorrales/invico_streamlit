@@ -12,7 +12,7 @@ from src.views import (
     report_template_with_uploader,
 )
 
-ENDPONT = Endpoints.CTAS_CTES.value
+ENDPOINT = Endpoints.CTAS_CTES.value
 REPORTE = "ctas_ctes"
 
 ayuda_uploader = """
@@ -28,7 +28,7 @@ def render() -> None:
         key=REPORTE,
         title="SSCC - Reporte " + REPORTE,
         description="Unificador de Cuentas Corrientes",
-        endpoint=ENDPONT,
+        endpoint=ENDPOINT,
         has_export=True,
         has_upload=True,
         uploader_help=ayuda_uploader,

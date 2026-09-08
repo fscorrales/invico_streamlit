@@ -15,7 +15,7 @@ from src.views import (
     report_template_with_uploader,
 )
 
-ENDPONT = Endpoints.SLAVE_FACTUREROS.value
+ENDPOINT = Endpoints.SLAVE_FACTUREROS.value
 REPORTE = "slave_factureros"
 
 ayuda_uploader = """
@@ -34,7 +34,7 @@ def get_slave_factureros(filtro_avanzado: str = "", update_trigger: int = 0):
         "queryFilter": filtro_avanzado,
     }
 
-    df = fetch_dataframe(ENDPONT, params=params_peticion)
+    df = fetch_dataframe(ENDPOINT, params=params_peticion)
     if not df.empty:
         df = df.sort_values(
             ["beneficiario", "actividad", "partida"],
@@ -50,7 +50,7 @@ def render() -> None:
         key=REPORTE,
         title="Slave - Tabla Factureros",
         description="Listado de Personal Facturero de Slave",
-        endpoint=ENDPONT,
+        endpoint=ENDPOINT,
         has_export=True,
         has_upload=True,
         uploader_help=ayuda_uploader,

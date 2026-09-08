@@ -17,7 +17,7 @@ from src.views import (
     request_sscc_credentials_modal,
 )
 
-ENDPONT = Endpoints.SSCC_BANCO_INVICO.value
+ENDPOINT = Endpoints.SSCC_BANCO_INVICO.value
 REPORTE = "banco_invico"
 
 
@@ -92,7 +92,7 @@ def render() -> None:
     report_template(
         key=REPORTE,
         title="SSCC - Reporte " + REPORTE,
-        endpoint=ENDPONT,
+        endpoint=ENDPOINT,
         description="",
         filters_config=mis_filtros,
         update_func=lambda: request_sscc_credentials_modal(run_automation, key=REPORTE),

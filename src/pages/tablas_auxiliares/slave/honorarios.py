@@ -12,7 +12,7 @@ from src.utils import (
 )
 from src.views import report_template_with_uploader
 
-ENDPONT = Endpoints.SLAVE_HONORARIOS.value
+ENDPOINT = Endpoints.SLAVE_HONORARIOS.value
 REPORTE = "slave_honorarios"
 
 ayuda_uploader = """
@@ -51,7 +51,7 @@ def render() -> None:
         key=REPORTE,
         title="Slave - Tabla Honorarios",
         description="Tabla Honorarios de Slave",
-        endpoint=ENDPONT,
+        endpoint=ENDPOINT,
         has_export=True,
         has_upload=True,
         uploader_help=ayuda_uploader,

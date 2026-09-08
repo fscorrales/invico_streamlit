@@ -30,7 +30,7 @@ from src.views import (
     request_siif_and_sscc_credentials_modal,
 )
 
-ENDPONT = Endpoints.CONTROL_HABERES.value
+ENDPOINT = Endpoints.CONTROL_HABERES.value
 REPORTE = "control_haberes"
 URL_SHEET = "https://docs.google.com/spreadsheets/d/1A9ypUkwm4kfLqUAwr6-55crcFElisOO9fOdI6iflMAc"
 
@@ -40,7 +40,7 @@ URL_SHEET = "https://docs.google.com/spreadsheets/d/1A9ypUkwm4kfLqUAwr6-55crcFEl
 def get_control_haberes(params: dict[str, Any] | None = None, update_trigger: int = 0):
     df = pd.DataFrame()
 
-    df = fetch_dataframe(ENDPONT + "/compute", params=params)
+    df = fetch_dataframe(ENDPOINT + "/compute", params=params)
     # if not df.empty:
     #     df = df.sort_values(
     #         ["ejercicio", "mes", "grupo", "cta_cte"],
@@ -106,7 +106,7 @@ def render() -> None:
     report_template(
         key=REPORTE,
         title=REPORTE.replace("_", " ").title(),
-        endpoint=ENDPONT,
+        endpoint=ENDPOINT,
         description=f"SIIF Haberes vs SSCC. Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_and_sscc_credentials_modal(

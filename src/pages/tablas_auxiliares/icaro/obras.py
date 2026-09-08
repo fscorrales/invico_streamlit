@@ -10,7 +10,7 @@ from src.utils import (
 )
 from src.views.aux_tables import report_template_with_uploader
 
-ENDPONT = Endpoints.ICARO_OBRAS.value
+ENDPOINT = Endpoints.ICARO_OBRAS.value
 REPORTE = "icaro_obras"
 
 
@@ -21,7 +21,7 @@ def render() -> None:
         key=REPORTE,
         title="Icaro - Reporte " + REPORTE,
         description="Tabla de Obras de ICARO",
-        endpoint=ENDPONT,
+        endpoint=ENDPOINT,
         has_export=True,
         has_upload=False,
     )
