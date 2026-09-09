@@ -5,6 +5,7 @@ from src.pages.reportes.reporte_formulacion import (
     reporte_carga_formulacion,
     reporte_gastos,
     reporte_planillometro,
+    reporte_proyeccion,
     reporte_recursos,
 )
 
@@ -35,12 +36,19 @@ async def run_automation(siif_username: str, siif_password: str, reporte: str) -
 
 
 def main() -> None:
-    tab_carga_formulacion, tab_recursos, tab_gastos, tab_planillometro = st.tabs(
+    (
+        tab_carga_formulacion,
+        tab_recursos,
+        tab_gastos,
+        tab_planillometro,
+        tab_proyeccion,
+    ) = st.tabs(
         [
             "Carga Formulación",
             "Ejecución de Recursos",
             "Ejecución de Gastos",
             "Planillómetro Obras",
+            "Ejecución para Proyeccion",
         ],
         on_change="rerun",
     )
@@ -56,6 +64,9 @@ def main() -> None:
 
     if tab_planillometro.open:
         reporte_planillometro.render(run_automation)
+
+    if tab_proyeccion.open:
+        reporte_proyeccion.render(run_automation)
 
 
 if __name__ == "__main__":
