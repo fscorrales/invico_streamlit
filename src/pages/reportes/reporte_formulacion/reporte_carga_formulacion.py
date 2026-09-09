@@ -19,7 +19,7 @@ import streamlit as st
 
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import get_ejercicios, get_reporte_formulacion_carga
+from src.services import fetch_dataframe, get_ejercicios
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -29,9 +29,26 @@ from src.views import (
     request_siif_credentials_modal,
 )
 
-ENDPOINT = Endpoints.REPORTE_FORMULACION_CARGA.value
+ENDPOINT = Endpoints.REPORTE_FORMULACION.value + "/carga"
 REPORTE = "reporte_formulacion_carga"
 URL_SHEET = "https://docs.google.com/spreadsheets/d/1hJyBOkA8sj5otGjYGVOzYViqSpmv_b4L8dXNju_GJ5Q/edit?gid=793724089#gid=793724089"
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_reporte_formulacion_carga(
+    params: dict[str, Any] | None = None, update_trigger: int = 0
+):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(ENDPOINT, params=params)
+    # if not df.empty:
+    #     df = df.sort_values(
+    #         ["ejercicio", "mes", "grupo", "cta_cte"],
+    #         ascending=[False, True, True, True],
+    #     )
+
+    return df
 
 
 # --------------------------------------------------
@@ -51,7 +68,7 @@ def render(automation_func: Optional[Any] = None) -> None:
         key=REPORTE,
         title=REPORTE.replace("_", " ").title(),
         endpoint=ENDPOINT,
-        description=f"La automatización y la exportación impactan en los 4 subreportes/pestañas. Datos exportados en [Google Sheet]({URL_SHEET}).",
+        description=f"La automatización y la exportación impactan en los 5 subreportes/pestañas. Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_credentials_modal(
             automation_func,
