@@ -114,6 +114,7 @@ def render() -> None:
             key=REPORTE,
             downloaded_info="SIIF's rdeu012, rcocc31 (2122-1-2), gto_rpa03g y rcg01_uejp. SSCC's Banco INVICO",
         ),
+        max_selections=1,
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):

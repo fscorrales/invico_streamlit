@@ -11,13 +11,15 @@ Google Sheet:
     - https://docs.google.com/spreadsheets/d/16v2ovmQnS1v73-WxTOK6b9Tx9DRugGc70ufpjVi-rPA
 """
 
+from typing import Any
+
 import pandas as pd
 import streamlit as st
 
 from src.automation.analysis import control_obras
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import get_control_obras, get_ejercicios
+from src.services import fetch_dataframe, get_ejercicios
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -27,6 +29,21 @@ from src.views import report_template, request_siif_and_sgf_credentials_modal
 ENDPOINT = Endpoints.CONTROL_OBRAS.value
 REPORTE = "control_obras"
 URL_SHEET = "https://docs.google.com/spreadsheets/d/16v2ovmQnS1v73-WxTOK6b9Tx9DRugGc70ufpjVi-rPA"
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_control_obras(params: dict[str, Any] | None = None, update_trigger: int = 0):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(ENDPOINT + "/compute", params=params)
+    # if not df.empty:
+    #     df = df.sort_values(
+    #         ["ejercicio", "mes", "grupo", "cta_cte"],
+    #         ascending=[False, True, True, True],
+    #     )
+
+    return df
 
 
 # --------------------------------------------------
@@ -67,7 +84,7 @@ async def run_automation(
     results.append("SGF ejecutado correctamente.")
 
     # 3. Combinamos las tablas y actualizamos el reporte
-    control_obras.compute_control_obras(ejercicios=ejercicios)
+    # control_obras.compute_control_obras(ejercicios=ejercicios)
 
     return results
 
@@ -96,6 +113,7 @@ def render() -> None:
             key=REPORTE,
             downloaded_info="SIIF's rdeu012. SGF: Resumen de Rendiciones por Proveedor y Listado Proveedores (desde ICARO)",
         ),
+        max_selections=1,
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):

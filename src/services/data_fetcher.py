@@ -28,7 +28,6 @@ __all__ = [
     "get_icaro_obras",
     "get_control_recursos",
     "get_control_aporte_empresario",
-    "get_control_obras",
     "get_control_banco_cruzado",
     "get_control_banco_siif",
     "get_control_banco_sscc",
@@ -613,21 +612,6 @@ def get_control_aporte_empresario(
     df = fetch_dataframe(
         Endpoints.CONTROL_APORTE_EMPRESARIO.value + "/generateICARO", params=params
     )
-    # if not df.empty:
-    #     df = df.sort_values(
-    #         ["ejercicio", "mes", "grupo", "cta_cte"],
-    #         ascending=[False, True, True, True],
-    #     )
-
-    return df
-
-
-# --------------------------------------------------
-@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
-def get_control_obras(params: dict[str, Any] | None = None, update_trigger: int = 0):
-    df = pd.DataFrame()
-
-    df = fetch_dataframe(Endpoints.CONTROL_OBRAS.value, params=params)
     # if not df.empty:
     #     df = df.sort_values(
     #         ["ejercicio", "mes", "grupo", "cta_cte"],
