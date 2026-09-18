@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pandas as pd
 import streamlit as st
 from playwright.async_api import async_playwright
@@ -59,10 +61,10 @@ def render() -> None:
     mis_filtros = [
         {
             "label": "Elija los ejercicios a consultar",
-            "options": get_ejercicios(),
+            "options": get_ejercicios() + [datetime.today().year + 1],
             "query_param": "ejercicio",
             "key": "ejercicios_" + REPORTE,
-            "default": get_ejercicios()[-1],
+            "default": get_ejercicios()[-2],
         },
     ]
 
