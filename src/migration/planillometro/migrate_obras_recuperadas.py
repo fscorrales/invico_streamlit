@@ -37,10 +37,10 @@ if str(PROJECT_ROOT) not in sys.path:
 
 import gspread  # noqa: E402
 
+from src.config import settings  # noqa: E402
 from src.models.schemas import ObrasRecuperadasReport  # noqa: E402
 from src.services.api_client import fetch_data, post_request  # noqa: E402
 from src.services.auth_service import login  # noqa: E402
-from src.utils.config import settings  # noqa: E402
 from src.utils.exceptions import (  # noqa: E402
     APIConnectionError,
     APIResponseError,

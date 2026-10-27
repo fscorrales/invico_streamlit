@@ -20,7 +20,7 @@ import gspread  # https://docs.gspread.org/en/latest/index.html#
 import pandas as pd
 from google.oauth2.service_account import Credentials
 
-from src.utils.config import settings
+from src.config import settings
 
 # from google.oauth2.service_account import Credentials
 

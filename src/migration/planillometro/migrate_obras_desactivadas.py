@@ -36,8 +36,8 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 import gspread  # noqa: E402
+from src.config import settings  # noqa: E402
 from src.models.schemas import ObrasDesactivadasReport  # noqa: E402
-from src.utils.config import settings  # noqa: E402
 from src.utils.google_sheets import GoogleSheets  # noqa: E402
 from src.utils.transform_data import parse_moneda_ar  # noqa: E402
 
