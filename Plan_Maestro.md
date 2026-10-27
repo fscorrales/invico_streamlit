@@ -119,7 +119,7 @@ invico_streamlit/
 * Para descargas de archivos/reportes mediante `StreamingResponse` de FastAPI, se debe utilizar `fetch_excel_stream` activando `follow_redirects=True` (prevención de redirecciones 307 de Koyeb) y capturando los bytes en objetos `BytesIO` para consumirlos con `st.download_button`.
 
 
-* Los retornos de mutaciones (`POST`) deben seguir la estructura estandarizada `RouteReturnSchema` (`title`, `deleted`, `added`, `errors`) para ser representados en pantalla mediante métricas y expanders de detalles.
+* Los retornos de mutaciones (`POST`) deben seguir la estructura estandarizada `RouteReturnSchema` (`title`, `deleted`, `added`, `errors`). En pantalla, un `POST` exitoso se comunica solo mediante `st.toast`; si `errors` no está vacío, se renderiza `st.warning` + métricas (`st.metric`) + expander de detalles (`doc_id`, `loc`, `msg`).
 
 
 
@@ -195,4 +195,4 @@ El binario ejecutable final autónomo se generará de manera limpia dentro de la
 3. **Refactorización de Modales:** Asegurar que los modales de credenciales en `src/views/modals.py` reciban el callback del runner o la llamada al subproceso de forma agnóstica.
 
 
-4. **Resumen de Procesamiento:** Implementar debajo de las tablas principales el bloque de métricas visuales (`st.metric`) y expanders de inconsistencias (`ErrorsWithDocId`) al finalizar las ejecuciones de los robots.
+4. **Resumen de Procesamiento:** Al finalizar las ejecuciones de los robots, emitir un `st.toast` con el resumen de la mutación; solo si hay inconsistencias (`ErrorsWithDocId`), renderizar debajo de las tablas principales `st.warning` + métricas visuales (`st.metric`) + expander de detalles.

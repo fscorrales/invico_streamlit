@@ -31,7 +31,7 @@
   2. Notificar al usuario final mediante componentes estéticos (`st.error()`, `st.toast()`).
   3. Para exportaciones con `StreamingResponse` de FastAPI, asegurar el flag `follow_redirects=True` en `httpx` para prevenir caídas silenciosas por redirecciones 307 de Koyeb.
 - **Resumen de Mutaciones (`RouteReturnSchema`):**
-  - Las operaciones `POST` exitosas deben renderizarse debajo de las tablas o dentro de los modales mediante componentes visuales (`st.metric`) y expanders de detalles (`doc_id`, `loc`, `msg`) para inconsistencias de Pydantic/MongoDB.
+  - Las operaciones `POST` exitosas no deben mostrar nada bajo las tablas o dentro de los modales, solo el toast. Si hay errores, mostrar `st.warning` + métricas + expander de detalles (`doc_id`, `loc`, `msg`) para inconsistencias de Pydantic/MongoDB.
 
 ---
 
