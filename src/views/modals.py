@@ -12,7 +12,7 @@ from typing import Any, Callable
 
 import streamlit as st
 
-from src.components import button_cancel, button_robot
+from src.components import button_cancel, button_robot, button_skip
 
 
 @st.dialog("Credenciales SIIF")
@@ -25,6 +25,7 @@ def request_siif_credentials_modal(
     """
     Modal reutilizable para solicitar credenciales del SIIF.
     automation_callback recibe (username, password, key).
+    Permite omitir la descarga para no ejecutar la automatización.
     """
     st.write("Ingrese sus credenciales de SIIF para iniciar la descarga.")
     username = st.text_input("Usuario")
@@ -32,14 +33,30 @@ def request_siif_credentials_modal(
     st.write("**Reportes ha descargar:** " + downloaded_info)
 
     with st.container(
-        horizontal=True, border=False, horizontal_alignment="center", gap="large"
+        horizontal=True, border=False, horizontal_alignment="center", gap="medium"
     ):
         if button_cancel("Cancelar", type="secondary", key=f"{key}_btn_cancel"):
             st.rerun()  # Cierra el modal de forma segura
 
+        if button_skip(
+            "Omitir",
+            key=f"{key}_btn_skip",
+            help="Saltea la descarga del reporte y actualiza la vista con los datos ya cargados.",
+        ):
+            # No se ejecuta la automatización: solo se refresca la vista
+            st.session_state[f"{key}_automation_success"] = True
+            st.rerun()
+
         if button_robot("Ejecutar", key=f"{key}_btn_robot"):
             if not username or not password:
                 st.error("Debe ingresar usuario y contraseña.")
+                return
+
+            if automation_callback is None:
+                st.error(
+                    "No hay ninguna automatización configurada para este reporte. "
+                    "Utilice 'Omitir' para continuar sin descargar."
+                )
                 return
 
             try:
