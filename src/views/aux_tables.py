@@ -374,8 +374,22 @@ def report_template_with_uploader(
                             else:
                                 st.toast(mensaje_toast, icon="✅")
 
-                            # 3. Gestión de Errores Detallados (Si existen)
+                            # 3. Render condicional: éxito -> solo toast;
+                            #    errores -> warning + métricas + expander
                             if num_errores > 0:
+                                st.warning(
+                                    f"⚠️ **{titulo}**: {num_errores} "
+                                    "inconsistencias detectadas durante la "
+                                    "sincronización."
+                                )
+                                mc1, mc2, mc3 = st.columns(3)
+                                mc1.metric("Registros Agregados", agregados)
+                                mc2.metric("Registros Eliminados", eliminados)
+                                mc3.metric(
+                                    "Inconsistencias",
+                                    num_errores,
+                                    delta_color="inverse",
+                                )
                                 with st.expander(
                                     "❌ Detalle de Inconsistencias por Documento",
                                     expanded=True,
@@ -395,7 +409,7 @@ def report_template_with_uploader(
                                             st.write(f"💬 {det['msg']}")
                                         st.divider()
                             else:
-                                st.balloons()
+                                # Éxito: solo el toast (regla AGENTS.md)
                                 st.session_state[f"{key}_uploader_iteration"] += 1
                                 time.sleep(3)
                                 st.rerun()
