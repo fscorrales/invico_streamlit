@@ -4,7 +4,7 @@ import httpx
 
 import src.utils.exceptions as ex
 from src.config import settings
-from src.services.models import PublicStoredUser
+from src.models.schemas import PublicStoredUser
 
 BASE_URL = settings.BASE_URL
 DEFAULT_TIMEOUT = 60.0

@@ -25,7 +25,7 @@ from src.automation.siif.connect_siif import (
     SIIFReportManager,
     login,
 )
-from src.services.models import GrupoPartidaSIIF
+from src.models.schemas import GrupoPartidaSIIF
 from src.utils.print_tables import print_rich_table
 
 

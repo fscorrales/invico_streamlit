@@ -24,7 +24,7 @@ from src.automation.siif.connect_siif import (
     SIIFReportManager,
     login,
 )
-from src.services.models import TipoComprobanteSIIF
+from src.models.schemas import TipoComprobanteSIIF
 from src.utils.print_tables import print_rich_table
 
 
