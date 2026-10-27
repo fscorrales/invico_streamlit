@@ -53,11 +53,11 @@ def render() -> None:
         description="Tabla Honorarios de Slave",
         endpoint=ENDPOINT,
         has_export=True,
-        has_upload=True,
-        uploader_help=ayuda_uploader,
-        uploader_func=process_slave_honorarios,
-        upload_file_type="accdb",
-        upload_table_name="LIQUIDACIONHONORARIOS",
+        has_upload=False,
+        # uploader_help=ayuda_uploader,
+        # uploader_func=process_slave_honorarios,
+        # upload_file_type="accdb",
+        # upload_table_name="LIQUIDACIONHONORARIOS",
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):

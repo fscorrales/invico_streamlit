@@ -52,11 +52,11 @@ def render() -> None:
         description="Listado de Personal Facturero de Slave",
         endpoint=ENDPOINT,
         has_export=True,
-        has_upload=True,
-        uploader_help=ayuda_uploader,
-        uploader_func=process_slave_factureros,
-        upload_file_type="accdb",
-        upload_table_name="PRECARIZADOS",
+        has_upload=False,
+        # uploader_help=ayuda_uploader,
+        # uploader_func=process_slave_factureros,
+        # upload_file_type="accdb",
+        # upload_table_name="PRECARIZADOS",
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):
