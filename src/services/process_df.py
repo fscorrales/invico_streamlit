@@ -8,6 +8,7 @@ __all__ = [
     "add_cuit_from_desc_prov",
     "process_slave_honorarios",
     "process_slave_factureros",
+    "apply_text_filters",
 ]
 
 from datetime import datetime
@@ -498,3 +499,41 @@ def process_slave_factureros(dataframe: pd.DataFrame) -> pd.DataFrame:
     df = df.drop_duplicates()
     df["updated_at"] = pd.Timestamp.now()
     return df
+
+
+# --------------------------------------------------
+def apply_text_filters(
+    df: pd.DataFrame,
+    filters: dict[str, str],
+) -> pd.DataFrame:
+    """
+    Aplica filtros de texto en cascada sobre un DataFrame (frontend puro).
+
+    Cada entrada ``{columna: valor}`` conserva las filas cuyo valor de
+    ``columna`` contiene ``valor`` (búsqueda literal sin regex,
+    case-insensitive). Las entradas con valor vacío se ignoran.
+
+    Pensada para los filtros particulares de tabla que renderiza
+    ``components.text_inputs.text_filters_bar()``.
+
+    Args:
+        df: DataFrame a filtrar (no se modifica en el lugar).
+        filters: Dict ``{nombre_columna: texto_buscado}``.
+
+    Returns:
+        Subconjunto de ``df`` que satisface todos los filtros.
+
+    Raises:
+        KeyError: Si ``filters`` menciona una columna inexistente en
+            ``df`` (error de configuración; se propaga sin silenciar).
+    """
+    df_filtrado: pd.DataFrame = df
+    for columna, valor in filters.items():
+        if not valor:
+            continue
+        df_filtrado = df_filtrado[
+            df_filtrado[columna]
+            .astype(str)
+            .str.contains(valor, case=False, regex=False)
+        ]
+    return df_filtrado
