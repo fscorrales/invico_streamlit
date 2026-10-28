@@ -5,7 +5,7 @@ import streamlit as st
 
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import get_control_banco_siif, get_ejercicios
+from src.services import get_control_banco_siif, get_ejercicios_list
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -26,10 +26,10 @@ def render(automation_func: Optional[Any] = None) -> None:
     mis_filtros = [
         {
             "label": "Elija los ejercicios a consultar",
-            "options": get_ejercicios(),
+            "options": get_ejercicios_list(),
             "query_param": "ejercicio",
             "key": "ejercicios_" + REPORTE,
-            "default": get_ejercicios()[-1],
+            "default": get_ejercicios_list()[-1],
         },
     ]
 

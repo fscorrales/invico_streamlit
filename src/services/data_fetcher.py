@@ -1,5 +1,5 @@
 __all__ = [
-    "get_ejercicios",
+    "get_ejercicios_list",
     "get_sgf_origenes",
     "get_siif_rf602",
     "get_siif_rog01",
@@ -31,6 +31,7 @@ __all__ = [
     "get_control_banco_cruzado",
     "get_control_banco_siif",
     "get_control_banco_sscc",
+    "get_obras_recuperadas",
 ]
 
 import os
@@ -47,7 +48,7 @@ from src.utils import get_cache_path
 
 # --------------------------------------------------
 @st.cache_data()
-def get_ejercicios() -> list[int]:
+def get_ejercicios_list() -> list[int]:
     return list(range(2010, datetime.today().year + 1))
 
 
@@ -667,5 +668,56 @@ def get_control_banco_sscc(
     #         ["ejercicio", "mes", "grupo", "cta_cte"],
     #         ascending=[False, True, True, True],
     #     )
+
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(ttl=3600)
+def get_obras_recuperadas(
+    filtro_avanzado: str = "",
+    update_trigger: int = 0,
+    selections: list[tuple[str, list[Any]]] | None = None,
+) -> pd.DataFrame:
+    """
+    Obtiene el padrón de obras recuperadas desde la API.
+
+    No persiste en Parquet (igual que :func:`get_honorarios`): el
+    ``@st.cache_data`` (TTL de 1 hora) es la única capa de caché, que
+    evita llamadas repetidas a la API dentro del mismo TTL. Las
+    excepciones no se cachean: se re-lanzan en cada invocación para que
+    la UI pueda notificarlas.
+
+    Args:
+        filtro_avanzado: Filtro dinámico (e.g. ``ejercicio=2024``).
+        update_trigger: Incrementar para forzar la actualización de caché.
+        selections: Tuplas ``(query_param, valores)`` de los multiselects
+            server-side (``filters_config`` de ``report_header``). Cada
+            valor se serializa como string separado por comas
+            (e.g. ``ejercicio=2026,2025``). Lista vacía o ``None`` no
+            agrega parámetros (sin filtro).
+
+    Returns:
+        DataFrame con las obras recuperadas.
+
+    Raises:
+        APIConnectionError: Si la API falla.
+        APIResponseError: Si la API retorna un error.
+    """
+    params_peticion: dict[str, Any] = {
+        "limit": 0,
+        "queryFilter": filtro_avanzado,
+    }
+    if selections:
+        for nombre_param, valores in selections:
+            if valores:
+                params_peticion[nombre_param] = ",".join(map(str, valores))
+    df: pd.DataFrame = fetch_dataframe(
+        Endpoints.OBRAS_RECUPERADAS.value, params=params_peticion
+    )
+    if not df.empty:
+        df = df.sort_values(
+            ["ejercicio", "cod_barrio", "estructura"], ascending=[False, True, True]
+        )
 
     return df

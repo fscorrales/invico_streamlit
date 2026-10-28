@@ -7,7 +7,11 @@ import streamlit as st
 
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import get_ejercicios, get_sgf_origenes, get_sgf_resumen_rend_prov
+from src.services import (
+    get_ejercicios_list,
+    get_sgf_origenes,
+    get_sgf_resumen_rend_prov,
+)
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -94,10 +98,10 @@ def render() -> None:
     mis_filtros = [
         {
             "label": "Elija los ejercicios a consultar",
-            "options": get_ejercicios(),
+            "options": get_ejercicios_list(),
             "query_param": "ejercicio",
             "key": "ejercicios_" + REPORTE,
-            "default": get_ejercicios()[-1],
+            "default": get_ejercicios_list()[-1],
         },
         {
             "label": "Elija el/los origen/es",

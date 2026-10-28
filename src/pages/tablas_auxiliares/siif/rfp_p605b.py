@@ -7,7 +7,7 @@ from playwright.async_api import async_playwright
 from src.automation.siif.rfp_p605b import RfpP605b
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import get_ejercicios, get_siif_rfp_p605b, post_request
+from src.services import get_ejercicios_list, get_siif_rfp_p605b, post_request
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -61,10 +61,10 @@ def render() -> None:
     mis_filtros = [
         {
             "label": "Elija los ejercicios a consultar",
-            "options": get_ejercicios() + [datetime.today().year + 1],
+            "options": get_ejercicios_list() + [datetime.today().year + 1],
             "query_param": "ejercicio",
             "key": "ejercicios_" + REPORTE,
-            "default": get_ejercicios()[-2],
+            "default": get_ejercicios_list()[-2],
         },
     ]
 
