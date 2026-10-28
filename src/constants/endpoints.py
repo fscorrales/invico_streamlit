@@ -48,3 +48,5 @@ class Endpoints(str, Enum):
     ICARO_PROVEEDORES = "/icaro/proveedores"
     SLAVE_FACTUREROS = "/slave/factureros"
     SLAVE_HONORARIOS = "/slave/honorarios"
+    OBRAS_RECUPERADAS = "/sgv/obrasRecuperadas"
+    OBRAS_DESACTIVADAS = "/sgv/obrasDesactivadas"
