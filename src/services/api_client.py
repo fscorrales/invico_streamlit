@@ -96,9 +96,15 @@ def fetch_dataframe(
     endpoint: str, params: Optional[dict[str, Any]] = None, token: Optional[str] = None
 ) -> pd.DataFrame:
     """
-    Realiza un GET y retorna los datos como pd.DataFrame.
+    Realiza un GET y retorna los datos como ``pd.DataFrame``.
 
-    Si no hay datos, retorna un DataFrame vacío.
+    Args:
+        endpoint: Ruta relativa del endpoint.
+        params: Parámetros de query opcionales.
+        token: Token de autenticación.
+
+    Returns:
+        DataFrame con los registros. Vacío si la API no retorna datos.
     """
     data = fetch_data(endpoint, params, token=token)
     if not data:
