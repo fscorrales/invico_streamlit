@@ -21,7 +21,7 @@ from src.components import dataframe
 from src.constants.endpoints import Endpoints
 from src.services import (
     fetch_dataframe,
-    get_ejercicios,
+    get_ejercicios_list,
     post_request,
 )
 from src.utils import (
@@ -210,10 +210,10 @@ def render(
     mis_filtros = [
         {
             "label": "Elija los ejercicios a consultar",
-            "options": get_ejercicios(),
+            "options": get_ejercicios_list(),
             "query_param": "ejercicio",
             "key": "ejercicios_" + REPORTE,
-            "default": get_ejercicios()[-1],
+            "default": get_ejercicios_list()[-1],
         },
     ]
 

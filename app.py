@@ -122,7 +122,7 @@ def build_navigation() -> None:
         ],
         "Reportes": [
             st.Page(
-                "src/pages/reportes/reporte_planillometro_eecc/reporte_planillometro.py",
+                "src/pages/reportes/reporte_planillometro_eecc/reporte_planillometro_eecc_tabs.py",
                 title="Reporte Planillometro EECC",
                 icon="📽️",
             ),
