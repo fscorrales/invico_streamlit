@@ -47,7 +47,11 @@ class BaseAppSettings(BaseSettings):
     SSCC_PASSWORD: str | None = None
     SGF_USERNAME: str | None = None
     SGF_PASSWORD: str | None = None
-    BASE_URL: str = "https://fixed-marita-invico-d13e43fa.koyeb.app"  # fallback si falta en .env
+    SGV_USERNAME: str | None = None
+    SGV_PASSWORD: str | None = None
+    BASE_URL: str = (
+        "https://fixed-marita-invico-d13e43fa.koyeb.app"  # fallback si falta en .env
+    )
     GOOGLE_CREDENTIALS: str | None = None  # JSON credentials for Google Sheets
     JWT_SECRET: str = "super_secret_key"
     DEFAULT_TIMEOUT: float = 90.0
