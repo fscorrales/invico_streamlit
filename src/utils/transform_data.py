@@ -1,5 +1,6 @@
 __all__ = [
     "build_retenciones_payload",
+    "format_cod_barrio",
     "formato_moneda_ar",
     "parse_moneda_ar",
     "normalize_name_for_match",
@@ -124,3 +125,43 @@ def parse_moneda_ar(valor: Any) -> float:
         return float(valor)
     except (TypeError, ValueError):
         return 0.0
+
+
+# --------------------------------------------------
+def format_cod_barrio(value: Any) -> str:
+    """Normaliza el código de barrio a ``str`` de 4 dígitos con ``zeros``.
+
+    Las fuentes numéricas (pandas, Google Sheets, Excel de SGV) suelen
+    traer códigos como ``884.0`` o ``"884.0"``; se convierten a entero y
+    se rellenan con ceros a la izquierda hasta 4 dígitos
+    (``"884"`` -> ``"0884"``).
+
+    Args:
+        value: Valor crudo de la celda (cualquier tipo).
+
+    Returns:
+        Cadena de exactamente 4 dígitos con leading zeros; cadena vacía
+        para valores nulos. Los valores no numéricos se devuelven tal
+        cual (recortados) y los mayores a 4 dígitos no se truncan.
+    """
+    if value is None:
+        return ""
+    try:
+        if pd.isna(value):
+            return ""
+    except (TypeError, ValueError):
+        # pd.isna puede fallar con listas/dicts; se trata como texto.
+        pass
+    text: str = str(value).strip()
+    if not text:
+        return ""
+    # pandas convierte columnas numéricas a float: "884.0" -> "884".
+    try:
+        number: float = float(text.replace(",", "."))
+    except ValueError:
+        # Valor no numérico: se respeta tal cual (la validación del
+        # modelo/UI se encarga de rechazarlo si aplica).
+        return text
+    if not number.is_integer() or number < 0:
+        return text
+    return str(int(number)).zfill(4)

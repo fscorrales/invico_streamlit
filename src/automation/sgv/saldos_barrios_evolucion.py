@@ -24,6 +24,7 @@ from src.automation.sgv.connect_sgv import (
     login,
 )
 from src.utils.print_tables import print_rich_table
+from src.utils.transform_data import format_cod_barrio
 
 # Timeouts (en segundos) para la captura de la ventana emergente y la descarga
 POPUP_TIMEOUT: int = 30
@@ -177,7 +178,7 @@ class SaldosBarriosEvolucion(SGVReportManager):
             axis="columns",
             inplace=True,
         )
-        df["cod_barrio"] = df["cod_barrio"].astype(str)
+        df["cod_barrio"] = df["cod_barrio"].map(format_cod_barrio)
         cols = ["saldo_inicial", "amortizacion", "cambios", "saldo_final"]
         for col in cols:
             df[col] = df[col].astype(float)

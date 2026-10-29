@@ -49,7 +49,7 @@ from src.utils.exceptions import (  # noqa: E402
     ValidationError,
 )
 from src.utils.google_sheets import GoogleSheets  # noqa: E402
-from src.utils.transform_data import parse_moneda_ar  # noqa: E402
+from src.utils.transform_data import format_cod_barrio, parse_moneda_ar  # noqa: E402
 
 SPREADSHEET_KEY: str = "1Hmb7xmzhZBoicnL5_tN7mr1kOj-r3gw8lCkPErR8Xd4"
 WORKSHEET_NAME: str = "Obras Recuperadas"
@@ -220,37 +220,6 @@ def clean_text(value: Any) -> str:
         # pd.isna puede fallar con listas/dicts; se trata como texto.
         pass
     return str(value).strip()
-
-
-# --------------------------------------------------
-def format_cod_barrio(value: Any) -> str:
-    """Normaliza el código de barrio a ``str`` de 4 dígitos con ``zeros``.
-
-    Google Sheets/pandas suele traer códigos numéricos como ``884.0`` o
-    ``"884.0"``; se convierten a entero y se rellenan con ceros a la
-    izquierda hasta 4 dígitos (``"884"`` -> ``"0884"``).
-
-    Args:
-        value: Valor crudo de la celda.
-
-    Returns:
-        Cadena de exactamente 4 dígitos con leading zeros; cadena vacía
-        para valores nulos. Los valores no numéricos se devuelven tal
-        cual (recortados) y los mayores a 4 dígitos no se truncan.
-    """
-    text: str = clean_text(value)
-    if not text:
-        return ""
-    # pandas convierte columnas numéricas a float: "884.0" -> "884".
-    try:
-        number: float = float(text.replace(",", "."))
-    except ValueError:
-        # Valor no numérico: se respeta tal cual (la validación del
-        # modelo/UI se encarga de rechazarlo si aplica).
-        return text
-    if not number.is_integer() or number < 0:
-        return text
-    return str(int(number)).zfill(4)
 
 
 # --------------------------------------------------
