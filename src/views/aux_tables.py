@@ -128,14 +128,14 @@ def report_template(
             )
 
         if has_update:
-            if button_update("Actualizador automático", key=f"button_update_{key}"):
+            if button_update("Actualizar", key=f"button_update_{key}"):
                 if update_func:
                     update_func()
 
         if has_export:
             # Aquí podrías integrar tu logic de exportación
             if f"temp_file_{key}" not in st.session_state:
-                if button_export("Exportar a Excel y GS", key=f"button_export_{key}"):
+                if button_export("Exportar", key=f"button_export_{key}"):
                     download_file()
             else:
                 # Si hay archivo, el botón "Exportar" desaparece y aparece el de "Descargar"

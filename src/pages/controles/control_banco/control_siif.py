@@ -21,7 +21,10 @@ URL_SHEET = "https://docs.google.com/spreadsheets/d/1CRQjzIVzHKqsZE8_E1t8aRQDfWf
 
 
 # --------------------------------------------------
-def render(automation_func: Optional[Any] = None) -> None:
+def render(
+    automation_func: Optional[Any] = None,
+    skip_func: Optional[Any] = None,
+) -> None:
 
     mis_filtros = [
         {
@@ -43,6 +46,7 @@ def render(automation_func: Optional[Any] = None) -> None:
             automation_func,
             key=REPORTE,
             downloaded_info="SIIF: rcocc31 (ctas. contables del rvicon03), rcg01uejp y gto_rpa03g. SSCC's Banco INVICO",
+            skip_callback=(lambda: skip_func(REPORTE)) if skip_func else None,
         ),
         export_endpoint=Endpoints.CONTROL_BANCO.value + "/export",
     )
