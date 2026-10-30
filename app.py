@@ -154,6 +154,11 @@ def build_navigation() -> None:
                 icon="🏗️",
             ),
             st.Page(
+                "src/pages/tablas_auxiliares/sgv/sgv.py",
+                title="SGV",
+                icon="🏠",
+            ),
+            st.Page(
                 "src/pages/tablas_auxiliares/slave/slave.py",
                 title="SLAVE",
                 icon="⛓️",

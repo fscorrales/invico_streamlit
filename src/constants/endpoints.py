@@ -50,3 +50,4 @@ class Endpoints(str, Enum):
     SLAVE_HONORARIOS = "/slave/honorarios"
     OBRAS_RECUPERADAS = "/sgv/obrasRecuperadas"
     OBRAS_DESACTIVADAS = "/sgv/obrasDesactivadas"
+    SALDOS_BARRIOS_EVOLUCION = "sgv/saldosBarriosEvolucion"

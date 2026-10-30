@@ -7,6 +7,7 @@ __all__ = [
     "request_siif_sscc_and_sgf_credentials_modal",
     "modal_delete_registro_gral",
     "modal_obras_recuperadas",
+    "request_sgv_credentials_modal",
 ]
 
 import re
@@ -849,9 +850,7 @@ def modal_obras_recuperadas(
                     return
                 payload["updated_at"] = updated_at_original
             else:
-                payload["updated_at"] = datetime.now().strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                )
+                payload["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
             # Validación estricta: si algo falla, NO se envía nada.
             try:
@@ -907,3 +906,108 @@ def modal_obras_recuperadas(
                 time.sleep(2)
                 # Cierra el modal y recarga la página principal.
                 st.rerun()
+
+
+@st.dialog("Credenciales SGV")
+# --------------------------------------------------
+def request_sgv_credentials_modal(
+    automation_callback: Callable[[str, str, str], None],
+    key: str = "",
+    downloaded_info: str = "-",
+):
+    """
+    Modal reutilizable para solicitar credenciales del SGV.
+    automation_callback recibe (username, password, key).
+    Permite omitir la descarga para no ejecutar la automatización.
+    """
+    st.write("Ingrese sus credenciales de SGV para iniciar la descarga.")
+    username = st.text_input("Usuario")
+    password = st.text_input("Contraseña", type="password")
+    st.write("**Reportes ha descargar:** " + downloaded_info)
+
+    with st.container(
+        horizontal=True, border=False, horizontal_alignment="center", gap="medium"
+    ):
+        if button_cancel("Cancelar", type="secondary", key=f"{key}_btn_cancel"):
+            st.rerun()  # Cierra el modal de forma segura
+
+        if button_skip(
+            "Omitir",
+            key=f"{key}_btn_skip",
+            help="Saltea la descarga del reporte y actualiza la vista con los datos ya cargados.",
+        ):
+            # No se ejecuta la automatización: solo se refresca la vista
+            st.session_state[f"{key}_automation_success"] = True
+            st.rerun()
+
+        if button_robot("Ejecutar", key=f"{key}_btn_robot"):
+            if not username or not password:
+                st.error("Debe ingresar usuario y contraseña.")
+                return
+
+            if automation_callback is None:
+                st.error(
+                    "No hay ninguna automatización configurada para este reporte. "
+                    "Utilice 'Omitir' para continuar sin descargar."
+                )
+                return
+
+            try:
+                with st.spinner("Ejecutando automatización..."):
+                    st.info("Automatización iniciada. Por favor, espere...")
+
+                    import asyncio
+                    import sys
+
+                    # SOLUCIÓN PARA WINDOWS
+                    if sys.platform == "win32":
+                        asyncio.set_event_loop_policy(
+                            asyncio.WindowsProactorEventLoopPolicy()
+                        )
+
+                    async def run_automation():
+                        return await automation_callback(username, password, key)
+
+                try:
+                    results = asyncio.run(run_automation())
+                except RuntimeError:
+                    # Si ya hay un loop corriendo (común en Streamlit)
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    results = loop.run_until_complete(run_automation())
+
+                st.success(f"Proceso finalizado: {len(results)} reportes procesados.")
+                st.session_state[f"{key}_automation_success"] = True
+                time.sleep(1)
+                st.rerun()
+                # st.success("✅ Proceso de actualización completado")
+
+                # # Creamos un contenedor expandible para no ensuciar la vista si todo salió bien
+                # with st.expander("Ver detalle del procesamiento", expanded=True):
+                #     # Mostramos métricas rápidas
+                #     c1, c2, c3 = st.columns(3)
+                #     total_added = sum(r["added"] for r in results)
+                #     total_deleted = sum(r["deleted"] for r in results)
+                #     total_errors = sum(len(r["errors"]) for r in results)
+
+                #     c1.metric("Registros Agregados", total_added)
+                #     c2.metric("Registros Eliminados", total_deleted)
+                #     c3.metric("Errores detectados", total_errors, delta_color="inverse")
+
+                #     # Si hay errores, los mostramos en una tabla o lista roja
+                #     if total_errors > 0:
+                #         st.markdown("---")
+                #         st.error("⚠️ Algunos registros no pudieron procesarse:")
+                #         for res in results:
+                #             for err in res["errors"]:
+                #                 st.write(
+                #                     f"**Doc ID {err['doc_id']}:** {err['details'][0]['msg']}"
+                #                 )
+
+            except Exception as e:
+                st.error(f"Error durante la automatización: {e}")
+                st.session_state[f"{key}_automation_success"] = False
+
+        st.write(
+            "**Debe esperar a que este MODAL se cierre automáticamente al finalizar la automatización.**"
+        )
