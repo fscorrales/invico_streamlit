@@ -87,7 +87,7 @@ def render() -> None:
 
     report_template(
         key=REPORTE,
-        title="SIIF - Reporte " + REPORTE,
+        title="SGV - Saldos por Barrios (evolución)",
         endpoint=ENDPOINT,
         description="Saldos por Barrios del Sistema Recuperos",
         filters_config=mis_filtros,
