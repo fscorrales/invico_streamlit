@@ -24,7 +24,6 @@ import pandas as pd
 from playwright.async_api import async_playwright
 
 from src.automation.analysis.siif_unified import get_siif_comprobantes_honorarios
-from src.automation.analysis.sscc_unified import get_banco_invico_unified_cta_cte
 from src.automation.siif import (
     GtoRpa03g,
     Rcg01Uejp,
@@ -437,7 +436,8 @@ def generate_banco_sscc(
     netear_transf_internas: bool = True,
     netear_reingresos: bool = True,
 ) -> pd.DataFrame:
-    df = get_banco_invico_unified_cta_cte(ejercicio=ejercicio)
+    params = {"limit": 0, "ejercicio": ejercicio}
+    df = fetch_dataframe(Endpoints.SSCC_BANCO_INVICO.value, params=params)
 
     # Neteamos las transferencias internas
     if netear_transf_internas:
