@@ -1,3 +1,5 @@
+from typing import Any
+
 import pandas as pd
 import streamlit as st
 from playwright.async_api import async_playwright
@@ -5,7 +7,7 @@ from playwright.async_api import async_playwright
 from src.automation.siif.rf602 import Rf602
 from src.components import dataframe
 from src.constants import Endpoints
-from src.services import get_ejercicios_list, get_siif_rf602, post_request
+from src.services import fetch_dataframe, get_ejercicios_list, post_request
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -17,6 +19,21 @@ from src.views import (
 
 ENDPOINT = Endpoints.SIIF_RF602.value
 REPORTE = "rf602"
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_siif_rf602(params: dict[str, Any] | None = None, update_trigger: int = 0):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(Endpoints.SIIF_RF602.value, params=params)
+    if not df.empty:
+        df = df.sort_values(
+            ["ejercicio", "estructura", "fuente"],
+            ascending=[False, True, True],
+        )
+
+    return df
 
 
 # --------------------------------------------------

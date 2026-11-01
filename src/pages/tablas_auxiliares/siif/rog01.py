@@ -1,3 +1,5 @@
+from typing import Any
+
 import pandas as pd
 import streamlit as st
 from playwright.async_api import async_playwright
@@ -5,7 +7,11 @@ from playwright.async_api import async_playwright
 from src.automation.siif.rog01 import Rog01
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import get_grupos_partidas_str_siif_list, get_siif_rog01, post_request
+from src.services import (
+    fetch_dataframe,
+    get_grupos_partidas_str_siif_list,
+    post_request,
+)
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -31,6 +37,21 @@ if not df_grupos.empty and 0 in df_grupos.columns:
     GRUPOS = [str(element) + "00" for element in df_grupos[0]]
 else:
     GRUPOS = []
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_siif_rog01(params: dict[str, Any] | None = None, update_trigger: int = 0):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(Endpoints.SIIF_ROG01.value, params=params)
+    if not df.empty:
+        df = df.sort_values(
+            ["partida"],
+            ascending=[True],
+        )
+
+    return df
 
 
 # --------------------------------------------------

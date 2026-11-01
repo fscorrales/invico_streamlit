@@ -1,3 +1,5 @@
+from typing import Any
+
 import pandas as pd
 import streamlit as st
 from playwright.async_api import async_playwright
@@ -5,7 +7,7 @@ from playwright.async_api import async_playwright
 from src.automation.siif.rvicon03 import Rvicon03
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import get_ejercicios_list, get_siif_rvicon03, post_request
+from src.services import fetch_dataframe, get_ejercicios_list, post_request
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -17,6 +19,21 @@ from src.views import (
 
 ENDPOINT = Endpoints.SIIF_RVICON03.value
 REPORTE = "rvicon03"
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_siif_rvicon03(params: dict[str, Any] | None = None, update_trigger: int = 0):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(Endpoints.SIIF_RVICON03.value, params=params)
+    if not df.empty:
+        df = df.sort_values(
+            ["ejercicio", "cta_contable"],
+            ascending=[False, True],
+        )
+
+    return df
 
 
 # --------------------------------------------------

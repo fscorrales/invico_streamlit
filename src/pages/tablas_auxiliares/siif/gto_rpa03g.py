@@ -1,3 +1,5 @@
+from typing import Any
+
 import pandas as pd
 import streamlit as st
 from playwright.async_api import async_playwright
@@ -6,9 +8,9 @@ from src.automation.siif.gto_rpa03g import GtoRpa03g
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
 from src.services import (
+    fetch_dataframe,
     get_ejercicios_list,
     get_grupos_partidas_str_siif_list,
-    get_siif_gto_rpa03g,
     post_request,
 )
 from src.utils import (
@@ -25,6 +27,21 @@ REPORTE = "gto_rpa03g"
 GRUPOS = get_grupos_partidas_str_siif_list(
     update_trigger=st.session_state.grupos_partidas_str_siif_uploader_iteration
 )
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_siif_gto_rpa03g(params: dict[str, Any] | None = None, update_trigger: int = 0):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(Endpoints.SIIF_GTO_RPA03G.value, params=params)
+    if not df.empty:
+        df = df.sort_values(
+            ["ejercicio", "fecha", "nro_comprobante"],
+            ascending=[False, False, False],
+        )
+
+    return df
 
 
 # --------------------------------------------------

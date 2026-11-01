@@ -3,7 +3,7 @@ import streamlit as st
 
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import get_icaro_estructuras
+from src.services import fetch_dataframe
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -12,6 +12,27 @@ from src.views.aux_tables import report_template_with_uploader
 
 ENDPOINT = Endpoints.ICARO_ESTRUCTURAS.value
 REPORTE = "icaro_estructuras"
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_icaro_estructuras(filtro_avanzado: str = "", update_trigger: int = 0):
+    df = pd.DataFrame()
+
+    params_peticion = {
+        "limit": 0,
+        "queryFilter": filtro_avanzado,
+    }
+
+    df = fetch_dataframe(Endpoints.ICARO_ESTRUCTURAS.value, params=params_peticion)
+    if not df.empty:
+        df = df.loc[:, ["estructura", "desc_estructura"]]
+        df = df.sort_values(
+            ["estructura"],
+            ascending=[True],
+        )
+
+    return df
 
 
 # --------------------------------------------------

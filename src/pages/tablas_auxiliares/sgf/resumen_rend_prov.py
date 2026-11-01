@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -8,9 +9,9 @@ import streamlit as st
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
 from src.services import (
+    fetch_dataframe,
     get_ejercicios_list,
     get_sgf_origenes,
-    get_sgf_resumen_rend_prov,
 )
 from src.utils import (
     APIConnectionError,
@@ -24,6 +25,23 @@ from src.views import (
 ENDPOINT = Endpoints.SGF_RESUMEN_REND_PROV.value
 REPORTE = "sgf_resumen_rend_prov"
 ORIGENES = get_sgf_origenes()
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_sgf_resumen_rend_prov(
+    params: dict[str, Any] | None = None, update_trigger: int = 0
+):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(Endpoints.SGF_RESUMEN_REND_PROV.value, params=params)
+    # if not df.empty:
+    #     df = df.sort_values(
+    #         ["ejercicio", "fecha", "cta_cte"],
+    #         ascending=[False, False, True],
+    #     )
+
+    return df
 
 
 # --------------------------------------------------

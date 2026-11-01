@@ -1,3 +1,5 @@
+from typing import Any
+
 import pandas as pd
 import streamlit as st
 from playwright.async_api import async_playwright
@@ -6,8 +8,8 @@ from src.automation.siif.rcocc31 import Rcocc31
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
 from src.services import (
+    fetch_dataframe,
     get_ejercicios_list,
-    get_siif_rcocc31,
     post_request,
 )
 from src.utils import (
@@ -22,6 +24,21 @@ from src.views import (
 ENDPOINT = Endpoints.SIIF_RCOCC31.value
 REPORTE = "rcocc31"
 CUENTAS_CONTABLES = ["1112-2-6"]
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_siif_rcocc31(params: dict[str, Any] | None = None, update_trigger: int = 0):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(Endpoints.SIIF_RCOCC31.value, params=params)
+    if not df.empty:
+        df = df.sort_values(
+            ["ejercicio", "fecha", "nro_entrada", "cta_contable"],
+            ascending=[False, False, False, False],
+        )
+
+    return df
 
 
 # --------------------------------------------------

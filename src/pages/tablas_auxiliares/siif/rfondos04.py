@@ -1,3 +1,5 @@
+from typing import Any
+
 import pandas as pd
 import streamlit as st
 from playwright.async_api import async_playwright
@@ -6,8 +8,8 @@ from src.automation.siif.rfondos04 import Rfondos04
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
 from src.services import (
+    fetch_dataframe,
     get_ejercicios_list,
-    get_siif_rfondos04,
     get_tipos_comprobantes_siif_list,
     post_request,
 )
@@ -25,6 +27,21 @@ REPORTE = "rfondos04"
 TIPOS_COMPROBANTES = get_tipos_comprobantes_siif_list(
     update_trigger=st.session_state.tipos_comprobantes_siif_uploader_iteration
 )
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_siif_rfondos04(params: dict[str, Any] | None = None, update_trigger: int = 0):
+    df = pd.DataFrame()
+
+    df = fetch_dataframe(Endpoints.SIIF_RFONDOS04.value, params=params)
+    if not df.empty:
+        df = df.sort_values(
+            ["ejercicio", "fecha", "tipo_comprobante", "nro_comprobante"],
+            ascending=[False, False, False, False],
+        )
+
+    return df
 
 
 # --------------------------------------------------
