@@ -13,6 +13,7 @@ __all__ = [
     "get_control_banco_siif",
     "get_control_banco_sscc",
     "get_referencias_obras_recuperadas",
+    "get_referencias_obras_desactivadas",
 ]
 
 import os
@@ -416,5 +417,54 @@ def get_referencias_obras_recuperadas(
     )
     return (
         _normalizar_opciones(cod_barrios_crudos),
+        _normalizar_opciones(estructuras_crudas),
+    )
+
+
+# --------------------------------------------------
+@st.cache_data(ttl=3600)
+def get_referencias_obras_desactivadas(
+    update_trigger: int = 0,
+) -> tuple[list[str], list[str]]:
+    """
+    Referencias (Cta. Contable y Estructura) para los combos del modal
+    de obras desactivadas.
+
+    Obtiene los valores únicos mediante los endpoints ``distinct`` de
+    MongoDB, con payload mínimo en lugar de descargar las colecciones
+    completas:
+
+    - ``cta_contables``:
+      ``GET /sgv/obrasDesactivadas/uniqueCtaContable``.
+    - ``estructuras``:
+      ``GET /reporte/reportePlanillometro/uniqueEstructura`` (mismo
+      padrón que :func:`get_referencias_obras_recuperadas`).
+
+    No persiste en Parquet: el ``@st.cache_data`` (TTL de 1 hora) es la
+    única capa de caché, que evita llamadas repetidas a la API dentro
+    del mismo TTL. Las excepciones no se cachean: se re-lanzan en cada
+    invocación para que la UI pueda notificarlas.
+
+    Args:
+        update_trigger: Solo participa de la clave de caché (misma
+            convención que el resto de la capa); incrementar para
+            forzar la actualización.
+
+    Returns:
+        Tupla ``(cta_contables, estructuras)`` con listas ordenadas de
+        valores únicos y sin vacíos.
+
+    Raises:
+        APIConnectionError: Si la API falla.
+        APIResponseError: Si la API retorna un error.
+    """
+    cta_contables_crudas: list[Any] = fetch_data(
+        f"{Endpoints.OBRAS_DESACTIVADAS.value}/uniqueCtaContable"
+    )
+    estructuras_crudas: list[Any] = fetch_data(
+        f"{Endpoints.REPORTE_PLANILLOMETRO.value}/uniqueEstructura"
+    )
+    return (
+        _normalizar_opciones(cta_contables_crudas),
         _normalizar_opciones(estructuras_crudas),
     )
