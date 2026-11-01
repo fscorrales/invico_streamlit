@@ -23,7 +23,7 @@ from src.components import button_cancel, button_robot, button_skip, button_subm
 from src.constants.endpoints import Endpoints
 from src.models.schemas import ObrasRecuperadasReport
 from src.services.api_client import delete_request, post_request, put_request
-from src.services.data_fetcher import get_ejercicios_list, get_obras_recuperadas
+from src.services.data_fetcher import get_ejercicios_list, get_referencias_obras_recuperadas
 from src.utils.exceptions import AppBaseException
 from src.utils.transform_data import parse_moneda_ar
 from src.views.aux_tables import report_data_version_key
@@ -691,8 +691,10 @@ def modal_obras_recuperadas(
     - **Edición** (``es_edicion=True``): ``PUT .../update_one/{id}``.
 
     Los ``selectbox`` de Cód. Barrio y Estructura se poblan con los
-    valores únicos de la propia colección
-    (:func:`get_obras_recuperadas`) y aceptan opciones nuevas
+    valores únicos del padrón
+    (:func:`get_referencias_obras_recuperadas`: ``cod_barrio`` de
+    ``sgv/saldosBarriosEvolucion`` y ``estructura`` de
+    ``reporte/reportePlanillometro``) y aceptan opciones nuevas
     (``accept_new_options=True``). Si esa lectura falla se informa con
     ``st.warning`` y los combos quedan en modo escritura libre.
 
@@ -708,8 +710,9 @@ def modal_obras_recuperadas(
     """
     # ``st.session_state`` es la fuente de verdad del token y SÍ está
     # disponible dentro de ``@st.dialog``. Lo leemos y lo pasamos
-    # explícito a ``post_request``/``put_request``; ``get_obras_recuperadas``
-    # usa el fallback de ``_get_headers()``, que lee el mismo valor.
+    # explícito a ``post_request``/``put_request``;
+    # ``get_referencias_obras_recuperadas`` usa el fallback de
+    # ``_get_headers()``, que lee el mismo valor.
     token = st.session_state.get("token")
 
     # pandas NaN/NA/NaT -> None (JSON-compliant; igual que modal_precarizado).
@@ -720,27 +723,17 @@ def modal_obras_recuperadas(
             for campo, valor in datos_carga.items()
         }
 
-    # ── Referencias: valores únicos de la propia colección ──
+    # ── Referencias: valores únicos del padrón (endpoints distinct) ──
     update_trigger = int(st.session_state.get(session_state_update_key, 0))
     try:
-        df_referencia = get_obras_recuperadas(update_trigger=update_trigger)
+        cod_barrios, estructuras = get_referencias_obras_recuperadas(
+            update_trigger=update_trigger
+        )
     except AppBaseException as exc:
         # No silenciamos: informamos y dejamos los selectbox en modo
         # escritura libre (accept_new_options=True) como fallback.
         st.warning(f"⚠️ No se pudieron cargar las referencias: {exc}")
-        df_referencia = pd.DataFrame()
-
-    cod_barrios: list[str] = []
-    estructuras: list[str] = []
-    if not df_referencia.empty:
-        if "cod_barrio" in df_referencia.columns:
-            cod_barrios = sorted(
-                {_a_texto(v).strip() for v in df_referencia["cod_barrio"]} - {""}
-            )
-        if "estructura" in df_referencia.columns:
-            estructuras = sorted(
-                {_a_texto(v).strip() for v in df_referencia["estructura"]} - {""}
-            )
+        cod_barrios, estructuras = [], []
 
     # En edición, el valor previo debe estar siempre entre las opciones.
     cod_barrio_previo = _a_texto(form_data.get("cod_barrio")).strip()

@@ -32,6 +32,7 @@ __all__ = [
     "get_control_banco_siif",
     "get_control_banco_sscc",
     "get_obras_recuperadas",
+    "get_referencias_obras_recuperadas",
 ]
 
 import os
@@ -42,7 +43,7 @@ import pandas as pd
 import streamlit as st
 
 from src.constants import Endpoints
-from src.services.api_client import fetch_dataframe
+from src.services.api_client import fetch_data, fetch_dataframe
 from src.utils import get_cache_path
 
 
@@ -721,3 +722,72 @@ def get_obras_recuperadas(
         )
 
     return df
+
+
+# --------------------------------------------------
+def _normalizar_opciones(valores: list[Any]) -> list[str]:
+    """
+    Normaliza una lista de valores únicos devuelta por un endpoint ``unique*``.
+
+    Convierte a ``str``, recorta espacios, descarta ``None``/vacíos y
+    devuelve el resultado ordenado y sin duplicados. Es una capa
+    defensiva: los endpoints ``uniqueCodBarrio``/``uniqueEstructura`` ya
+    responden con ``sorted(distinct(...))``, pero así el frontend no
+    depende de ese detalle de implementación del backend.
+
+    Args:
+        valores: Lista cruda proveniente de un endpoint ``unique*``.
+
+    Returns:
+        Lista ordenada de strings no vacíos, lista para ``options`` de
+        un ``st.selectbox``.
+    """
+    normalizados = (str(valor).strip() for valor in valores if valor is not None)
+    return sorted({valor for valor in normalizados if valor})
+
+
+# --------------------------------------------------
+@st.cache_data(ttl=3600)
+def get_referencias_obras_recuperadas(
+    update_trigger: int = 0,
+) -> tuple[list[str], list[str]]:
+    """
+    Referencias (Cód. Barrio y Estructura) para los combos del modal de
+    obras recuperadas.
+
+    Obtiene los valores únicos de dos colecciones del padrón mediante
+    los endpoints ``distinct`` de MongoDB, con payload mínimo en lugar
+    de descargar las colecciones completas:
+
+    - ``cod_barrios``: ``GET /sgv/saldosBarriosEvolucion/uniqueCodBarrio``.
+    - ``estructuras``: ``GET /reporte/reportePlanillometro/uniqueEstructura``.
+
+    No persiste en Parquet (igual que :func:`get_obras_recuperadas`): el
+    ``@st.cache_data`` (TTL de 1 hora) es la única capa de caché, que
+    evita llamadas repetidas a la API dentro del mismo TTL. Las
+    excepciones no se cachean: se re-lanzan en cada invocación para que
+    la UI pueda notificarlas.
+
+    Args:
+        update_trigger: Solo participa de la clave de caché (misma
+            convención que el resto de la capa); incrementar para
+            forzar la actualización.
+
+    Returns:
+        Tupla ``(cod_barrios, estructuras)`` con listas ordenadas de
+        valores únicos y sin vacíos.
+
+    Raises:
+        APIConnectionError: Si la API falla.
+        APIResponseError: Si la API retorna un error.
+    """
+    cod_barrios_crudos: list[Any] = fetch_data(
+        f"{Endpoints.SALDOS_BARRIOS_EVOLUCION.value}/uniqueCodBarrio"
+    )
+    estructuras_crudas: list[Any] = fetch_data(
+        f"{Endpoints.REPORTE_PLANILLOMETRO.value}/uniqueEstructura"
+    )
+    return (
+        _normalizar_opciones(cod_barrios_crudos),
+        _normalizar_opciones(estructuras_crudas),
+    )
