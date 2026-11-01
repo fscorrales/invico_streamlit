@@ -54,10 +54,12 @@ URL_SHEET = "https://docs.google.com/spreadsheets/d/1Hmb7xmzhZBoicnL5_tN7mr1kOj-
 # Columnas de obras_recuperadas / obras_desactivadas que NO se muestran
 # en las subgrillas (pero permanecen en el DataFrame porque los modales
 # de edición/borrado necesitan id, updated_at, notas y estructura).
-CAMPOS_OCULTOS_OBRAS: tuple[str, ...] = ("notas", "id", "updated_at", "estructura")
+CAMPOS_OCULTOS_OBRAS: tuple[str, ...] = ("notas", "id", "_id", "updated_at", "estructura")
 # Altura de las subgrillas en píxeles (~4-5 filas) para que quepan en
 # pantallas de 19 pulgadas sin desplazamiento vertical excesivo.
 ALTURA_SUBGRILLA_OBRAS: int = 200
+# Columnas del df principal del planillómetro que NO se muestran.
+CAMPOS_OCULTOS_PRINCIPAL: tuple[str, ...] = ("id", "_id")
 
 
 # --------------------------------------------------
@@ -226,8 +228,8 @@ def _generate_and_upload() -> None:
 
 # --------------------------------------------------
 def _columnas_visibles_obras(df_obras: pd.DataFrame) -> list[str]:
-    """Todas las columnas de la colección excepto notas, id, updated_at y
-    estructura (ocultas, pero presentes para los modales de CRUD)."""
+    """Todas las columnas de la colección excepto notas, id, _id,
+    updated_at y estructura (ocultas, pero presentes para los modales)."""
     return [col for col in df_obras.columns if col not in CAMPOS_OCULTOS_OBRAS]
 
 
@@ -266,7 +268,7 @@ def _render_obras_asociadas(df_planillometro: pd.DataFrame, event: Any) -> None:
     recuperadas y obras desactivadas ligadas a la fila seleccionada.
 
     Cada subgrilla muestra todos los campos de su colección excepto notas,
-    id, updated_at y estructura (ocultos vía ``column_order``, pero
+    id, _id, updated_at y estructura (ocultos vía ``column_order``, pero
     presentes en el DataFrame para que los modales reciban el registro
     completo). Los
     botones Agregar/Editar/Borrar reutilizan los modales de
@@ -444,20 +446,36 @@ def render(
 
     # 4. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
-        # Definimos las columnas que NO queremos mostrar
+        # Columnas fijas (pinned): siempre visibles al desplazar a la derecha
         first_cols = [
-            "ejercicio",
+            col for col in ("ejercicio", "estructura") if col in df.columns
         ]
 
-        # Generamos el orden dinámico: todas las del DF que no estén en la lista negra
+        # Orden dinámico: primeras las fijas y sin id/_id (ocultas)
         orden_dinamico = first_cols + [
-            col for col in df.columns if col not in first_cols
+            col
+            for col in df.columns
+            if col not in first_cols and col not in CAMPOS_OCULTOS_PRINCIPAL
         ]
+
+        # pinned=True mantiene ejercicio y estructura inmovibles mientras
+        # se desplaza horizontalmente por la tabla.
+        column_config_principal: dict[str, Any] = {}
+        if "ejercicio" in first_cols:
+            column_config_principal["ejercicio"] = st.column_config.NumberColumn(
+                pinned=True,
+                format="%d",
+            )
+        if "estructura" in first_cols:
+            column_config_principal["estructura"] = st.column_config.TextColumn(
+                pinned=True
+            )
 
         event = dataframe(
             df,
             key=f"{REPORTE}_df_planillometro_eecc",
             column_order=orden_dinamico,
+            column_config=column_config_principal,
             on_select="rerun",
             selection_mode="single-row",
         )

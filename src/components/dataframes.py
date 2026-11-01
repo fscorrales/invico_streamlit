@@ -26,6 +26,12 @@ def dataframe(data, key: str = "df", height: int = 300, **kwargs):
     #                 format="%.2f",  # El formato usa estilo financiero
     #             )
 
+    # El caller puede ampliar el column_config (e.g. columnas con
+    # pinned=True) y sobrescribir hide_index; se extraen de kwargs para no
+    # duplicar el argumento en la llamada a st.dataframe.
+    column_config.update(kwargs.pop("column_config", None) or {})
+    hide_index = kwargs.pop("hide_index", True)
+
     with st.container(border=False, width="stretch"):
         return st.dataframe(
             data,
@@ -33,6 +39,6 @@ def dataframe(data, key: str = "df", height: int = 300, **kwargs):
             height=height,
             width="stretch",
             column_config=column_config,
-            hide_index=True,
+            hide_index=hide_index,
             **kwargs,
         )
