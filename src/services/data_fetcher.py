@@ -31,7 +31,6 @@ __all__ = [
     "get_control_banco_cruzado",
     "get_control_banco_siif",
     "get_control_banco_sscc",
-    "get_obras_recuperadas",
     "get_referencias_obras_recuperadas",
 ]
 
@@ -674,57 +673,6 @@ def get_control_banco_sscc(
 
 
 # --------------------------------------------------
-@st.cache_data(ttl=3600)
-def get_obras_recuperadas(
-    filtro_avanzado: str = "",
-    update_trigger: int = 0,
-    selections: list[tuple[str, list[Any]]] | None = None,
-) -> pd.DataFrame:
-    """
-    Obtiene el padrón de obras recuperadas desde la API.
-
-    No persiste en Parquet (igual que :func:`get_honorarios`): el
-    ``@st.cache_data`` (TTL de 1 hora) es la única capa de caché, que
-    evita llamadas repetidas a la API dentro del mismo TTL. Las
-    excepciones no se cachean: se re-lanzan en cada invocación para que
-    la UI pueda notificarlas.
-
-    Args:
-        filtro_avanzado: Filtro dinámico (e.g. ``ejercicio=2024``).
-        update_trigger: Incrementar para forzar la actualización de caché.
-        selections: Tuplas ``(query_param, valores)`` de los multiselects
-            server-side (``filters_config`` de ``report_header``). Cada
-            valor se serializa como string separado por comas
-            (e.g. ``ejercicio=2026,2025``). Lista vacía o ``None`` no
-            agrega parámetros (sin filtro).
-
-    Returns:
-        DataFrame con las obras recuperadas.
-
-    Raises:
-        APIConnectionError: Si la API falla.
-        APIResponseError: Si la API retorna un error.
-    """
-    params_peticion: dict[str, Any] = {
-        "limit": 0,
-        "queryFilter": filtro_avanzado,
-    }
-    if selections:
-        for nombre_param, valores in selections:
-            if valores:
-                params_peticion[nombre_param] = ",".join(map(str, valores))
-    df: pd.DataFrame = fetch_dataframe(
-        Endpoints.OBRAS_RECUPERADAS.value, params=params_peticion
-    )
-    if not df.empty:
-        df = df.sort_values(
-            ["ejercicio", "cod_barrio", "estructura"], ascending=[False, True, True]
-        )
-
-    return df
-
-
-# --------------------------------------------------
 def _normalizar_opciones(valores: list[Any]) -> list[str]:
     """
     Normaliza una lista de valores únicos devuelta por un endpoint ``unique*``.
@@ -762,11 +710,10 @@ def get_referencias_obras_recuperadas(
     - ``cod_barrios``: ``GET /sgv/saldosBarriosEvolucion/uniqueCodBarrio``.
     - ``estructuras``: ``GET /reporte/reportePlanillometro/uniqueEstructura``.
 
-    No persiste en Parquet (igual que :func:`get_obras_recuperadas`): el
-    ``@st.cache_data`` (TTL de 1 hora) es la única capa de caché, que
-    evita llamadas repetidas a la API dentro del mismo TTL. Las
-    excepciones no se cachean: se re-lanzan en cada invocación para que
-    la UI pueda notificarlas.
+    No persiste en Parquet: el ``@st.cache_data`` (TTL de 1 hora) es la
+    única capa de caché, que evita llamadas repetidas a la API dentro
+    del mismo TTL. Las excepciones no se cachean: se re-lanzan en cada
+    invocación para que la UI pueda notificarlas.
 
     Args:
         update_trigger: Solo participa de la clave de caché (misma
