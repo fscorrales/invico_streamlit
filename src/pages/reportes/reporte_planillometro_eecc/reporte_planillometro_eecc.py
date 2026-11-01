@@ -227,6 +227,159 @@ def _generate_and_upload() -> None:
 
 
 # --------------------------------------------------
+def _obras_cacheadas() -> tuple[pd.DataFrame, pd.DataFrame] | None:
+    """Carga los padrónes de obras recuperadas y desactivadas.
+
+    Reutiliza los ``@st.cache_data`` de las páginas hermanas; el
+    ``update_trigger`` de cada colección lo incrementan sus modales de
+    CRUD (``report_data_version_key``), de modo que un
+    alta/edición/borrado invalida la caché y refresca tanto los cálculos
+    del df principal como las subgrillas.
+
+    Returns:
+        Tupla ``(recuperadas, desactivadas)`` o ``None`` si la API falla
+        (el error ya quedó notificado con ``st.error``).
+    """
+    try:
+        recuperadas = get_obras_recuperadas(
+            update_trigger=int(
+                st.session_state.get(report_data_version_key("obras_recuperadas"), 0)
+            )
+        )
+        desactivadas = get_obras_desactivadas(
+            update_trigger=int(
+                st.session_state.get(report_data_version_key("obras_desactivadas"), 0)
+            )
+        )
+    except APIConnectionError as e:
+        st.error(f"⚠️ Error de conexión: {e}")
+        return None
+    except APIResponseError as e:
+        st.error(f"⚠️ Error de API: {e}")
+        return None
+    return recuperadas, desactivadas
+
+
+# --------------------------------------------------
+def _totales_obras(
+    df_planillometro: pd.DataFrame, df_obras: pd.DataFrame
+) -> tuple[pd.Series, pd.Series]:
+    """Totales de importes de ``df_obras`` asociados a cada fila del
+    planillometro según su estructura y ejercicio.
+
+    Args:
+        df_planillometro: Filas del reporte (estructura + ejercicio).
+        df_obras: Documentos de la colección (estructura, ejercicio,
+            importe).
+
+    Returns:
+        ``(actual, acum)``: total del ejercicio exacto de cada fila y
+        total acumulado (ejercicios <= al de la fila), como Series
+        alineadas al índice del planillometro (0.0 cuando no hay datos).
+    """
+    vacio = pd.Series(0.0, index=df_planillometro.index, dtype=float)
+    if (
+        df_obras.empty
+        or not {"estructura", "ejercicio", "importe"}.issubset(df_obras.columns)
+        or not {"estructura", "ejercicio"}.issubset(df_planillometro.columns)
+    ):
+        return vacio, vacio.copy()
+
+    obras = df_obras[["estructura", "ejercicio", "importe"]].copy()
+    obras["ejercicio"] = pd.to_numeric(obras["ejercicio"], errors="coerce")
+    obras["importe"] = pd.to_numeric(obras["importe"], errors="coerce").fillna(0.0)
+
+    claves = df_planillometro[["estructura", "ejercicio"]].copy()
+    claves["ejercicio"] = pd.to_numeric(claves["ejercicio"], errors="coerce")
+    claves["_fila"] = range(len(claves))
+
+    # Une por estructura conservando la posición de cada fila del
+    # reporte; el ejercicio de la obra queda en ``ejercicio_obra``.
+    combinado = claves.merge(
+        obras, on="estructura", how="left", suffixes=("", "_obra")
+    )
+    # NaN (sin coincidencia) da False en ambas comparaciones.
+    en_ejercicio = combinado["ejercicio_obra"] == combinado["ejercicio"]
+    hasta_ejercicio = combinado["ejercicio_obra"] <= combinado["ejercicio"]
+
+    actual = (
+        combinado.loc[en_ejercicio]
+        .groupby("_fila")["importe"]
+        .sum()
+        .reindex(range(len(claves)), fill_value=0.0)
+    )
+    acum = (
+        combinado.loc[hasta_ejercicio]
+        .groupby("_fila")["importe"]
+        .sum()
+        .reindex(range(len(claves)), fill_value=0.0)
+    )
+    actual.index = df_planillometro.index
+    acum.index = df_planillometro.index
+    return actual, acum
+
+
+# --------------------------------------------------
+def _agregar_columnas_obra(df_planillometro: pd.DataFrame) -> pd.DataFrame:
+    """Agrega al df principal las 5 columnas derivadas de las colecciones
+    ``sgv_obras_recuperadas`` y ``sgv_obras_desactivadas``:
+
+    - ``Recupero Actual`` / ``Recupero Acum.``: total de importes de
+      obras recuperadas del ejercicio (y acumulado <= al ejercicio) de la
+      estructura de cada fila.
+    - ``Otros Motivos Actual`` / ``Otros Motivos Acum.``: idem para las
+      obras desactivadas.
+    - ``Saldo``: ``acum - Recupero Acum. - Otros Motivos Acum.``.
+
+    Se calcula sobre la marcha en el frontend y NO se persiste en la
+    colección ``reporte_planillometro``: es la única forma de que los
+    totales siempre coincidan con las colecciones de origen y se
+    refresquen solos tras cada alta/edición/borrado, sin tocar el backend
+    ni afectar el pipeline POST /generate -> /reporte.
+
+    Args:
+        df_planillometro: Reporte ya obtenido de la API.
+
+    Returns:
+        Copia del reporte con las 5 columnas nuevas (importes con
+        ``formato_moneda_ar``). Si los padrónes no se pudieron cargar,
+        devuelve el df sin modificar (el error ya se notificó).
+    """
+    obras = _obras_cacheadas()
+    if obras is None:
+        return df_planillometro
+    df_recuperadas, df_desactivadas = obras
+
+    df = df_planillometro.copy()
+    rec_actual, rec_acum = _totales_obras(df, df_recuperadas)
+    otr_actual, otr_acum = _totales_obras(df, df_desactivadas)
+
+    if "acum" in df.columns:
+        # Saldo: suma algebraica de acum menos Recupero Acum. y
+        # Otros Motivos Acum. (se calcula con los valores crudos).
+        saldo = (
+            pd.to_numeric(df["acum"], errors="coerce").fillna(0.0)
+            - rec_acum
+            - otr_acum
+        )
+    else:
+        st.warning(
+            "⚠️ No se encontró la columna 'acum' en el reporte: "
+            "la columna Saldo no se pudo calcular."
+        )
+        saldo = pd.Series(float("nan"), index=df.index)
+
+    df["Recupero Actual"] = rec_actual.apply(formato_moneda_ar)
+    df["Recupero Acum."] = rec_acum.apply(formato_moneda_ar)
+    df["Otros Motivos Actual"] = otr_actual.apply(formato_moneda_ar)
+    df["Otros Motivos Acum."] = otr_acum.apply(formato_moneda_ar)
+    df["Saldo"] = saldo.apply(
+        lambda valor: formato_moneda_ar(valor) if pd.notna(valor) else ""
+    )
+    return df
+
+
+# --------------------------------------------------
 def _columnas_visibles_obras(df_obras: pd.DataFrame) -> list[str]:
     """Todas las columnas de la colección excepto notas, id, _id,
     updated_at y estructura (ocultas, pero presentes para los modales)."""
@@ -303,26 +456,12 @@ def _render_obras_asociadas(df_planillometro: pd.DataFrame, event: Any) -> None:
         return
     ejercicio = int(ejercicio)
 
-    # Los fetchers están cacheados (@st.cache_data); el update_trigger de
-    # cada colección se incrementa por sus propios modales de CRUD, de modo
-    # que agregar/editar/borrar invalida la caché y refresca la subgrilla.
-    try:
-        df_recuperadas = get_obras_recuperadas(
-            update_trigger=int(
-                st.session_state.get(report_data_version_key("obras_recuperadas"), 0)
-            )
-        )
-        df_desactivadas = get_obras_desactivadas(
-            update_trigger=int(
-                st.session_state.get(report_data_version_key("obras_desactivadas"), 0)
-            )
-        )
-    except APIConnectionError as e:
-        st.error(f"⚠️ Error de conexión: {e}")
+    # Los padrónes se cachean (@st.cache_data) y se invalidan con los
+    # modales de CRUD: la subgrilla siempre refleja los cambios.
+    obras = _obras_cacheadas()
+    if obras is None:
         return
-    except APIResponseError as e:
-        st.error(f"⚠️ Error de API: {e}")
-        return
+    df_recuperadas, df_desactivadas = obras
 
     df_recuperadas_filtrado = _filtrar_obras_de_la_fila(
         df_recuperadas, estructura, ejercicio
@@ -446,6 +585,12 @@ def render(
 
     # 4. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
+        # Columnas derivadas (Recupero / Otros Motivos / Saldo): se
+        # recalculan en cada render (frontend puro) para que los CRUD de
+        # sgv_obras_recuperadas / sgv_obras_desactivadas impacten al
+        # instante en el reporte.
+        df = _agregar_columnas_obra(df)
+
         # Columnas fijas (pinned): siempre visibles al desplazar a la derecha
         first_cols = [
             col for col in ("ejercicio", "estructura") if col in df.columns
