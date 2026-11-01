@@ -90,9 +90,17 @@ def get_obras_recuperadas(
 
 
 # --------------------------------------------------
-def add_obras_recuperadas() -> None:
+def add_obras_recuperadas(estructura: str | None = None) -> None:
+    """Abre el modal de alta de obra recuperada.
+
+    Args:
+        estructura: Valor precargado en el selectbox "Estructura" (e.g.
+            la estructura de la fila seleccionada en el planillómetro).
+            El usuario puede cambiarla; ``None`` deja el combo vacío.
+    """
     modal_obras_recuperadas(
-        key_prefix=f"add_obras_recuperadas_{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+        key_prefix=f"add_obras_recuperadas_{datetime.now().strftime('%Y%m%d%H%M%S%f')}",
+        datos_carga={"estructura": estructura} if estructura else None,
     )
 
 

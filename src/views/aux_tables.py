@@ -220,7 +220,7 @@ def dataframe_with_buttons(
                 border=False,
                 width="stretch",
                 horizontal_alignment="center",
-                gap="medium",
+                gap="small",
             ):
                 if button_add(
                     "Agregar",

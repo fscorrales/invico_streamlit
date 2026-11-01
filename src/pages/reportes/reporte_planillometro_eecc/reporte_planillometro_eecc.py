@@ -19,6 +19,18 @@ from src.automation.analysis.reporte_planillometro import (
 )
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
+from src.pages.reportes.reporte_planillometro_eecc.obras_desactivadas import (
+    add_obras_desactivadas,
+    delete_obras_desactivadas,
+    edit_obras_desactivadas,
+    get_obras_desactivadas,
+)
+from src.pages.reportes.reporte_planillometro_eecc.obras_recuperadas import (
+    add_obras_recuperadas,
+    delete_obras_recuperadas,
+    edit_obras_recuperadas,
+    get_obras_recuperadas,
+)
 from src.services import (
     fetch_dataframe,
     get_ejercicios_list,
@@ -28,7 +40,10 @@ from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
+from src.utils.transform_data import formato_moneda_ar
 from src.views import (
+    dataframe_with_buttons,
+    report_data_version_key,
     report_template,
     request_siif_credentials_modal,
 )
@@ -36,6 +51,13 @@ from src.views import (
 ENDPOINT = Endpoints.REPORTE_PLANILLOMETRO.value
 REPORTE = "reporte_planillometro_eecc"
 URL_SHEET = "https://docs.google.com/spreadsheets/d/1Hmb7xmzhZBoicnL5_tN7mr1kOj-r3gw8lCkPErR8Xd4"
+# Columnas de obras_recuperadas / obras_desactivadas que NO se muestran
+# en las subgrillas (pero permanecen en el DataFrame porque los modales
+# de edición/borrado necesitan id, updated_at, notas y estructura).
+CAMPOS_OCULTOS_OBRAS: tuple[str, ...] = ("notas", "id", "updated_at", "estructura")
+# Altura de las subgrillas en píxeles (~4-5 filas) para que quepan en
+# pantallas de 19 pulgadas sin desplazamiento vertical excesivo.
+ALTURA_SUBGRILLA_OBRAS: int = 200
 
 
 # --------------------------------------------------
@@ -203,6 +225,144 @@ def _generate_and_upload() -> None:
 
 
 # --------------------------------------------------
+def _columnas_visibles_obras(df_obras: pd.DataFrame) -> list[str]:
+    """Todas las columnas de la colección excepto notas, id, updated_at y
+    estructura (ocultas, pero presentes para los modales de CRUD)."""
+    return [col for col in df_obras.columns if col not in CAMPOS_OCULTOS_OBRAS]
+
+
+# --------------------------------------------------
+def _filtrar_obras_de_la_fila(
+    df_obras: pd.DataFrame, estructura: Any, ejercicio: int
+) -> pd.DataFrame:
+    """Documentos de la colección con la misma estructura que la fila
+    seleccionada en el planillómetro y con ejercicios iguales o inferiores
+    al de dicha fila (frontend puro, sin llamadas a la API).
+
+    El campo importe se formatea con ``formato_moneda_ar``; el modal de
+    edición lo revierte con ``parse_moneda_ar`` (igual que las páginas
+    obras_recuperadas / obras_desactivadas).
+    """
+    if (
+        df_obras.empty
+        or "estructura" not in df_obras.columns
+        or "ejercicio" not in df_obras.columns
+    ):
+        return pd.DataFrame()
+
+    ejercicios = pd.to_numeric(df_obras["ejercicio"], errors="coerce")
+    df_filtrado = df_obras[
+        (df_obras["estructura"] == estructura) & (ejercicios <= ejercicio)
+    ].copy()
+
+    if not df_filtrado.empty and "importe" in df_filtrado.columns:
+        df_filtrado["importe"] = df_filtrado["importe"].apply(formato_moneda_ar)
+    return df_filtrado
+
+
+# --------------------------------------------------
+def _render_obras_asociadas(df_planillometro: pd.DataFrame, event: Any) -> None:
+    """Renderiza debajo del planillómetro principal las subgrillas de obras
+    recuperadas y obras desactivadas ligadas a la fila seleccionada.
+
+    Cada subgrilla muestra todos los campos de su colección excepto notas,
+    id, updated_at y estructura (ocultos vía ``column_order``, pero
+    presentes en el DataFrame para que los modales reciban el registro
+    completo). Los
+    botones Agregar/Editar/Borrar reutilizan los modales de
+    ``obras_recuperadas.py`` y ``obras_desactivadas.py``.
+
+    Args:
+        df_planillometro: DataFrame del reporte planillómetro principal.
+        event: Evento de selección (``on_select="rerun"``) de la grilla
+            principal; se espera ``selection_mode="single-row"``.
+    """
+    if len(event.selection.rows) == 0:
+        st.info(
+            "Seleccione una fila del planillómetro para ver sus obras "
+            "recuperadas y desactivadas asociadas."
+        )
+        return
+
+    fila_seleccionada = df_planillometro.iloc[event.selection.rows[0]]
+    estructura = fila_seleccionada.get("estructura")
+    ejercicio = fila_seleccionada.get("ejercicio")
+
+    if (
+        estructura is None
+        or pd.isna(estructura)
+        or ejercicio is None
+        or pd.isna(ejercicio)
+    ):
+        st.warning(
+            "⚠️ La fila seleccionada no tiene estructura/ejercicio válidos "
+            "para vincular obras recuperadas ni desactivadas."
+        )
+        return
+    ejercicio = int(ejercicio)
+
+    # Los fetchers están cacheados (@st.cache_data); el update_trigger de
+    # cada colección se incrementa por sus propios modales de CRUD, de modo
+    # que agregar/editar/borrar invalida la caché y refresca la subgrilla.
+    try:
+        df_recuperadas = get_obras_recuperadas(
+            update_trigger=int(
+                st.session_state.get(report_data_version_key("obras_recuperadas"), 0)
+            )
+        )
+        df_desactivadas = get_obras_desactivadas(
+            update_trigger=int(
+                st.session_state.get(report_data_version_key("obras_desactivadas"), 0)
+            )
+        )
+    except APIConnectionError as e:
+        st.error(f"⚠️ Error de conexión: {e}")
+        return
+    except APIResponseError as e:
+        st.error(f"⚠️ Error de API: {e}")
+        return
+
+    df_recuperadas_filtrado = _filtrar_obras_de_la_fila(
+        df_recuperadas, estructura, ejercicio
+    )
+    df_desactivadas_filtrado = _filtrar_obras_de_la_fila(
+        df_desactivadas, estructura, ejercicio
+    )
+
+    col_recuperadas, col_desactivadas = st.columns(2)
+
+    with col_recuperadas:
+        st.markdown("#### 🏗️ Obras Recuperadas")
+        dataframe_with_buttons(
+            df_recuperadas_filtrado,
+            key=f"{REPORTE}_df_obras_recuperadas",
+            height=ALTURA_SUBGRILLA_OBRAS,
+            column_order=_columnas_visibles_obras(df_recuperadas_filtrado),
+            selection_mode="single-row",
+            add_func=lambda: add_obras_recuperadas(estructura=str(estructura)),
+            edit_func=edit_obras_recuperadas,
+            delete_func=delete_obras_recuperadas,
+        )
+        if df_recuperadas_filtrado.empty:
+            st.caption("Sin obras recuperadas para esta estructura.")
+
+    with col_desactivadas:
+        st.markdown("#### 🛠️ Obras Desactivadas")
+        dataframe_with_buttons(
+            df_desactivadas_filtrado,
+            key=f"{REPORTE}_df_obras_desactivadas",
+            height=ALTURA_SUBGRILLA_OBRAS,
+            column_order=_columnas_visibles_obras(df_desactivadas_filtrado),
+            selection_mode="single-row",
+            add_func=lambda: add_obras_desactivadas(estructura=str(estructura)),
+            edit_func=edit_obras_desactivadas,
+            delete_func=delete_obras_desactivadas,
+        )
+        if df_desactivadas_filtrado.empty:
+            st.caption("Sin obras desactivadas para esta estructura.")
+
+
+# --------------------------------------------------
 def render(
     automation_func: Optional[Any] = None,
 ) -> None:
@@ -294,11 +454,17 @@ def render(
             col for col in df.columns if col not in first_cols
         ]
 
-        dataframe(
+        event = dataframe(
             df,
             key=f"{REPORTE}_df_planillometro_eecc",
             column_order=orden_dinamico,
+            on_select="rerun",
+            selection_mode="single-row",
         )
+
+        # Subgrillas de obras recuperadas / desactivadas según la fila
+        # seleccionada (con sus modales de Agregar/Editar/Borrar).
+        _render_obras_asociadas(df, event)
 
         # 5. Resumen de la última sincronización (RouteReturnSchema)
         resultado_post = st.session_state.get(f"{REPORTE}_post_result")

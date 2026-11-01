@@ -94,10 +94,18 @@ def get_obras_desactivadas(
 
 
 # --------------------------------------------------
-def add_obras_desactivadas() -> None:
+def add_obras_desactivadas(estructura: str | None = None) -> None:
+    """Abre el modal de alta de obra desactivada.
+
+    Args:
+        estructura: Valor precargado en el selectbox "Estructura" (e.g.
+            la estructura de la fila seleccionada en el planillómetro).
+            El usuario puede cambiarla; ``None`` deja el combo vacío.
+    """
     modal_obras_desactivadas(
         key_prefix=f"add_obras_desactivadas_"
-        f"{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+        f"{datetime.now().strftime('%Y%m%d%H%M%S%f')}",
+        datos_carga={"estructura": estructura} if estructura else None,
     )
 
 
