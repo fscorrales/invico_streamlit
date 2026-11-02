@@ -73,7 +73,7 @@ def initialize_state() -> None:
 # ──────────────────────────────────────────────
 def build_navigation() -> None:
     """Construye la navegación con st.navigation y ejecuta la página."""
-    role = st.session_state["user"].get("role", "pending")
+    roles = st.session_state["user"].get("roles", ["pending"])
     username = st.session_state["user"].get("username", "Usuario")
 
     # username = st.session_state["user"]["username"]
@@ -167,7 +167,7 @@ def build_navigation() -> None:
     }
 
     # 2. Agregamos páginas extra según el rol (sin crear una sección nueva)
-    if role == "admin":
+    if "admin" in roles:
         pages["Administración"] = [
             st.Page(
                 "src/pages/admin/gestion_usuarios.py",

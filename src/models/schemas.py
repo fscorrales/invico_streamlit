@@ -26,6 +26,8 @@ class Role(str, Enum):
     ADMIN = "admin"
     USER = "user"
     PENDING = "pending"
+    EECC = "eecc"
+    ICARO = "icaro"
 
 
 # -------------------------------------------------
@@ -95,7 +97,7 @@ class CreateUser(BaseModel):
 
     username: str
     password: str
-    role: Role = Role.USER
+    roles: List[Role] = [Role.USER]
 
 
 # -------------------------------------------------
@@ -104,14 +106,14 @@ class PublicStoredUser(BaseModel):
 
     id: str
     username: str
-    role: Role
+    roles: List[Role]
 
 
 # -------------------------------------------------
 class UpdateUserRole(BaseModel):
     """Cambio de rol de un usuario (PATCH /users/{id}/role)."""
 
-    role: Role = Role.USER
+    roles: List[Role] = [Role.USER]
 
 
 # -------------------------------------------------
