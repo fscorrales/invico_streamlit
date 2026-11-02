@@ -122,11 +122,6 @@ def build_navigation() -> None:
         ],
         "Reportes": [
             st.Page(
-                "src/pages/reportes/reporte_planillometro_eecc/reporte_planillometro_eecc_tabs.py",
-                title="Reporte Planillometro EECC",
-                icon="📽️",
-            ),
-            st.Page(
                 "src/pages/reportes/reporte_formulacion/reporte_formulacion.py",
                 title="Reporte Formulación",
                 icon="🔮",
@@ -167,6 +162,16 @@ def build_navigation() -> None:
     }
 
     # 2. Agregamos páginas extra según el rol (sin crear una sección nueva)
+    if "eecc" in roles:
+        pages["Reportes"].insert(
+            0,
+            st.Page(
+                "src/pages/reportes/reporte_planillometro_eecc/reporte_planillometro_eecc_tabs.py",
+                title="Reporte Planillometro EECC",
+                icon="📽️",
+            ),
+        )
+
     if "admin" in roles:
         pages["Administración"] = [
             st.Page(
