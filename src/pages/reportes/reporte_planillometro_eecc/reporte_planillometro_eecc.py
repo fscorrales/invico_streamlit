@@ -50,11 +50,17 @@ from src.views import (
 
 ENDPOINT = Endpoints.REPORTE_PLANILLOMETRO.value
 REPORTE = "reporte_planillometro_eecc"
-URL_SHEET = "https://docs.google.com/spreadsheets/d/1Hmb7xmzhZBoicnL5_tN7mr1kOj-r3gw8lCkPErR8Xd4"
+URL_SHEET = "https://docs.google.com/spreadsheets/d/1MbsMGM-eVIU-ssMbMkZwRPjbQfsbv3nyoL7cHHUNXxQ"
 # Columnas de obras_recuperadas / obras_desactivadas que NO se muestran
 # en las subgrillas (pero permanecen en el DataFrame porque los modales
 # de edición/borrado necesitan id, updated_at, notas y estructura).
-CAMPOS_OCULTOS_OBRAS: tuple[str, ...] = ("notas", "id", "_id", "updated_at", "estructura")
+CAMPOS_OCULTOS_OBRAS: tuple[str, ...] = (
+    "notas",
+    "id",
+    "_id",
+    "updated_at",
+    "estructura",
+)
 # Altura de las subgrillas en píxeles (~4-5 filas) para que quepan en
 # pantallas de 19 pulgadas sin desplazamiento vertical excesivo.
 ALTURA_SUBGRILLA_OBRAS: int = 200
@@ -295,9 +301,7 @@ def _totales_obras(
 
     # Une por estructura conservando la posición de cada fila del
     # reporte; el ejercicio de la obra queda en ``ejercicio_obra``.
-    combinado = claves.merge(
-        obras, on="estructura", how="left", suffixes=("", "_obra")
-    )
+    combinado = claves.merge(obras, on="estructura", how="left", suffixes=("", "_obra"))
     # NaN (sin coincidencia) da False en ambas comparaciones.
     en_ejercicio = combinado["ejercicio_obra"] == combinado["ejercicio"]
     hasta_ejercicio = combinado["ejercicio_obra"] <= combinado["ejercicio"]
@@ -358,9 +362,7 @@ def _agregar_columnas_obra(df_planillometro: pd.DataFrame) -> pd.DataFrame:
         # Saldo: suma algebraica de acum menos Recupero Acum. y
         # Otros Motivos Acum. (se calcula con los valores crudos).
         saldo = (
-            pd.to_numeric(df["acum"], errors="coerce").fillna(0.0)
-            - rec_acum
-            - otr_acum
+            pd.to_numeric(df["acum"], errors="coerce").fillna(0.0) - rec_acum - otr_acum
         )
     else:
         st.warning(
@@ -520,9 +522,9 @@ def render(
 
     report_template(
         key=REPORTE,
-        title=REPORTE.replace("_", " ").title(),
+        title="Planillómetro EECC",
         endpoint=ENDPOINT,
-        description=f"La automatización y la exportación impactan en los 3 subreportes/pestañas. Datos exportados en [Google Sheet]({URL_SHEET}).",
+        description=f"La exportación impactan en los 3 subreportes/pestañas. Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_credentials_modal(
             automation_func or run_automation,
@@ -592,9 +594,7 @@ def render(
         df = _agregar_columnas_obra(df)
 
         # Columnas fijas (pinned): siempre visibles al desplazar a la derecha
-        first_cols = [
-            col for col in ("ejercicio", "estructura") if col in df.columns
-        ]
+        first_cols = [col for col in ("ejercicio", "estructura") if col in df.columns]
 
         # Orden dinámico: primeras las fijas y sin id/_id (ocultas)
         orden_dinamico = first_cols + [
