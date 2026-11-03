@@ -61,9 +61,13 @@ CAMPOS_OCULTOS_OBRAS: tuple[str, ...] = (
     "updated_at",
     "estructura",
 )
-# Altura de las subgrillas en píxeles (~4-5 filas) para que quepan en
-# pantallas de 19 pulgadas sin desplazamiento vertical excesivo.
-ALTURA_SUBGRILLA_OBRAS: int = 200
+# Altura de las subgrillas en píxeles (~3 filas visibles) para que
+# quepan en pantallas de 19 pulgadas sin desplazamiento vertical.
+ALTURA_SUBGRILLA_OBRAS: int = 130
+# Altura del cuadro principal en píxeles (~7 filas visibles) para que
+# quepa en pantallas de 19 pulgadas sin desplazamiento vertical.
+# (Default del componente: 300 px ≈ 9 filas.)
+ALTURA_GRILLA_PRINCIPAL: int = 260
 # Columnas del df principal del planillómetro que NO se muestran.
 CAMPOS_OCULTOS_PRINCIPAL: tuple[str, ...] = ("id", "_id")
 
@@ -522,7 +526,7 @@ def render(
 
     report_template(
         key=REPORTE,
-        title="Planillómetro EECC",
+        title="",  # Sin h1: gana ~65 px verticales en monitores de 19 pulgadas
         endpoint=ENDPOINT,
         description=f"La exportación impactan en los 3 subreportes/pestañas. Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
@@ -619,6 +623,7 @@ def render(
         event = dataframe(
             df,
             key=f"{REPORTE}_df_planillometro_eecc",
+            height=ALTURA_GRILLA_PRINCIPAL,
             column_order=orden_dinamico,
             column_config=column_config_principal,
             on_select="rerun",

@@ -81,8 +81,12 @@ def report_template(
         y sin desplazar el layout; el link a la hoja vive en la
         descripción del reporte).
     """
-    st.markdown(f"# {title}")
-    st.write(description)
+    # Render condicional: con title="" no se emite el <h1> vacío (su
+    # contenedor seguiría ocupando margen vertical sin contenido).
+    if title:
+        st.markdown(f"# {title}")
+    if description:
+        st.write(description)
 
     selections = []
     filtro_avanzado = ""
@@ -599,8 +603,12 @@ def report_header(
     # Selecciones de los multiselects server-side (se llenan al renderizar)
     selections: list[tuple[str, list[Any]]] = []
 
-    st.markdown(f"# {title}")
-    st.write(description)
+    # Render condicional: con title="" no se emite el <h1> vacío (su
+    # contenedor seguiría ocupando margen vertical sin contenido).
+    if title:
+        st.markdown(f"# {title}")
+    if description:
+        st.write(description)
 
     # 0. Lógica de Exportación
     def download_file():

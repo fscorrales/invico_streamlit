@@ -139,7 +139,7 @@ def render() -> None:
     # el estado del reporte: no hace falta leer nada de session_state.
     state: ReportState = report_header(
         key=REPORTE,
-        title="Obras Recuperadas",
+        title="",
         description="Puede trabajar aquí o en la pestaña 'Planillómetro EECC'.",
         endpoint=Endpoints.OBRAS_RECUPERADAS.value,
         filters_config=mis_filtros,
