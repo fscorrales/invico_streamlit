@@ -11,7 +11,7 @@ __all__ = [
 
 import time
 from collections.abc import Callable
-from typing import Any, NamedTuple, Optional
+from typing import Any, Literal, NamedTuple, Optional
 
 import pandas as pd
 import streamlit as st
@@ -28,6 +28,7 @@ from src.components import (
     text_input_advance_filter,
 )
 from src.services.api_client import (
+    export_to_sheet,
     fetch_excel_stream,
     post_request,
 )
@@ -68,10 +69,17 @@ def report_template(
     allow_extra_options: bool = False,
     has_advanced_filter: bool = True,
     max_selections: Optional[int] = None,
+    export_mode: Literal["excel", "sheet"] = "excel",
 ):
     """
     Vista reutilizable.
     filters_config: Lista de dicts con ['label', 'options', 'key', 'default']
+    export_mode: "excel" (default) guarda el binario del endpoint y ofrece
+        el botón "📥 GUARDAR EXCEL"; "sheet" solo dispara la subida a
+        Google Sheet (el endpoint responde JSON, no archivo): nunca
+        muestra el botón de descarga y confirma vía ``st.toast`` (efímero
+        y sin desplazar el layout; el link a la hoja vive en la
+        descripción del reporte).
     """
     st.markdown(f"# {title}")
     st.write(description)
@@ -80,7 +88,11 @@ def report_template(
     filtro_avanzado = ""
 
     # 0. Lógica de Exportación
-    def download_file():
+    export_target: str = (
+        endpoint + "/export" if export_endpoint is None else export_endpoint
+    )
+
+    def download_file() -> None:
         # Validamos filtros antes de proceder
         if all(s[1] is not None for s in selections):
             try:
@@ -90,9 +102,7 @@ def report_template(
                 with st.spinner("Preparando archivos Excel..."):
                     # Llamada a la API que devuelve StreamingResponse
                     excel_binario = fetch_excel_stream(
-                        endpoint + "/export"
-                        if export_endpoint is None
-                        else export_endpoint,
+                        export_target,
                         params_preparation(selections, filtro_avanzado),
                     )
 
@@ -105,6 +115,46 @@ def report_template(
 
             except Exception as e:
                 st.error(f"Error al exportar: {e}")
+
+    def export_sheet() -> None:
+        """Sube a Google Sheet: el endpoint responde JSON, no binario."""
+        if not all(s[1] is not None for s in selections):
+            return
+        try:
+            with st.spinner("Exportando a Google Sheet..."):
+                export_to_sheet(
+                    export_target,
+                    params_preparation(selections, filtro_avanzado),
+                )
+            # Solo toast (efímero y sin espacio en el layout): un
+            # st.success inline desplazaría hacia abajo la fila de
+            # filtros y la tabla de resultados.
+            st.toast("📊 Datos exportados a la Google Sheet.", icon="✅")
+        except Exception as e:
+            st.error(f"Error al exportar: {e}")
+
+    def render_export_control() -> None:
+        """Renderiza el botón de exportación según ``export_mode``."""
+        if export_mode == "sheet":
+            # Nunca escribe temp_file_{key}: jamás se ofrece "GUARDAR EXCEL"
+            if button_export("Exportar a GS", key=f"button_export_{key}"):
+                export_sheet()
+            return
+
+        if f"temp_file_{key}" not in st.session_state:
+            if button_export("Exportar", key=f"button_export_{key}"):
+                download_file()
+        else:
+            # Si hay archivo, el botón "Exportar" desaparece y aparece el de "Descargar"
+            st.download_button(
+                label="📥 GUARDAR EXCEL",
+                data=st.session_state[f"temp_file_{key}"],
+                file_name=f"reporte_{key}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key=f"btn_dl_{key}",
+                type="primary",  # Lo ponemos en color para que resalte
+                on_click=lambda: st.session_state.pop(f"temp_file_{key}"),
+            )
 
     # 1. Renderizar Filtros
     # --- Filtros (Estado local del componente) ---
@@ -133,21 +183,7 @@ def report_template(
                     update_func()
 
         if has_export:
-            # Aquí podrías integrar tu logic de exportación
-            if f"temp_file_{key}" not in st.session_state:
-                if button_export("Exportar", key=f"button_export_{key}"):
-                    download_file()
-            else:
-                # Si hay archivo, el botón "Exportar" desaparece y aparece el de "Descargar"
-                st.download_button(
-                    label="📥 GUARDAR EXCEL",
-                    data=st.session_state[f"temp_file_{key}"],
-                    file_name=f"reporte_{key}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    key=f"btn_dl_{key}",
-                    type="primary",  # Lo ponemos en color para que resalte
-                    on_click=lambda: st.session_state.pop(f"temp_file_{key}"),
-                )
+            render_export_control()
 
     # 2. Validar que no haya filtros vacíos
     if not allow_no_filters:

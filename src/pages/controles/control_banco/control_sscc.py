@@ -49,6 +49,7 @@ def render(
             skip_callback=(lambda: skip_func(REPORTE)) if skip_func else None,
         ),
         export_endpoint=Endpoints.CONTROL_BANCO.value + "/export",
+        export_mode="sheet",
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):

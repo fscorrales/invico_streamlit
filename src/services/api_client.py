@@ -9,6 +9,7 @@ directamente.
 __all__ = [
     "fetch_data",
     "fetch_excel_stream",
+    "export_to_sheet",
     "post_request",
     "put_request",
     "patch_request",
@@ -141,7 +142,48 @@ def fetch_excel_stream(endpoint: str, params: dict):
             return _handle_response(response)
 
     except httpx.RequestError as e:
-        raise APIConnectionError(f"Error de conexión (GET): {e}")
+        raise APIConnectionError(f"Error de conexión (GET): {e}") from e
+
+
+# --------------------------------------------------
+def export_to_sheet(endpoint: str, params: Optional[dict[str, Any]] = None) -> Any:
+    """
+    Ejecuta una exportación cuyo endpoint sube datos a Google Sheet.
+
+    A diferencia de :func:`fetch_excel_stream`, esta ruta no devuelve
+    binario (Excel) sino una respuesta JSON de confirmación de la subida,
+    por lo que se valida con la lógica estándar de ``_handle_response``.
+
+    Args:
+        endpoint: Ruta relativa del endpoint
+            (ej. ``/control/controlBanco/export``).
+        params: Parámetros de query opcionales; misma estructura que la
+            exportación a Excel (``ejercicio``, ``queryFilter``, etc.).
+
+    Returns:
+        Payload JSON devuelto por la API.
+
+    Raises:
+        APIConnectionError: Si no hay token de sesión o falla la conexión.
+        APIResponseError: Si la API responde con un estado de error.
+    """
+    headers = _get_headers()
+    clean_params = (
+        {k: v for k, v in params.items() if v is not None} if params else None
+    )
+
+    try:
+        response = httpx.get(
+            f"{BASE_URL}{endpoint}",
+            headers=headers,
+            params=clean_params,
+            timeout=settings.DEFAULT_TIMEOUT,
+            follow_redirects=True,  # Evita caídas por redirecciones 307 de Koyeb
+        )
+        return _handle_response(response)
+
+    except httpx.RequestError as e:
+        raise APIConnectionError(f"Error de conexión (GET): {e}") from e
 
 
 # --------------------------------------------------
