@@ -40,7 +40,7 @@ from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
-from src.utils.transform_data import formato_moneda_ar
+from src.utils.transform_data import formato_moneda_ar, parse_moneda_ar
 from src.views import (
     dataframe_with_buttons,
     report_data_version_key,
@@ -67,9 +67,19 @@ ALTURA_SUBGRILLA_OBRAS: int = 130
 # Altura del cuadro principal en píxeles (~7 filas visibles) para que
 # quepa en pantallas de 19 pulgadas sin desplazamiento vertical.
 # (Default del componente: 300 px ≈ 9 filas.)
-ALTURA_GRILLA_PRINCIPAL: int = 260
+ALTURA_GRILLA_PRINCIPAL: int = 220
 # Columnas del df principal del planillómetro que NO se muestran.
 CAMPOS_OCULTOS_PRINCIPAL: tuple[str, ...] = ("id", "_id")
+# Columnas derivadas cuyos totales se muestran como mini-métricas bajo la
+# grilla principal (fuera del dataframe, siempre a la vista: el usuario
+# no tiene que desplazarse hasta la última fila para verlos).
+COLUMNAS_TOTALES_PRINCIPAL: tuple[str, ...] = (
+    "Recupero Actual",
+    "Recupero Acum.",
+    "Otros Motivos Actual",
+    "Otros Motivos Acum.",
+    "Saldo",
+)
 
 
 # --------------------------------------------------
@@ -386,6 +396,63 @@ def _agregar_columnas_obra(df_planillometro: pd.DataFrame) -> pd.DataFrame:
 
 
 # --------------------------------------------------
+def _render_totales_planillometro(df: pd.DataFrame) -> None:
+    """Franja compacta bajo la grilla principal con el total de cada
+    columna derivada (:data:`COLUMNAS_TOTALES_PRINCIPAL`).
+
+    Los totales quedan FUERA del dataframe —siempre a la vista— para que
+    el usuario no tenga que desplazarse hasta la última fila. Es una
+    franja HTML flex de dos líneas por ítem (etiqueta arriba, valor en
+    negrita abajo; ~40 px vs ~85 px de las mini-métricas) con los 5
+    ítems repartidos en columnas de igual ancho. Sin ``nowrap`` ni
+    ellipsis: el texto nunca se recorta (se ajusta si la columna es
+    angosta). Hereda los colores del tema (no se fijan colores en el
+    markup) y los ``title`` nativos del HTML muestran el tooltip al
+    hacer hover, sin JS.
+
+    Se suman los valores ya formateados de la columna visible
+    (``parse_moneda_ar`` invierte ``formato_moneda_ar``) y el resultado
+    se vuelve a formatear, de modo que el total coincide exactamente con
+    lo que muestra la grilla.
+
+    Nota: con ``max_selections=1`` cada estructura aparece en una sola
+    fila, por lo que sumar las columnas ``Acum.`` no produce doble
+    conteo. El total de ``Saldo`` es consistente:
+    ``Σ(acum) − Σ(Recupero Acum.) − Σ(Otros Motivos Acum.)``.
+
+    Args:
+        df: Reporte ya procesado por :func:`_agregar_columnas_obra`.
+    """
+    columnas_totales = [
+        columna for columna in COLUMNAS_TOTALES_PRINCIPAL if columna in df.columns
+    ]
+    if not columnas_totales:
+        return
+
+    ayuda = "Suma de la columna visible en la grilla principal"
+    items: list[str] = []
+    for nombre_columna in columnas_totales:
+        total: float = df[nombre_columna].apply(parse_moneda_ar).sum()
+        valor = formato_moneda_ar(total)
+        # Dos lítems: etiqueta (línea 1) + valor en negrita (línea 2).
+        # Sin nowrap/ellipsis para que el total nunca aparezca cortado.
+        items.append(
+            f'<div title="{ayuda}" '
+            f'style="flex:1 1 0; min-width:0; text-align:center;">'
+            f'<div style="font-size:11px; opacity:0.75; '
+            f'white-space:normal;">{nombre_columna}</div>'
+            f'<div style="font-size:13px; font-weight:600;">'
+            f"{valor}</div></div>"
+        )
+
+    st.markdown(
+        '<div style="display:flex; gap:0.75rem; font-size:13px; '
+        'align-items:flex-start;">' + "".join(items) + "</div>",
+        unsafe_allow_html=True,
+    )
+
+
+# --------------------------------------------------
 def _columnas_visibles_obras(df_obras: pd.DataFrame) -> list[str]:
     """Todas las columnas de la colección excepto notas, id, _id,
     updated_at y estructura (ocultas, pero presentes para los modales)."""
@@ -629,6 +696,10 @@ def render(
             on_select="rerun",
             selection_mode="single-row",
         )
+
+        # Totales de las columnas derivadas: mini-métricas SIEMPRE
+        # visibles fuera de la grilla (sin scroll hasta la última fila).
+        _render_totales_planillometro(df)
 
         # Subgrillas de obras recuperadas / desactivadas según la fila
         # seleccionada (con sus modales de Agregar/Editar/Borrar).
