@@ -8,11 +8,9 @@ import numpy as np
 import pandas as pd
 from playwright.async_api import async_playwright
 
-from src.automation.analysis.siif_unified import get_siif_rci02_unified_cta_cte
-from src.automation.analysis.sscc_unified import get_banco_invico_unified_cta_cte
 from src.automation.siif.rci02 import Rci02
 from src.constants.endpoints import Endpoints
-from src.services.api_client import post_request
+from src.services.api_client import fetch_dataframe, post_request
 
 
 # --------------------------------------------------
@@ -124,9 +122,12 @@ def compute_control_recursos(ejercicios: List[int]) -> None:
 def generate_siif_comprobantes_recursos(
     ejercicio: int = dt.datetime.now().year,
 ) -> pd.DataFrame:
-    df = get_siif_rci02_unified_cta_cte(
-        ejercicio=ejercicio,
-    )
+    params = {"ejercicio": ejercicio} if ejercicio else None
+    params["limit"] = 0
+    df = fetch_dataframe(Endpoints.SIIF_RCI02.value, params=params)
+    # df = get_siif_rci02_unified_cta_cte(
+    #     ejercicio=ejercicio,
+    # )
     df = df.loc[df["es_verificado"]]
     df = df.loc[~df["es_remanente"]]
     if not df.empty:
@@ -147,7 +148,10 @@ def generate_siif_comprobantes_recursos(
 
 # --------------------------------------------------
 def generate_banco_invico(ejercicio: int = dt.datetime.now().year) -> pd.DataFrame:
-    df = get_banco_invico_unified_cta_cte(ejercicio=ejercicio)
+    params = {"ejercicio": ejercicio} if ejercicio else None
+    params["limit"] = 0
+    df = fetch_dataframe(Endpoints.SSCC_BANCO_INVICO.value, params=params)
+    # df = get_banco_invico_unified_cta_cte(ejercicio=ejercicio)
     dep_transf_int = ["034", "004"]
     dep_pf = ["214", "215"]
     dep_otros = ["003", "055", "005", "013"]
