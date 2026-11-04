@@ -37,13 +37,13 @@ async def run_automation(
     sscc_username: str,
     sscc_password: str,
     reporte: str,
-) -> None:
+) -> list[str]:
 
     # 1. Obtenemos los ejercicios seleccionados en el estado de sesión
     ejercicios = st.session_state.get("ejercicios_" + reporte, [])
     if not ejercicios:
         st.error("No hay ejercicios seleccionados.")
-        return
+        return []
 
     # Ensure we have a list of integers
     if isinstance(ejercicios, int):
@@ -67,14 +67,15 @@ async def run_automation(
     )
     results.append("SSCC ejecutado correctamente.")
 
-    # 3. Combinamos las tablas y actualizamos el reporte
-    control_recursos.compute_control_recursos(ejercicios=ejercicios)
+    # 3. El backend recalcula el cruce (GET /generate) y congelamos el
+    #    snapshot en Mongo con un POST por ejercicio.
+    results.extend(control_recursos.compute_control_recursos(ejercicios=ejercicios))
 
     return results
 
 
 # --------------------------------------------------
-def run_skip(reporte: str) -> None:
+def run_skip(reporte: str) -> list[str]:
     """
     Omite la descarga de reportes (SIIF y SSCC) y recalcula el cruce
     con los datos ya presentes en la API.
@@ -83,20 +84,24 @@ def run_skip(reporte: str) -> None:
         reporte: Clave del reporte (p.ej. ``control_recursos``)
             usada para leer los ejercicios seleccionados en
             ``st.session_state``.
+
+    Returns:
+        Lista de mensajes con el resultado de cada ejercicio.
     """
     ejercicios = st.session_state.get("ejercicios_" + reporte, [])
     if not ejercicios:
         st.error("No hay ejercicios seleccionados.")
-        return
+        return []
 
     # Ensure we have a list of integers
     if isinstance(ejercicios, int):
         ejercicios = [ejercicios]
 
     # Solo recalculamos: sin sync_control_recursos_from_siif() ni
-    # sync_control_recursos_from_sscc(). compute_control_recursos() regenera
-    # los 3 subreportes (SIIF, SSCC y Cruzado) con los datos ya cargados.
-    control_recursos.compute_control_recursos(ejercicios=ejercicios)
+    # sync_control_recursos_from_sscc(). compute_control_recursos() pide
+    # el cruce al backend (GET /control/controlRecursos/generate) y
+    # sincroniza la colección con un POST por ejercicio.
+    return control_recursos.compute_control_recursos(ejercicios=ejercicios)
 
 
 # --------------------------------------------------

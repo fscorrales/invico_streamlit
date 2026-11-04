@@ -59,6 +59,32 @@ async def run_automation(
     return results
 
 
+# # --------------------------------------------------
+# def run_skip(reporte: str) -> None:
+#     """
+#     Omite la descarga de reportes (SIIF y SSCC) y recalcula el cruce
+#     con los datos ya presentes en la API.
+
+#     Args:
+#         reporte: Clave del reporte (p.ej. ``control_recursos``)
+#             usada para leer los ejercicios seleccionados en
+#             ``st.session_state``.
+#     """
+#     ejercicios = st.session_state.get("ejercicios_" + reporte, [])
+#     if not ejercicios:
+#         st.error("No hay ejercicios seleccionados.")
+#         return
+
+#     # Ensure we have a list of integers
+#     if isinstance(ejercicios, int):
+#         ejercicios = [ejercicios]
+
+#     # Solo recalculamos: sin sync_control_recursos_from_siif() ni
+#     # sync_control_recursos_from_sscc(). compute_control_recursos() regenera
+#     # los 3 subreportes (SIIF, SSCC y Cruzado) con los datos ya cargados.
+#     control_recursos.compute_control_recursos(ejercicios=ejercicios)
+
+
 # --------------------------------------------------
 def render() -> None:
 
@@ -82,6 +108,7 @@ def render() -> None:
             run_automation,
             key=REPORTE,
             downloaded_info="SIIF: rci02 y rcocc31 (1112-2-6 y 2122-1-2)",
+            # skip_callback=(lambda: run_skip(REPORTE)) if run_skip else None,
         ),
         max_selections=1,
     )
