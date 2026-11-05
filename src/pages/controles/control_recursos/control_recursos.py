@@ -20,6 +20,7 @@ from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
+from src.utils.transform_data import formato_moneda_ar, parse_moneda_ar
 from src.views import (
     report_template,
     request_siif_and_sscc_credentials_modal,
@@ -28,6 +29,11 @@ from src.views import (
 ENDPOINT = Endpoints.CONTROL_RECURSOS.value
 REPORTE = "control_recursos"
 URL_SHEET = "https://docs.google.com/spreadsheets/d/1rbc5eMwJeW1fB5F5eKpczFmTrC6rpiJu89xTdhkWfZY"
+# Grupos por los que se totaliza la diferencia recursos SIIF vs depósitos
+# del banco en la franja inferior (orden de visualización). El matching
+# se hace normalizando mayúsculas/minúsculas, por lo que valores del
+# backend como "Otros" o "Fonavi" también calzan.
+GRUPOS_TOTALES: tuple[str, ...] = ("FONAVI", "OTROS", "RECUPEROS")
 
 
 # --------------------------------------------------
@@ -102,6 +108,63 @@ def run_skip(reporte: str) -> list[str]:
     # el cruce al backend (GET /control/controlRecursos/generate) y
     # sincroniza la colección con un POST por ejercicio.
     return control_recursos.compute_control_recursos(ejercicios=ejercicios)
+
+
+# --------------------------------------------------
+def _render_totales_control_recursos(df: pd.DataFrame) -> None:
+    """Franja compacta bajo la grilla con la diferencia total
+    ``recursos_siif − depositos_banco`` de cada
+    :data:`GRUPOS_TOTALES` (FONAVI, OTROS y RECUPEROS).
+
+    Los totales quedan FUERA del dataframe —siempre a la vista— para que
+    el usuario no tenga que desplazarse hasta la última fila. Es una
+    franja HTML flex de dos líneas por ítem (etiqueta arriba, valor en
+    negrita abajo), idéntica en estilo a la del planillómetro
+    (``_render_totales_planillometro``). Sin ``nowrap`` ni ellipsis: el
+    texto nunca se recorta. Hereda los colores del tema (no se fijan
+    colores en el markup) y los ``title`` nativos del HTML muestran el
+    tooltip al hacer hover, sin JS.
+
+    Se suman los valores de las columnas visibles ``recursos_siif`` y
+    ``depositos_banco`` (con ``parse_moneda_ar``, que acepta tanto el
+    número crudo de la API como una cadena ya formateada) y la resta se
+    formatea con ``formato_moneda_ar``. El matching de grupos ignora
+    mayúsculas/minúsculas y espacios sobrantes.
+
+    Args:
+        df: DataFrame del control de recursos (se espera que tenga las
+            columnas ``grupo``, ``recursos_siif`` y ``depositos_banco``).
+    """
+    columnas_requeridas = {"grupo", "recursos_siif", "depositos_banco"}
+    if not columnas_requeridas.issubset(df.columns):
+        return
+
+    grupos_normalizados = df["grupo"].astype(str).str.strip().str.upper()
+    ayuda = "Suma de (recursos_siif − depositos_banco) de todas las filas del grupo"
+    items: list[str] = []
+    for nombre_grupo in GRUPOS_TOTALES:
+        filas_grupo = df[grupos_normalizados == nombre_grupo]
+        total: float = (
+            filas_grupo["recursos_siif"].apply(parse_moneda_ar).sum()
+            - filas_grupo["depositos_banco"].apply(parse_moneda_ar).sum()
+        )
+        valor = formato_moneda_ar(total)
+        # Dos lítems: etiqueta (línea 1) + valor en negrita (línea 2).
+        # Sin nowrap/ellipsis para que el total nunca aparezca cortado.
+        items.append(
+            f'<div title="{ayuda}" '
+            f'style="flex:1 1 0; min-width:0; text-align:center;">'
+            f'<div style="font-size:11px; opacity:0.75; '
+            f'white-space:normal;">{nombre_grupo}</div>'
+            f'<div style="font-size:13px; font-weight:600;">'
+            f"{valor}</div></div>"
+        )
+
+    st.markdown(
+        '<div style="display:flex; gap:0.75rem; font-size:13px; '
+        'align-items:flex-start;">' + "".join(items) + "</div>",
+        unsafe_allow_html=True,
+    )
 
 
 # --------------------------------------------------
@@ -183,6 +246,10 @@ def render() -> None:
             key=f"{REPORTE}_df_control_recursos",
             column_order=orden_dinamico,
         )
+
+        # Franja de totales: diferencia SIIF vs Banco por grupo
+        # (FONAVI / OTROS / RECUPEROS) siempre visible fuera de la grilla.
+        _render_totales_control_recursos(df)
 
 
 if __name__ == "__main__":
