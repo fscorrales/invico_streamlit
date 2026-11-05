@@ -20,6 +20,7 @@ from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
+from src.utils.transform_data import formato_moneda_ar, parse_moneda_ar
 from src.views import (
     report_template,
     request_siif_credentials_modal,
@@ -56,7 +57,7 @@ async def run_automation(
         ejercicios=ejercicios,
     )
 
-    # 3. El backend recalcula el cruce (GET /generateIcaro) y congelamos
+    # 3. El backend recalcula el cruce (GET /generateSIIF) y congelamos
     #    el snapshot en Mongo con un POST por ejercicio.
     results.extend(
         control_aporte_empresario.compute_control_aporte_empresario(
@@ -92,10 +93,81 @@ def run_skip(reporte: str) -> list[str]:
 
     # Solo recalculamos: sin sync_control_aporte_empresario_from_siif().
     # compute_control_aporte_empresario() pide el cruce al backend
-    # (GET /control/controlAporteEmpresario/generateIcaro) y sincroniza
+    # (GET /control/controlAporteEmpresario/generateSIIF) y sincroniza
     # la colección con un POST por ejercicio.
     return control_aporte_empresario.compute_control_aporte_empresario(
         ejercicios=ejercicios
+    )
+
+
+# --------------------------------------------------
+def _render_totales_control_aporte_empresario(df: pd.DataFrame) -> None:
+    """Franja compacta bajo la grilla con los totales del cruce
+    Recurso 3% vs Retención 337: total de recursos, total de
+    retenciones y la diferencia entre ambos.
+
+    Los totales quedan FUERA del dataframe —siempre a la vista— para que
+    el usuario no tenga que desplazarse hasta la última fila. Es una
+    franja HTML flex de dos líneas por ítem (etiqueta arriba, valor en
+    negrita abajo), idéntica en estilo a la del control de recursos
+    (``_render_totales_control_recursos``). Sin ``nowrap`` ni ellipsis:
+    el texto nunca se recorta. Hereda los colores del tema (no se fijan
+    colores en el markup) y los ``title`` nativos del HTML muestran el
+    tooltip al hacer hover, sin JS.
+
+    Se suman los valores de las columnas visibles ``recurso`` y
+    ``retencion`` (con ``parse_moneda_ar``, que acepta tanto el número
+    crudo de la API como una cadena ya formateada) y la resta se
+    formatea con ``formato_moneda_ar``.
+
+    Args:
+        df: DataFrame del control de aporte empresario (se espera que
+            tenga las columnas ``recurso`` y ``retencion``).
+    """
+    columnas_requeridas = {"recurso", "retencion"}
+    if not columnas_requeridas.issubset(df.columns):
+        return
+
+    total_recurso: float = df["recurso"].apply(parse_moneda_ar).sum()
+    total_retencion: float = df["retencion"].apply(parse_moneda_ar).sum() * -1
+    diferencia: float = total_recurso - total_retencion
+
+    metricas: tuple[tuple[str, float, str], ...] = (
+        (
+            "Total Recursos",
+            total_recurso,
+            "Suma de la columna recurso de todas las filas visibles",
+        ),
+        (
+            "Total Retenciones",
+            total_retencion,
+            "Suma de la columna retencion de todas las filas visibles",
+        ),
+        (
+            "Diferencia",
+            diferencia,
+            "Total Recursos - Total Retenciones",
+        ),
+    )
+
+    items: list[str] = []
+    for etiqueta, total, ayuda in metricas:
+        valor = formato_moneda_ar(total)
+        # Dos ítems: etiqueta (línea 1) + valor en negrita (línea 2).
+        # Sin nowrap/ellipsis para que el total nunca aparezca cortado.
+        items.append(
+            f'<div title="{ayuda}" '
+            f'style="flex:1 1 0; min-width:0; text-align:center;">'
+            f'<div style="font-size:11px; opacity:0.75; '
+            f'white-space:normal;">{etiqueta}</div>'
+            f'<div style="font-size:13px; font-weight:600;">'
+            f"{valor}</div></div>"
+        )
+
+    st.markdown(
+        '<div style="display:flex; gap:0.75rem; font-size:13px; '
+        'align-items:flex-start;">' + "".join(items) + "</div>",
+        unsafe_allow_html=True,
     )
 
 
@@ -176,6 +248,10 @@ def render() -> None:
             key=f"{REPORTE}_df_control_aporte_empresario",
             column_order=orden_dinamico,
         )
+
+        # Franja de totales: total de recursos, total de retenciones y
+        # la diferencia entre ambos, siempre visible fuera de la grilla.
+        _render_totales_control_aporte_empresario(df)
 
 
 if __name__ == "__main__":

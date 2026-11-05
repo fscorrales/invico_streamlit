@@ -67,7 +67,7 @@ def compute_control_aporte_empresario(ejercicios: List[int]) -> List[str]:
 
     Por cada ejercicio:
 
-    1. ``GET /control/controlAporteEmpresario/generateIcaro?ejercicio=X``:
+    1. ``GET /control/controlAporteEmpresario/generateSIIF?ejercicio=X``:
        el backend arma el cruce con sus propias colecciones (rci02,
        rcocc31 e ICARO), sin procesar nada en el cliente.
     2. ``POST /control/controlAporteEmpresario``: congela el snapshot del
@@ -87,12 +87,12 @@ def compute_control_aporte_empresario(ejercicios: List[int]) -> List[str]:
     results: List[str] = []
     for ejercicio in ejercicios:
         df = fetch_dataframe(
-            Endpoints.CONTROL_APORTE_EMPRESARIO.value + "/generateIcaro",
+            Endpoints.CONTROL_APORTE_EMPRESARIO.value + "/generateSIIF",
             params={"ejercicio": int(ejercicio)},
         )
         if df.empty:
             results.append(
-                f"Ejercicio {ejercicio}: /generateIcaro no devolvió registros; "
+                f"Ejercicio {ejercicio}: /generateSIIF no devolvió registros; "
                 "no se realizó el POST."
             )
             continue
