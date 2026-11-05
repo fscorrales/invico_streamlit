@@ -11,13 +11,15 @@ from src.pages.controles.control_icaro import (
 
 
 # --------------------------------------------------
-async def run_automation(siif_username: str, siif_password: str, reporte: str) -> None:
+async def run_automation(
+    siif_username: str, siif_password: str, reporte: str
+) -> list[str]:
 
     # 1. Obtenemos los ejercicios seleccionados en el estado de sesión
     ejercicios = st.session_state.get("ejercicios_" + reporte, [])
     if not ejercicios:
         st.error("No hay ejercicios seleccionados.")
-        return
+        return []
 
     # Ensure we have a list of integers
     if isinstance(ejercicios, int):
@@ -31,6 +33,14 @@ async def run_automation(siif_username: str, siif_password: str, reporte: str) -
         siif_password=siif_password,
         ejercicios=ejercicios,
     )
+
+    # 3. Solo el subreporte que disparó la automatización congela su
+    #    snapshot: el backend recalcula (GET /computeControlAnual) y se
+    #    hace un POST por ejercicio a la colección control_icaro_anual.
+    if reporte == control_anual.REPORTE:
+        results.extend(
+            control_icaro.compute_control_icaro_anual(ejercicios=ejercicios)
+        )
 
     return results
 

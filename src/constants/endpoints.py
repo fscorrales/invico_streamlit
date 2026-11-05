@@ -25,6 +25,7 @@ class Endpoints(str, Enum):
     CONTROL_RECURSOS = "/control/controlRecursos"
     CONTROL_APORTE_EMPRESARIO = "/control/controlAporteEmpresario"
     CONTROL_ICARO = "/control/controlIcaro"
+    CONTROL_ICARO_ANUAL = "/control/controlIcaro/anual"
     CONTROL_OBRAS = "/control/controlObras"
     CONTROL_HABERES = "/control/controlHaberes"
     CONTROL_HONORARIOS = "/control/controlHonorarios"

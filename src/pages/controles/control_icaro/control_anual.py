@@ -40,7 +40,12 @@ def get_control_icaro_anual(
 ):
     df = pd.DataFrame()
 
-    df = fetch_dataframe(ENDPOINT + "/computeControlAnual", params=params)
+    # Lee el snapshot persistido (POST posterior a /computeControlAnual)
+    # en la colección control_icaro_anual, igual que el resto de los
+    # controles. El cómputo on-demand vive en /control/controlIcaro/
+    # computeControlAnual, al que solo llama
+    # compute_control_icaro_anual() (Ejecutar u Omitir).
+    df = fetch_dataframe(Endpoints.CONTROL_ICARO_ANUAL.value, params=params)
     # if not df.empty:
     #     df = df.sort_values(
     #         ["ejercicio", "mes", "grupo", "cta_cte"],
@@ -48,6 +53,36 @@ def get_control_icaro_anual(
     #     )
 
     return df
+
+
+# --------------------------------------------------
+def run_skip(reporte: str) -> list[str]:
+    """
+    Omite la descarga de reportes (SIIF) y recalcula el Control Anual
+    con los datos ya presentes en la API.
+
+    Args:
+        reporte: Clave del reporte (p.ej. ``control_icaro_anual``)
+            usada para leer los ejercicios seleccionados en
+            ``st.session_state``.
+
+    Returns:
+        Lista de mensajes con el resultado de cada ejercicio.
+    """
+    ejercicios = st.session_state.get("ejercicios_" + reporte, [])
+    if not ejercicios:
+        st.error("No hay ejercicios seleccionados.")
+        return []
+
+    # Ensure we have a list of integers
+    if isinstance(ejercicios, int):
+        ejercicios = [ejercicios]
+
+    # Solo recalculamos: sin sync_control_icaro_from_siif().
+    # compute_control_icaro_anual() pide el control al backend
+    # (GET /control/controlIcaro/computeControlAnual) y sincroniza la
+    # colección control_icaro_anual con un POST por ejercicio.
+    return control_icaro.compute_control_icaro_anual(ejercicios=ejercicios)
 
 
 # --------------------------------------------------
@@ -75,6 +110,7 @@ def render(
             automation_func,
             key=REPORTE,
             downloaded_info="SIIF's rf602, rf610, gto_rpa03g, rcg01_uejp y rfondo07tp",
+            skip_callback=(lambda: run_skip(REPORTE)) if run_skip else None,
         ),
         export_endpoint=Endpoints.CONTROL_ICARO.value + "/export",
         max_selections=1,

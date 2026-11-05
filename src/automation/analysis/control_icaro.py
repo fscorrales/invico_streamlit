@@ -12,7 +12,7 @@ from src.automation.siif import (
     logout,
 )
 from src.constants.endpoints import Endpoints
-from src.services import post_request
+from src.services.api_client import fetch_dataframe, post_request
 
 
 # --------------------------------------------------
@@ -97,3 +97,51 @@ async def sync_control_icaro_from_siif(
 
         print("✅ SIIF Finalizado")
         return results
+
+
+# --------------------------------------------------
+def compute_control_icaro_anual(ejercicios: List[int]) -> List[str]:
+    """
+    Pipeline del Control Anual SIIF vs ICARO delegado al backend.
+
+    Por cada ejercicio:
+
+    1. ``GET /control/controlIcaro/computeControlAnual?ejercicio=X&limit=0``:
+       el backend arma el control con sus propias colecciones (SIIF e
+       ICARO), sin procesar nada en el cliente.
+    2. ``POST /control/controlIcaro/anual``: congela el snapshot del
+       ejercicio en la colección ``control_icaro_anual`` (borrado
+       idempotente por ejercicio), que es lo que luego lee el ``GET`` de
+       la página y la exportación a Excel/Google Sheet.
+
+    Los errores de red o de API se propagan a quien invoca (el modal de
+    automatización los notifica con ``st.error``): no se tragan aquí.
+
+    Args:
+        ejercicios: Ejercicios a recalcular.
+
+    Returns:
+        Lista de mensajes con el resultado de cada ejercicio.
+    """
+    results: List[str] = []
+    for ejercicio in ejercicios:
+        # limit=0: sin truncar (el FullFilter trae limit por defecto 100
+        # y compute_control_anual aplica head() solo cuando limit > 0).
+        df = fetch_dataframe(
+            Endpoints.CONTROL_ICARO.value + "/computeControlAnual",
+            params={"ejercicio": int(ejercicio), "limit": 0},
+        )
+        if df.empty:
+            results.append(
+                f"Ejercicio {ejercicio}: /computeControlAnual no devolvió "
+                "registros; no se realizó el POST."
+            )
+            continue
+
+        json_data = df.to_dict(orient="records")
+        response = post_request(
+            Endpoints.CONTROL_ICARO_ANUAL.value, json_body=json_data
+        )
+        results.append(f"Ejercicio {ejercicio}: {response}")
+
+    return results
