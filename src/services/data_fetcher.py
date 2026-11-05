@@ -290,14 +290,15 @@ def get_control_aporte_empresario(
 ):
     df = pd.DataFrame()
 
-    df = fetch_dataframe(
-        Endpoints.CONTROL_APORTE_EMPRESARIO.value + "/generateIcaro", params=params
-    )
-    # if not df.empty:
-    #     df = df.sort_values(
-    #         ["ejercicio", "mes", "grupo", "cta_cte"],
-    #         ascending=[False, True, True, True],
-    #     )
+    # Lee el snapshot persistido (POST posterior a /generateIcaro), igual
+    # que get_control_recursos. El cómputo on-demand vive en el endpoint
+    # /generateIcaro, al que solo llama compute_control_aporte_empresario().
+    df = fetch_dataframe(Endpoints.CONTROL_APORTE_EMPRESARIO.value, params=params)
+    if not df.empty:
+        df = df.sort_values(
+            ["ejercicio", "mes", "cta_cte"],
+            ascending=[True, True, True],
+        )
 
     return df
 

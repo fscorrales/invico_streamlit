@@ -35,13 +35,13 @@ async def run_automation(
     siif_username: str,
     siif_password: str,
     reporte: str,
-) -> None:
+) -> list[str]:
 
     # 1. Obtenemos los ejercicios seleccionados en el estado de sesión
     ejercicios = st.session_state.get("ejercicios_" + reporte, [])
     if not ejercicios:
         st.error("No hay ejercicios seleccionados.")
-        return
+        return []
 
     # Ensure we have a list of integers
     if isinstance(ejercicios, int):
@@ -56,33 +56,47 @@ async def run_automation(
         ejercicios=ejercicios,
     )
 
+    # 3. El backend recalcula el cruce (GET /generateIcaro) y congelamos
+    #    el snapshot en Mongo con un POST por ejercicio.
+    results.extend(
+        control_aporte_empresario.compute_control_aporte_empresario(
+            ejercicios=ejercicios
+        )
+    )
+
     return results
 
 
-# # --------------------------------------------------
-# def run_skip(reporte: str) -> None:
-#     """
-#     Omite la descarga de reportes (SIIF y SSCC) y recalcula el cruce
-#     con los datos ya presentes en la API.
+# --------------------------------------------------
+def run_skip(reporte: str) -> list[str]:
+    """
+    Omite la descarga de reportes (SIIF) y recalcula el cruce
+    con los datos ya presentes en la API.
 
-#     Args:
-#         reporte: Clave del reporte (p.ej. ``control_recursos``)
-#             usada para leer los ejercicios seleccionados en
-#             ``st.session_state``.
-#     """
-#     ejercicios = st.session_state.get("ejercicios_" + reporte, [])
-#     if not ejercicios:
-#         st.error("No hay ejercicios seleccionados.")
-#         return
+    Args:
+        reporte: Clave del reporte (p.ej. ``control_aporte_empresario``)
+            usada para leer los ejercicios seleccionados en
+            ``st.session_state``.
 
-#     # Ensure we have a list of integers
-#     if isinstance(ejercicios, int):
-#         ejercicios = [ejercicios]
+    Returns:
+        Lista de mensajes con el resultado de cada ejercicio.
+    """
+    ejercicios = st.session_state.get("ejercicios_" + reporte, [])
+    if not ejercicios:
+        st.error("No hay ejercicios seleccionados.")
+        return []
 
-#     # Solo recalculamos: sin sync_control_recursos_from_siif() ni
-#     # sync_control_recursos_from_sscc(). compute_control_recursos() regenera
-#     # los 3 subreportes (SIIF, SSCC y Cruzado) con los datos ya cargados.
-#     control_recursos.compute_control_recursos(ejercicios=ejercicios)
+    # Ensure we have a list of integers
+    if isinstance(ejercicios, int):
+        ejercicios = [ejercicios]
+
+    # Solo recalculamos: sin sync_control_aporte_empresario_from_siif().
+    # compute_control_aporte_empresario() pide el cruce al backend
+    # (GET /control/controlAporteEmpresario/generateIcaro) y sincroniza
+    # la colección con un POST por ejercicio.
+    return control_aporte_empresario.compute_control_aporte_empresario(
+        ejercicios=ejercicios
+    )
 
 
 # --------------------------------------------------
@@ -108,7 +122,7 @@ def render() -> None:
             run_automation,
             key=REPORTE,
             downloaded_info="SIIF: rci02 y rcocc31 (1112-2-6 y 2122-1-2)",
-            # skip_callback=(lambda: run_skip(REPORTE)) if run_skip else None,
+            skip_callback=(lambda: run_skip(REPORTE)) if run_skip else None,
         ),
         max_selections=1,
     )

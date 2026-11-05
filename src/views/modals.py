@@ -37,14 +37,23 @@ from src.views.aux_tables import report_data_version_key
 @st.dialog("Credenciales SIIF")
 # --------------------------------------------------
 def request_siif_credentials_modal(
-    automation_callback: Callable[[str, str, str], None],
+    automation_callback: Callable[[str, str, str], Any],
     key: str = "",
     downloaded_info: str = "-",
+    skip_callback: Callable[[], Any] | None = None,
 ):
     """
     Modal reutilizable para solicitar credenciales del SIIF.
     automation_callback recibe (username, password, key).
-    Permite omitir la descarga para no ejecutar la automatización.
+
+    El botón "Omitir" saltea la descarga de reportes sin requerir
+    credenciales:
+
+    - Con ``skip_callback``: se ejecuta ese callback (p.ej. recalcular el
+      cruce con los datos ya presentes en la API) y luego se refresca la
+      vista mediante el flag ``{key}_automation_success``.
+    - Sin ``skip_callback``: solo se refresca la vista con los datos ya
+      cargados.
     """
     st.write("Ingrese sus credenciales de SIIF para iniciar la descarga.")
     username = st.text_input("Usuario")
@@ -60,11 +69,32 @@ def request_siif_credentials_modal(
         if button_skip(
             "Omitir",
             key=f"{key}_btn_skip",
-            help="Saltea la descarga del reporte y actualiza la vista con los datos ya cargados.",
+            help=(
+                "Saltea la descarga de reportes. Si hay un callback "
+                "configurado, recalcula con los datos ya cargados; "
+                "sino, solo actualiza la vista."
+            ),
         ):
-            # No se ejecuta la automatización: solo se refresca la vista
-            st.session_state[f"{key}_automation_success"] = True
-            st.rerun()
+            if skip_callback is None:
+                # Sin callback: no se ejecuta ninguna automatización,
+                # solo se refresca la vista con los datos ya cargados
+                st.session_state[f"{key}_automation_success"] = True
+                st.rerun()
+            else:
+                try:
+                    with st.spinner(
+                        "Omitiendo descargas... "
+                        "Recalculando con los datos ya cargados..."
+                    ):
+                        skip_callback()
+
+                    st.success("Proceso finalizado sin descargar reportes.")
+                    st.session_state[f"{key}_automation_success"] = True
+                    time.sleep(1)
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Error al omitir la descarga: {e}")
+                    st.session_state[f"{key}_automation_success"] = False
 
         if button_robot("Ejecutar", key=f"{key}_btn_robot"):
             if not username or not password:
