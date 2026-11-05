@@ -27,7 +27,7 @@ from src.views import (
 
 ENDPOINT = Endpoints.CONTROL_APORTE_EMPRESARIO.value
 REPORTE = "control_aporte_empresario"
-URL_SHEET = "https://docs.google.com/spreadsheets/d/1rbc5eMwJeW1fB5F5eKpczFmTrC6rpiJu89xTdhkWfZY"
+URL_SHEET = "https://docs.google.com/spreadsheets/d/1bZnvl9YkHC-N1HbIbnFNrqU3Iq03PG81u7fdHe_v_pw"
 
 
 # --------------------------------------------------
