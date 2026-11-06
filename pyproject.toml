@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "invico-streamlit"
-version = "2.7.4"
+version = "2.8.0"
 description = "Dashboard de Control Presupuestario"
 authors = ["Fernando Corrales <fscpython@gmail.com>"]
 readme = "README.md"

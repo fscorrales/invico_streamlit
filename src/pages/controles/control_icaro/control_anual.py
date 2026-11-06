@@ -16,7 +16,6 @@ from typing import Any, Optional
 import pandas as pd
 import streamlit as st
 
-from src.automation.analysis import control_icaro
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
 from src.services import fetch_dataframe, get_ejercicios_list
@@ -24,6 +23,7 @@ from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
+from src.utils.transform_data import formato_moneda_ar, parse_moneda_ar
 from src.views import (
     report_template,
     request_siif_credentials_modal,
@@ -61,38 +61,9 @@ def get_control_icaro_anual(
 
 
 # --------------------------------------------------
-def run_skip(reporte: str) -> list[str]:
-    """
-    Omite la descarga de reportes (SIIF) y recalcula el Control Anual
-    con los datos ya presentes en la API.
-
-    Args:
-        reporte: Clave del reporte (p.ej. ``control_icaro_anual``)
-            usada para leer los ejercicios seleccionados en
-            ``st.session_state``.
-
-    Returns:
-        Lista de mensajes con el resultado de cada ejercicio.
-    """
-    ejercicios = st.session_state.get("ejercicios_" + reporte, [])
-    if not ejercicios:
-        st.error("No hay ejercicios seleccionados.")
-        return []
-
-    # Ensure we have a list of integers
-    if isinstance(ejercicios, int):
-        ejercicios = [ejercicios]
-
-    # Solo recalculamos: sin sync_control_icaro_from_siif().
-    # compute_control_icaro_anual() pide el control al backend
-    # (GET /control/controlIcaro/computeControlAnual) y sincroniza la
-    # colección control_icaro_anual con un POST por ejercicio.
-    return control_icaro.compute_control_icaro_anual(ejercicios=ejercicios)
-
-
-# --------------------------------------------------
 def render(
     automation_func: Optional[Any] = None,
+    skip_func: Optional[Any] = None,
 ) -> None:
 
     mis_filtros = [
@@ -115,7 +86,7 @@ def render(
             automation_func,
             key=REPORTE,
             downloaded_info="SIIF's rf602, rf610, gto_rpa03g, rcg01_uejp y rfondo07tp",
-            skip_callback=(lambda: run_skip(REPORTE)) if run_skip else None,
+            skip_callback=(lambda: skip_func(REPORTE)) if skip_func else None,
         ),
         export_endpoint=Endpoints.CONTROL_ICARO.value + "/export",
         max_selections=1,
@@ -158,6 +129,25 @@ def render(
 
     # 4. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
+        # Formato moneda AR ($ 1.234,56) para los importes visibles de la
+        # grilla. ``parse_moneda_ar`` (franja de totales) es el inverso de
+        # ``formato_moneda_ar`` y acepta tanto el número crudo de la API
+        # como la cadena ya formateada, por lo que los totales siguen
+        # cuadrando con lo que muestra la grilla. El df proviene de
+        # ``@st.cache_data`` (copia deserializada por llamada), por lo que
+        # mutarlo en el lugar es seguro. Los nulos quedan en blanco y la
+        # pasada extra por ``parse_moneda_ar`` hace el formateo idempotente
+        # ante cadenas ya formateadas.
+        for columna_moneda in ("ejecucion_siif", "ejecucion_icaro", "diferencia"):
+            if columna_moneda in df.columns:
+                df[columna_moneda] = df[columna_moneda].apply(
+                    lambda valor: (
+                        formato_moneda_ar(parse_moneda_ar(valor))
+                        if pd.notna(valor)
+                        else ""
+                    )
+                )
+
         # Definimos las columnas que NO queremos mostrar
         first_cols = [
             "ejercicio",

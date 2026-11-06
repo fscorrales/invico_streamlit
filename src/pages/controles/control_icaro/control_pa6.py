@@ -23,6 +23,7 @@ from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
+from src.utils.transform_data import formato_moneda_ar, parse_moneda_ar
 from src.views import (
     report_template,
     request_siif_credentials_modal,
@@ -31,6 +32,10 @@ from src.views import (
 ENDPOINT = Endpoints.CONTROL_ICARO.value
 REPORTE = "control_icaro_pa6"
 URL_SHEET = "https://docs.google.com/spreadsheets/d/1KKeeoop_v_Nf21s7eFp4sS6SmpxRZQ9DPa1A5wVqnZ0"
+# Columnas del DataFrame que NO se muestran en la grilla (id interno de
+# Mongo / correlativo SQL). Se excluyen de ``column_order``, lo que hace
+# que Streamlit las oculte sin perderlas del DataFrame.
+CAMPOS_OCULTOS: tuple[str, ...] = ("id", "_id")
 
 
 # --------------------------------------------------
@@ -40,7 +45,12 @@ def get_control_icaro_pa6(
 ):
     df = pd.DataFrame()
 
-    df = fetch_dataframe(ENDPOINT + "/computeControlPA6", params=params)
+    # Lee el snapshot persistido (POST posterior a /computeControlPA6)
+    # en la colección control_icaro_pa6, igual que el resto de los
+    # controles. El cómputo on-demand vive en /control/controlIcaro/
+    # computeControlPA6, al que solo llama
+    # compute_control_icaro_pa6() (Ejecutar u Omitir).
+    df = fetch_dataframe(Endpoints.CONTROL_ICARO_PA6.value, params=params)
     # if not df.empty:
     #     df = df.sort_values(
     #         ["ejercicio", "mes", "grupo", "cta_cte"],
@@ -53,6 +63,7 @@ def get_control_icaro_pa6(
 # --------------------------------------------------
 def render(
     automation_func: Optional[Any] = None,
+    skip_func: Optional[Any] = None,
 ) -> None:
 
     mis_filtros = [
@@ -75,8 +86,10 @@ def render(
             automation_func,
             key=REPORTE,
             downloaded_info="SIIF's rf602, rf610, gto_rpa03g, rcg01_uejp y rfondo07tp",
+            skip_callback=(lambda: skip_func(REPORTE)) if skip_func else None,
         ),
         export_endpoint=Endpoints.CONTROL_ICARO.value + "/export",
+        max_selections=1,
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):
@@ -116,6 +129,30 @@ def render(
 
     # 4. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
+        # Formato moneda AR ($ 1.234,56) para los importes visibles de la
+        # grilla. ``parse_moneda_ar`` (franja de totales) es el inverso de
+        # ``formato_moneda_ar`` y acepta tanto el número crudo de la API
+        # como la cadena ya formateada, por lo que los totales siguen
+        # cuadrando con lo que muestra la grilla. El df proviene de
+        # ``@st.cache_data`` (copia deserializada por llamada), por lo que
+        # mutarlo en el lugar es seguro. Los nulos quedan en blanco y la
+        # pasada extra por ``parse_moneda_ar`` hace el formateo idempotente
+        # ante cadenas ya formateadas.
+        for columna_moneda in (
+            "siif_importe_pa6",
+            "icaro_importe_pa6",
+            "siif_importe_reg",
+            "icaro_importe_reg",
+        ):
+            if columna_moneda in df.columns:
+                df[columna_moneda] = df[columna_moneda].apply(
+                    lambda valor: (
+                        formato_moneda_ar(parse_moneda_ar(valor))
+                        if pd.notna(valor)
+                        else ""
+                    )
+                )
+
         # Definimos las columnas que NO queremos mostrar
         first_cols = [
             "ejercicio",
@@ -123,7 +160,9 @@ def render(
 
         # Generamos el orden dinámico: todas las del DF que no estén en la lista negra
         orden_dinamico = first_cols + [
-            col for col in df.columns if col not in first_cols
+            col
+            for col in df.columns
+            if col not in first_cols and col not in CAMPOS_OCULTOS
         ]
 
         dataframe(
