@@ -88,7 +88,7 @@ def compute_control_aporte_empresario(ejercicios: List[int]) -> List[str]:
     for ejercicio in ejercicios:
         df = fetch_dataframe(
             Endpoints.CONTROL_APORTE_EMPRESARIO.value + "/generateSIIF",
-            params={"ejercicio": int(ejercicio)},
+            params={"ejercicio": int(ejercicio), "limit": 0},
         )
         if df.empty:
             results.append(
