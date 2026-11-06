@@ -235,6 +235,25 @@ def render() -> None:
 
     # 4. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
+        # Formato moneda AR ($ 1.234,56) para los importes visibles de la
+        # grilla. ``parse_moneda_ar`` (franja de totales) es el inverso de
+        # ``formato_moneda_ar`` y acepta tanto el número crudo de la API
+        # como la cadena ya formateada, por lo que los totales siguen
+        # cuadrando con lo que muestra la grilla. El df proviene de
+        # ``@st.cache_data`` (copia deserializada por llamada), por lo que
+        # mutarlo en el lugar es seguro. Los nulos quedan en blanco y la
+        # pasada extra por ``parse_moneda_ar`` hace el formateo idempotente
+        # ante cadenas ya formateadas.
+        for columna_moneda in ("recursos_siif", "depositos_banco"):
+            if columna_moneda in df.columns:
+                df[columna_moneda] = df[columna_moneda].apply(
+                    lambda valor: (
+                        formato_moneda_ar(parse_moneda_ar(valor))
+                        if pd.notna(valor)
+                        else ""
+                    )
+                )
+
         # Definimos las columnas que NO queremos mostrar
         first_cols = [
             "ejercicio",
