@@ -16,6 +16,7 @@ from typing import Any, Optional
 import pandas as pd
 import streamlit as st
 
+from src.automation.analysis import control_icaro
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
 from src.services import fetch_dataframe, get_ejercicios_list
@@ -31,6 +32,10 @@ from src.views import (
 ENDPOINT = Endpoints.CONTROL_ICARO.value
 REPORTE = "control_icaro_anual"
 URL_SHEET = "https://docs.google.com/spreadsheets/d/1KKeeoop_v_Nf21s7eFp4sS6SmpxRZQ9DPa1A5wVqnZ0"
+# Columnas del DataFrame que NO se muestran en la grilla (id interno de
+# Mongo / correlativo SQL). Se excluyen de ``column_order``, lo que hace
+# que Streamlit las oculte sin perderlas del DataFrame.
+CAMPOS_OCULTOS: tuple[str, ...] = ("id", "_id")
 
 
 # --------------------------------------------------
@@ -160,7 +165,9 @@ def render(
 
         # Generamos el orden dinámico: todas las del DF que no estén en la lista negra
         orden_dinamico = first_cols + [
-            col for col in df.columns if col not in first_cols
+            col
+            for col in df.columns
+            if col not in first_cols and col not in CAMPOS_OCULTOS
         ]
 
         dataframe(

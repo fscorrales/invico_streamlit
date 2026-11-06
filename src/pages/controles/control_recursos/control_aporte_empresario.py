@@ -29,6 +29,10 @@ from src.views import (
 ENDPOINT = Endpoints.CONTROL_APORTE_EMPRESARIO.value
 REPORTE = "control_aporte_empresario"
 URL_SHEET = "https://docs.google.com/spreadsheets/d/1bZnvl9YkHC-N1HbIbnFNrqU3Iq03PG81u7fdHe_v_pw"
+# Columnas del DataFrame que NO se muestran en la grilla (id interno de
+# Mongo / correlativo SQL). Se excluyen de ``column_order``, lo que hace
+# que Streamlit las oculte sin perderlas del DataFrame.
+CAMPOS_OCULTOS: tuple[str, ...] = ("id", "_id")
 
 
 # --------------------------------------------------
@@ -238,9 +242,12 @@ def render() -> None:
             "ejercicio",
         ]
 
-        # Generamos el orden dinámico: todas las del DF que no estén en la lista negra
+        # Generamos el orden dinámico: todas las del DF que no estén en la
+        # lista negra ni en CAMPOS_OCULTOS (id/_id se ocultan en la grilla)
         orden_dinamico = first_cols + [
-            col for col in df.columns if col not in first_cols
+            col
+            for col in df.columns
+            if col not in first_cols and col not in CAMPOS_OCULTOS
         ]
 
         dataframe(
