@@ -21,7 +21,7 @@ from playwright.async_api import async_playwright
 
 from src.automation.siif.rdeu012 import Rdeu012
 from src.constants.endpoints import Endpoints
-from src.services import get_sgf_origenes, post_request
+from src.services import fetch_dataframe, get_sgf_origenes, post_request
 
 
 # --------------------------------------------------
@@ -137,43 +137,45 @@ async def sync_control_obras_from_siif(
 
 
 # --------------------------------------------------
-def compute_control_obras(ejercicios: List[int]) -> None:
-    try:
-        response = post_request(
-            Endpoints.CONTROL_OBRAS.value + "/compute",
-            json_body=ejercicios,
-        )
-        # group_by = ["ejercicio", "mes", "cta_cte", "cuit"]
-        # params = {
-        #     "limit": 0,
-        #     "ejercicio": ejercicio,
-        # }
-        # icaro = fetch_dataframe(
-        #     Endpoints.ICARO_CARGA.value + "/netoRDEU", params=params
-        # )
-        # icaro = icaro.loc[:, group_by + ["importe"]]
-        # icaro = icaro.groupby(group_by)["importe"].sum()
-        # icaro = icaro.reset_index()
-        # icaro = icaro.rename(columns={"importe": "ejecutado_icaro"})
-        # # print(f"icaro.shape: {icaro.shape} - icaro.head: {icaro.head()}")
-        # sgf = fetch_dataframe(
-        #     Endpoints.SGF_RESUMEN_REND_PROV.value + "/uniqueObras", params=params
-        # )
-        # sgf = sgf.loc[:, group_by + ["importe_bruto"]]
-        # sgf = sgf.groupby(group_by)["importe_bruto"].sum()
-        # sgf = sgf.reset_index()
-        # sgf = sgf.rename(columns={"importe_bruto": "bruto_sgf"})
-        # # print(f"sgf.shape: {sgf.shape} - sgf.head: {sgf.head()}")
-        # df = pd.merge(icaro, sgf, how="outer")
-        # df[["ejecutado_icaro", "bruto_sgf"]] = df[
-        #     ["ejecutado_icaro", "bruto_sgf"]
-        # ].fillna(0)
-        # df["diferencia"] = df.ejecutado_icaro - df.bruto_sgf
-        # df = pd.DataFrame(df)
-        # df.reset_index(drop=True, inplace=True)
-        # json_data = df.to_dict(orient="records")
-        # response = post_request(Endpoints.CONTROL_OBRAS.value, json_body=json_data)
-        # results.append(f"Ejercicio {ej}: {response}")
+def compute_control_obras(ejercicios: List[int]) -> List[str]:
+    """
+    Pipeline del cruce ICARO vs SGF delegado al backend (on-demand).
 
-    except Exception as e:
-        print(f"Error in compute_control_obras: {e}")
+    Por cada ejercicio:
+
+    1. ``GET /control/controlObras/generate?ejercicio=X``: el backend
+       arma el cruce con sus propias colecciones (ICARO carga neto de
+       rdeu012 y SGF Resumen de Rendiciones), sin descargar los crudos
+       al cliente.
+    2. ``POST /control/controlObras``: congela el snapshot del
+       ejercicio en MongoDB (borrado idempotente por ejercicio), que es
+       lo que luego leen el ``GET``, la exportación a Excel y el Google
+       Sheet.
+
+    Los errores de red o de API se propagan a quien invoca (el modal de
+    automatización los notifica con ``st.error``): no se tragan aquí.
+
+    Args:
+        ejercicios: Ejercicios a recalcular.
+
+    Returns:
+        Lista de mensajes con el resultado de cada ejercicio.
+    """
+    results: List[str] = []
+    for ejercicio in ejercicios:
+        df = fetch_dataframe(
+            Endpoints.CONTROL_OBRAS.value + "/generate",
+            params={"ejercicio": int(ejercicio)},
+        )
+        if df.empty:
+            results.append(
+                f"Ejercicio {ejercicio}: /generate no devolvió registros; "
+                "no se realizó el POST."
+            )
+            continue
+
+        json_data = df.to_dict(orient="records")
+        response = post_request(Endpoints.CONTROL_OBRAS.value, json_body=json_data)
+        results.append(f"Ejercicio {ejercicio}: {response}")
+
+    return results

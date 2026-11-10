@@ -431,10 +431,21 @@ def request_siif_and_sgf_credentials_modal(
     automation_callback: Callable[[str, str, str, str, str], Any],
     key: str = "",
     downloaded_info: str = "-",
+    skip_callback: Callable[[], Any] | None = None,
 ):
     """
     Modal reutilizable para SIIF y SGF usando Pywinauto (Síncrono) y Playwright (Asíncrono).
     automation_callback recibe (username, password) y devuelve la lista de resultados.
+
+    El botón "Omitir" saltea la descarga de reportes sin requerir
+    credenciales:
+
+    - Con ``skip_callback``: se ejecuta ese callback (p.ej. recalcular el
+      cruce con los datos ya presentes en la API) y luego se refresca la
+      vista mediante el flag ``{key}_automation_success``.
+    - Sin ``skip_callback``: solo se refresca la vista con los datos ya
+      cargados (mismo comportamiento que el "Omitir" de
+      :func:`request_siif_credentials_modal`).
     """
     st.write(
         "Ingrese sus credenciales de SIIF y SGF para iniciar la automatización de escritorio."
@@ -453,10 +464,41 @@ def request_siif_and_sgf_credentials_modal(
     st.write("**Reportes ha descargar:** " + downloaded_info)
 
     with st.container(
-        horizontal=True, border=False, horizontal_alignment="center", gap="large"
+        horizontal=True, border=False, horizontal_alignment="center", gap="medium"
     ):
         if button_cancel("Cancelar", type="secondary", key=f"{key}_btn_cancel"):
             st.rerun()  # Cierra el modal de forma segura
+
+        if button_skip(
+            "Omitir",
+            key=f"{key}_btn_skip",
+            help=(
+                "Saltea la descarga de reportes. Si hay un callback "
+                "configurado, recalcula con los datos ya cargados; "
+                "sino, solo actualiza la vista."
+            ),
+        ):
+            if skip_callback is None:
+                # Sin callback: no se ejecuta ninguna automatización,
+                # solo se refresca la vista con los datos ya cargados
+                # (mismo comportamiento que request_siif_credentials_modal).
+                st.session_state[f"{key}_automation_success"] = True
+                st.rerun()
+            else:
+                try:
+                    with st.spinner(
+                        "Omitiendo descargas... "
+                        "Recalculando con los datos ya cargados..."
+                    ):
+                        skip_callback()
+
+                    st.success("Proceso finalizado sin descargar reportes.")
+                    st.session_state[f"{key}_automation_success"] = True
+                    time.sleep(1)
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Error al omitir la descarga: {e}")
+                    st.session_state[f"{key}_automation_success"] = False
 
         if button_robot("Ejecutar", key=f"{key}_btn_robot"):
             if (
@@ -1212,9 +1254,7 @@ def modal_obras_desactivadas(
                         )
                     else:
                         res = post_request(
-                            endpoint=(
-                                f"{Endpoints.OBRAS_DESACTIVADAS.value}/add_one"
-                            ),
+                            endpoint=(f"{Endpoints.OBRAS_DESACTIVADAS.value}/add_one"),
                             json_body=payload,
                             token=token,
                         )
