@@ -372,9 +372,12 @@ def cta_cte_unifier(
 ) -> pd.DataFrame:
     """
     Map cta_cte in original_df to map_to in Ctas Ctes collection using cta_cte_nexo.
-    If no match is found, the original cta_cte value is preserved.
+
+    Si no hay match, o el match traería un valor vacío o "NA", se
+    conserva la cta_cte que trae el dataframe original (paridad con
+    ``CtasCtesService.cta_cte_unifier`` del backend).
     """
-    if original_df.empty:
+    if original_df.empty or "cta_cte" not in original_df.columns:
         return original_df
 
     ctas_ctes = fetch_dataframe(
@@ -386,15 +389,36 @@ def cta_cte_unifier(
 
     df = original_df.copy()
 
-    # 🔹 Opción A (Recomendada): Usar map() para una homologación directa sin alterar la estructura del DF
+    # 🔹 Opción A (Recomendada): Usar map() para una homologación directa sin alterar la estructura del DF.
+    # Descartamos claves/valores ausentes, vacíos o "NA": no identifican
+    # una cuenta real para cruzar (mismas reglas que el backend).
+    mapping_df = ctas_ctes.loc[:, [cta_cte_nexo, "map_to"]].dropna(
+        subset=[cta_cte_nexo, "map_to"]
+    )
+    nexo_str = mapping_df[cta_cte_nexo].astype(str).str.strip()
+    destino_str = mapping_df["map_to"].astype(str).str.strip()
+    usable = (
+        nexo_str.ne("")
+        & nexo_str.str.upper().ne("NA")
+        & destino_str.ne("")
+        & destino_str.str.upper().ne("NA")
+    )
+    mapping_df = mapping_df.loc[usable]
+
+    # Ante duplicados del mismo nexo gana el primero (misma prioridad
+    # que el backend, que lee la colección ordenada por _id asc).
     mapping = (
-        ctas_ctes.dropna(subset=[cta_cte_nexo])
-        .drop_duplicates(subset=[cta_cte_nexo])
+        mapping_df.drop_duplicates(subset=[cta_cte_nexo])
         .set_index(cta_cte_nexo)["map_to"]
     )
 
-    # Reemplaza valores con el mapa; si no encuentra coincidencia (NaN), conserva la cta_cte original
-    df["cta_cte"] = df["cta_cte"].map(mapping).fillna(df["cta_cte"])
+    # Reemplaza valores con el mapa; si no hay coincidencia o el match
+    # traería vacío/"NA", conserva la cta_cte original
+    valores_originales = df["cta_cte"].copy()
+    mapeados = df["cta_cte"].map(mapping)
+    mapeado_str = mapeados.where(mapeados.notna(), "").astype(str).str.strip()
+    match_valido = mapeado_str.ne("") & mapeado_str.str.upper().ne("NA")
+    df["cta_cte"] = mapeados.where(match_valido, valores_originales)
 
     return df
 
