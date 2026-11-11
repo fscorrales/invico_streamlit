@@ -8,7 +8,7 @@ from playwright.async_api import async_playwright
 
 from src.automation.siif import GtoRpa03g, Rcg01Uejp, Rcocc31, Rdeu012, login, logout
 from src.constants.endpoints import Endpoints
-from src.services.api_client import post_request
+from src.services.api_client import fetch_dataframe, post_request
 
 
 # --------------------------------------------------
@@ -164,3 +164,49 @@ async def sync_control_haberes_from_siif(
 
         print("✅ SIIF Finalizado")
         return results
+
+
+# --------------------------------------------------
+def compute_control_haberes(ejercicios: List[int]) -> List[str]:
+    """
+    Pipeline del cruce mensual Haberes SIIF vs SSCC delegado al backend
+    (on-demand).
+
+    Por cada ejercicio:
+
+    1. ``GET /control/controlHaberes/generate?ejercicio=X``: el backend
+       arma el cruce con sus propias colecciones (SIIF haberes neto de
+       rdeu012 y pagos en el Banco INVICO), sin descargar los crudos al
+       cliente.
+    2. ``POST /control/controlHaberes``: congela el snapshot del
+       ejercicio en MongoDB (borrado idempotente por ejercicio), que es
+       lo que luego leen el ``GET``, la exportación a Excel y el Google
+       Sheet.
+
+    Los errores de red o de API se propagan a quien invoca (el modal de
+    automatización los notifica con ``st.error``): no se tragan aquí.
+
+    Args:
+        ejercicios: Ejercicios a recalcular.
+
+    Returns:
+        Lista de mensajes con el resultado de cada ejercicio.
+    """
+    results: List[str] = []
+    for ejercicio in ejercicios:
+        df = fetch_dataframe(
+            Endpoints.CONTROL_HABERES.value + "/generate",
+            params={"ejercicio": int(ejercicio)},
+        )
+        if df.empty:
+            results.append(
+                f"Ejercicio {ejercicio}: /generate no devolvió registros; "
+                "no se realizó el POST."
+            )
+            continue
+
+        json_data = df.to_dict(orient="records")
+        response = post_request(Endpoints.CONTROL_HABERES.value, json_body=json_data)
+        results.append(f"Ejercicio {ejercicio}: {response}")
+
+    return results
