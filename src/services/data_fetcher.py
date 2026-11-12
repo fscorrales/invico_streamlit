@@ -11,6 +11,8 @@ __all__ = [
     "get_control_aporte_empresario",
     "get_control_obras",
     "get_control_haberes",
+    "get_control_siif_vs_slave",
+    "get_control_sgf_vs_slave",
     "get_control_banco_cruzado",
     "get_control_banco_siif",
     "get_control_banco_sscc",
@@ -336,6 +338,50 @@ def get_control_haberes(params: dict[str, Any] | None = None, update_trigger: in
         df = df.sort_values(
             ["ejercicio", "mes"],
             ascending=[False, True],
+        )
+
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_control_siif_vs_slave(
+    params: dict[str, Any] | None = None, update_trigger: int = 0
+):
+    df = pd.DataFrame()
+
+    # Lee el snapshot persistido (POST posterior a /generateSIIFVsSlave),
+    # igual que get_control_obras. El cómputo on-demand vive en el
+    # endpoint /generateSIIFVsSlave, al que solo llama
+    # compute_control_siif_vs_slave().
+    df = fetch_dataframe(Endpoints.CONTROL_HONORARIOS.value + "/siifVsSlave", params=params)
+    if not df.empty:
+        # Mismo orden del cómputo: las filas con discrepancias primero
+        # (err_nro, err_importe, err_mes en descenso) y luego por ejercicio.
+        df = df.sort_values(
+            ["ejercicio", "err_nro", "err_importe", "err_mes"],
+            ascending=[True, False, False, False],
+        )
+
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_control_sgf_vs_slave(
+    params: dict[str, Any] | None = None, update_trigger: int = 0
+):
+    df = pd.DataFrame()
+
+    # Lee el snapshot persistido (POST posterior a /generateSGFVsSlave),
+    # igual que get_control_obras. El cómputo on-demand vive en el
+    # endpoint /generateSGFVsSlave, al que solo llama
+    # compute_control_sgf_vs_slave().
+    df = fetch_dataframe(Endpoints.CONTROL_HONORARIOS.value + "/sgfVsSlave", params=params)
+    if not df.empty:
+        df = df.sort_values(
+            ["ejercicio", "mes", "cta_cte", "beneficiario"],
+            ascending=[True, True, True, True],
         )
 
     return df

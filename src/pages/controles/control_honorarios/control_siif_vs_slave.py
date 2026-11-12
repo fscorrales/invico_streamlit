@@ -19,11 +19,12 @@ import streamlit as st
 
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import fetch_dataframe, get_ejercicios_list
+from src.services import get_control_siif_vs_slave, get_ejercicios_list
 from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
+from src.utils.transform_data import formato_moneda_ar, parse_moneda_ar
 from src.views import (
     report_template,
     request_siif_sscc_and_sgf_credentials_modal,
@@ -32,28 +33,87 @@ from src.views import (
 ENDPOINT = Endpoints.CONTROL_HONORARIOS.value
 REPORTE = "control_siif_vs_slave"
 URL_SHEET = "https://docs.google.com/spreadsheets/d/1fQhp1CdESnvqzrp3QMV5bFSHmGdi7SNoaBRWtmw-JgA"
+# Columnas del DataFrame que NO se muestran en la grilla (id interno de
+# Mongo). Se excluyen de ``column_order``, lo que hace que Streamlit las
+# oculte sin perderlas del DataFrame.
+CAMPOS_OCULTOS: tuple[str, ...] = ("id", "_id")
 
 
 # --------------------------------------------------
-@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
-def get_control_siif_vs_slave(
-    params: dict[str, Any] | None = None, update_trigger: int = 0
-):
-    df = pd.DataFrame()
+def _render_totales_siif_vs_slave(df: pd.DataFrame) -> None:
+    """Franja compacta bajo la grilla con los totales del cruce
+    SIIF vs Slave: total importe SIIF, total importe Slave y la
+    diferencia entre ambos.
 
-    df = fetch_dataframe(ENDPOINT + "/computeSIIFVsSlave", params=params)
-    # if not df.empty:
-    #     df = df.sort_values(
-    #         ["ejercicio", "mes", "grupo", "cta_cte"],
-    #         ascending=[False, True, True, True],
-    #     )
+    Los totales quedan FUERA del dataframe —siempre a la vista— para que
+    el usuario no tenga que desplazarse hasta la última fila. Es una
+    franja HTML flex de dos líneas por ítem (etiqueta arriba, valor en
+    negrita abajo), idéntica en estilo a la del control de obras
+    (``_render_totales_control_obras``). Sin ``nowrap`` ni ellipsis: el
+    texto nunca se recorta. Hereda los colores del tema (no se fijan
+    colores en el markup) y los ``title`` nativos del HTML muestran el
+    tooltip al hacer hover, sin JS.
 
-    return df
+    Se suman los valores de las columnas visibles ``siif_importe`` y
+    ``slave_importe`` (con ``parse_moneda_ar``, que acepta tanto el
+    número crudo de la API como una cadena ya formateada) y la resta se
+    formatea con ``formato_moneda_ar``.
+
+    Args:
+        df: DataFrame del cruce SIIF vs Slave (se espera que tenga las
+            columnas ``siif_importe`` y ``slave_importe``).
+    """
+    columnas_requeridas = {"siif_importe", "slave_importe"}
+    if not columnas_requeridas.issubset(df.columns):
+        return
+
+    total_siif: float = df["siif_importe"].apply(parse_moneda_ar).sum()
+    total_slave: float = df["slave_importe"].apply(parse_moneda_ar).sum()
+    diferencia: float = total_siif - total_slave
+
+    metricas: tuple[tuple[str, float, str], ...] = (
+        (
+            "Total SIIF",
+            total_siif,
+            "Suma de la columna siif_importe de todas las filas visibles",
+        ),
+        (
+            "Total Slave",
+            total_slave,
+            "Suma de la columna slave_importe de todas las filas visibles",
+        ),
+        (
+            "Diferencia",
+            diferencia,
+            "Total SIIF - Total Slave",
+        ),
+    )
+
+    items: list[str] = []
+    for etiqueta, total, ayuda in metricas:
+        valor = formato_moneda_ar(total)
+        # Dos ítems: etiqueta (línea 1) + valor en negrita (línea 2).
+        # Sin nowrap/ellipsis para que el total nunca aparezca cortado.
+        items.append(
+            f'<div title="{ayuda}" '
+            f'style="flex:1 1 0; min-width:0; text-align:center;">'
+            f'<div style="font-size:11px; opacity:0.75; '
+            f'white-space:normal;">{etiqueta}</div>'
+            f'<div style="font-size:13px; font-weight:600;">'
+            f"{valor}</div></div>"
+        )
+
+    st.markdown(
+        '<div style="display:flex; gap:0.75rem; font-size:13px; '
+        'align-items:flex-start;">' + "".join(items) + "</div>",
+        unsafe_allow_html=True,
+    )
 
 
 # --------------------------------------------------
 def render(
     automation_func: Optional[Any] = None,
+    skip_func: Optional[Any] = None,
 ) -> None:
 
     mis_filtros = [
@@ -70,15 +130,17 @@ def render(
         key=REPORTE,
         title=REPORTE.replace("_", " ").title(),
         endpoint=ENDPOINT,
-        description=f"Cruce de SIIF vs SLAVE. Datos exportados en [Google Sheet]({URL_SHEET}).",
+        description=f"La actualización (Ejecutar u Omitir) y la exportación impactan en las 2 pestañas. Cruce de SIIF vs SLAVE. Datos exportados en [Google Sheet]({URL_SHEET}).",
         filters_config=mis_filtros,
         update_func=lambda: request_siif_sscc_and_sgf_credentials_modal(
             automation_func,
             key=REPORTE,
-            downloaded_info="SIIF: rcg01_uejp y rpa03g. SSCC's Resumen General de Movimientos y ctas_ctes. SGF: Resumen de Rendiciones Proveedores. SLAVE debe ser actualizado en el menu tablas auxiliares.",
+            downloaded_info="SIIF: rcg01_uejp y rpa03g. SSCC's Resumen General de Movimientos y ctas_ctes. SGF: Resumen de Rendiciones Proveedores.",
+            skip_callback=(lambda: skip_func(REPORTE)) if skip_func else None,
         ),
         max_selections=1,
         export_endpoint=ENDPOINT + "/export",
+        export_mode="sheet",
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):
@@ -115,14 +177,36 @@ def render(
 
     # 2. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
+        # Formato moneda AR ($ 1.234,56) para los importes visibles de la
+        # grilla. ``parse_moneda_ar`` (franja de totales) es el inverso de
+        # ``formato_moneda_ar`` y acepta tanto el número crudo de la API
+        # como la cadena ya formateada, por lo que los totales siguen
+        # cuadrando con lo que muestra la grilla. El df proviene de
+        # ``@st.cache_data`` (copia deserializada por llamada), por lo que
+        # mutarlo en el lugar es seguro. Los nulos quedan en blanco y la
+        # pasada extra por ``parse_moneda_ar`` hace el formateo idempotente
+        # ante cadenas ya formateadas.
+        for columna_moneda in ("siif_importe", "slave_importe"):
+            if columna_moneda in df.columns:
+                df[columna_moneda] = df[columna_moneda].apply(
+                    lambda valor: (
+                        formato_moneda_ar(parse_moneda_ar(valor))
+                        if pd.notna(valor)
+                        else ""
+                    )
+                )
+
         # Definimos las columnas que NO queremos mostrar
         first_cols = [
             "ejercicio",
         ]
 
-        # Generamos el orden dinámico: todas las del DF que no estén en la lista negra
+        # Generamos el orden dinámico: todas las del DF que no estén en la
+        # lista negra ni en CAMPOS_OCULTOS (id/_id se ocultan en la grilla)
         orden_dinamico = first_cols + [
-            col for col in df.columns if col not in first_cols
+            col
+            for col in df.columns
+            if col not in first_cols and col not in CAMPOS_OCULTOS
         ]
 
         dataframe(
@@ -130,6 +214,10 @@ def render(
             key=f"{REPORTE}_df_control_siif_vs_slave",
             column_order=orden_dinamico,
         )
+
+        # Franja de totales: importe SIIF vs Slave y diferencia, siempre
+        # visible fuera de la grilla.
+        _render_totales_siif_vs_slave(df)
 
 
 if __name__ == "__main__":

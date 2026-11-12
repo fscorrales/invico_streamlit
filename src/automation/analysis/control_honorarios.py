@@ -7,7 +7,7 @@ from playwright.async_api import async_playwright
 
 from src.automation.siif import GtoRpa03g, Rcg01Uejp, login, logout
 from src.constants.endpoints import Endpoints
-from src.services import get_sgf_origenes, post_request
+from src.services import fetch_dataframe, get_sgf_origenes, post_request
 
 
 # --------------------------------------------------
@@ -161,3 +161,96 @@ async def sync_control_honorarios_from_siif(
 
         print("✅ SIIF Finalizado")
         return results
+
+
+# --------------------------------------------------
+def _compute_y_persistir(ruta_generate: str, ejercicios: List[int]) -> List[str]:
+    """GET /generate por ejercicio → POST del snapshot en su colección.
+
+    Compartido por ambos cruces de honorarios (SIIF vs Slave y SGF vs
+    Slave): el backend arma el cruce on-demand con sus propias
+    colecciones y luego se congela el snapshot con un POST (borrado
+    idempotente por ejercicio).
+
+    Los errores de red o de API se propagan a quien invoca (el modal de
+    automatización los notifica con ``st.error``): no se tragan aquí.
+
+    Args:
+        ruta_generate: Ruta del endpoint on-demand (p.ej.
+            ``/control/controlHonorarios/generateSIIFVsSlave``).
+        ejercicios: Ejercicios a recalcular.
+
+    Returns:
+        Lista de mensajes con el resultado de cada ejercicio.
+    """
+    endpoint_snapshot = Endpoints.CONTROL_HONORARIOS.value
+    ruta_snapshot = _snapshot_de(ruta_generate)
+    results: List[str] = []
+    for ejercicio in ejercicios:
+        df = fetch_dataframe(
+            endpoint_snapshot + ruta_generate,
+            params={"ejercicio": int(ejercicio)},
+        )
+        if df.empty:
+            results.append(
+                f"Ejercicio {ejercicio}: el generate no devolvió registros; "
+                "no se realizó el POST."
+            )
+            continue
+
+        json_data = df.to_dict(orient="records")
+        response = post_request(
+            endpoint_snapshot + ruta_snapshot, json_body=json_data
+        )
+        results.append(f"Ejercicio {ejercicio}: {response}")
+
+    return results
+
+
+def _snapshot_de(ruta_generate: str) -> str:
+    """Mapea la ruta /generate* a la ruta del snapshot correspondiente."""
+    if "SIIF" in ruta_generate:
+        return "/siifVsSlave"
+    return "/sgfVsSlave"
+
+
+# --------------------------------------------------
+def compute_control_siif_vs_slave(ejercicios: List[int]) -> List[str]:
+    """
+    Pipeline del cruce SIIF vs Slave delegado al backend (on-demand).
+
+    Por cada ejercicio:
+
+    1. ``GET /control/controlHonorarios/generateSIIFVsSlave?ejercicio=X``
+       : el backend arma el cruce (discrepancias SIIF vs Slave).
+    2. ``POST /control/controlHonorarios/siifVsSlave``: congela el
+       snapshot en la colección ``control_honorarios_siif_vs_slave``.
+
+    Args:
+        ejercicios: Ejercicios a recalcular.
+
+    Returns:
+        Lista de mensajes con el resultado de cada ejercicio.
+    """
+    return _compute_y_persistir("/generateSIIFVsSlave", ejercicios)
+
+
+# --------------------------------------------------
+def compute_control_sgf_vs_slave(ejercicios: List[int]) -> List[str]:
+    """
+    Pipeline del cruce SGF vs Slave delegado al backend (on-demand).
+
+    Por cada ejercicio:
+
+    1. ``GET /control/controlHonorarios/generateSGFVsSlave?ejercicio=X``
+       : el backend arma el cruce (diferencias SGF vs Slave).
+    2. ``POST /control/controlHonorarios/sgfVsSlave``: congela el
+       snapshot en la colección ``control_honorarios_sgf_vs_slave``.
+
+    Args:
+        ejercicios: Ejercicios a recalcular.
+
+    Returns:
+        Lista de mensajes con el resultado de cada ejercicio.
+    """
+    return _compute_y_persistir("/generateSGFVsSlave", ejercicios)
