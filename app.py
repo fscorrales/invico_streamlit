@@ -124,6 +124,11 @@ def build_navigation() -> None:
                 title="Control Banco",
                 icon="🏦",
             ),
+            st.Page(
+                "src/pages/controles/control_debitos_bancarios.py",
+                title="Control Débitos Bancarios",
+                icon="💳",
+            ),
         ],
         "Reportes": [
             st.Page(
