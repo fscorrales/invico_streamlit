@@ -119,6 +119,11 @@ def build_navigation() -> None:
                 title="Control Banco",
                 icon="🏦",
             ),
+            st.Page(
+                "src/pages/controles/control_viaticos.py",
+                title="Control Viáticos",
+                icon="🧳",
+            ),
         ],
         "Reportes": [
             st.Page(

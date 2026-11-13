@@ -13,6 +13,7 @@ __all__ = [
     "get_control_haberes",
     "get_control_siif_vs_slave",
     "get_control_sgf_vs_slave",
+    "get_control_viaticos",
     "get_control_banco_cruzado",
     "get_control_banco_siif",
     "get_control_banco_sscc",
@@ -382,6 +383,26 @@ def get_control_sgf_vs_slave(
         df = df.sort_values(
             ["ejercicio", "mes", "cta_cte", "beneficiario"],
             ascending=[True, True, True, True],
+        )
+
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_control_viaticos(
+    params: dict[str, Any] | None = None, update_trigger: int = 0
+):
+    df = pd.DataFrame()
+
+    # Lee el snapshot persistido (POST posterior a /generate), igual que
+    # get_control_honorarios. El cómputo on-demand vive en el endpoint
+    # /generate, al que solo llama compute_control_viaticos().
+    df = fetch_dataframe(Endpoints.CONTROL_VIATICOS.value, params=params)
+    if not df.empty:
+        df = df.sort_values(
+            ["ejercicio", "nro_expte"],
+            ascending=[True, True],
         )
 
     return df
