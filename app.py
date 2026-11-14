@@ -115,6 +115,11 @@ def build_navigation() -> None:
                 icon="⛓️",
             ),
             st.Page(
+                "src/pages/controles/control_escribanos/control_escribanos.py",
+                title="Control Escribanos",
+                icon="⚖️",
+            ),
+            st.Page(
                 "src/pages/controles/control_viaticos.py",
                 title="Control Viáticos",
                 icon="🚗",
