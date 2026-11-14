@@ -9,8 +9,11 @@ __all__ = [
     "process_slave_honorarios",
     "process_slave_factureros",
     "apply_text_filters",
+    "apply_mes_hasta_filter",
 ]
 
+import re
+from collections.abc import Iterable
 from datetime import datetime
 from typing import Optional
 
@@ -561,3 +564,96 @@ def apply_text_filters(
             .str.contains(valor, case=False, regex=False)
         ]
     return df_filtrado
+
+
+# --------------------------------------------------
+def apply_mes_hasta_filter(
+    df: pd.DataFrame,
+    valor: str,
+    ejercicios_default: Iterable[int],
+    column: str = "mes",
+) -> pd.DataFrame:
+    """Conserva los meses ``MM/AAAA`` desde ``01`` hasta el mes límite.
+
+    Filtro con semántica de "mes hasta" para la columna ``mes``
+    (formato string ``MM/AAAA``: mes de 2 dígitos y año de 4). Pensada
+    para el widget "Mes hasta" de
+    ``components.text_inputs.text_filters_bar()``, cuyo valor crudo no
+    puede resolverse con un ``contains`` simple
+    (:func:`apply_text_filters`).
+
+    Reglas de parseo de ``valor``:
+
+    * ``""`` (vacío)     -> ``df`` sin cambios (sin filtro de mes).
+    * ``"05"`` o ``"5"`` -> meses ``01..05`` de cada año de
+      ``ejercicios_default`` (el ejercicio en el que se está
+      trabajando). Si la lista viene vacía se usan los años presentes
+      en ``column`` y, en último término, el año calendario actual.
+    * ``"05/2026"``      -> meses ``01/2026..05/2026`` solamente (el
+      año explícito manda; no se incluyen otros ejercicios).
+
+    El filtrado se hace por pertenencia al conjunto de valores
+    permitidos (``isin`` sobre el string ``MM/AAAA``), evitando la
+    comparación lexicográfica entre años (p.ej. ``"01/2026"`` sería
+    menor que ``"12/2025"``).
+
+    Args:
+        df: DataFrame a filtrar (no se modifica en el lugar).
+        valor: Texto crudo del filtro (``M``, ``MM`` o ``MM/AAAA``).
+        ejercicios_default: Ejercicios seleccionados por el usuario
+            (p.ej.
+            ``st.session_state["ejercicios_control_recursos"]``); se
+            usan como año cuando ``valor`` no trae año explícito.
+        column: Nombre de la columna con el mes (default ``"mes"``).
+
+    Returns:
+        Subconjunto de ``df`` cuya ``column`` está en el conjunto de
+        meses permitidos.
+
+    Raises:
+        ValueError: Si ``valor`` no tiene formato ``MM``/``MM/AAAA`` o
+            el mes está fuera de 01..12. El llamador decide avisar al
+            usuario; el error nunca se silencia aquí.
+        KeyError: Si ``column`` no existe en ``df`` (error de
+            configuración; se propaga sin silenciar).
+    """
+    texto: str = (valor or "").strip()
+    if not texto:
+        return df
+
+    coincidencia = re.fullmatch(r"(\d{1,2})(?:/(\d{4}))?", texto)
+    if coincidencia is None:
+        raise ValueError(
+            f"'{valor}' no es un mes válido. Use 'MM' (ej: 05) o "
+            "'MM/AAAA' (ej: 05/2026)."
+        )
+
+    mes_limite: int = int(coincidencia.group(1))
+    if not 1 <= mes_limite <= 12:
+        raise ValueError(
+            f"El mes '{coincidencia.group(1)}' debe estar entre 01 y 12. "
+            "Use 'MM' (ej: 05) o 'MM/AAAA' (ej: 05/2026)."
+        )
+
+    anio_explicito: str | None = coincidencia.group(2)
+    anios: list[int]
+    if anio_explicito is not None:
+        anios = [int(anio_explicito)]
+    else:
+        anios = [int(anio) for anio in ejercicios_default]
+        if not anios:
+            # Fallback: años presentes en la propia columna de meses.
+            anios = sorted(
+                {
+                    int(mes.split("/")[1])
+                    for mes in df[column].dropna().astype(str)
+                    if "/" in mes and mes.split("/")[1].isdigit()
+                }
+            )
+        if not anios:
+            anios = [datetime.now().year]
+
+    meses_permitidos: set[str] = {
+        f"{mes:02d}/{anio}" for anio in anios for mes in range(1, mes_limite + 1)
+    }
+    return df[df[column].astype(str).str.strip().isin(meses_permitidos)]
