@@ -201,9 +201,15 @@ def report_template(
 
     if has_update or has_export:
         with columnas[indice]:
-            # Los botones quedan juntos y alineados al borde derecho de
-            # su columna (misma posición relativa que antes).
-            with st.container(horizontal=True, horizontal_alignment="right"):
+            # Un solo botón → centrado en su columna; dos botones
+            # (Actualizar + Exportar) → alineados a la derecha como
+            # zona de acciones al final de la fila.
+            alineacion_acciones: str = (
+                "right" if has_update and has_export else "center"
+            )
+            with st.container(
+                horizontal=True, horizontal_alignment=alineacion_acciones
+            ):
                 if has_update:
                     if button_update("Actualizar", key=f"button_update_{key}"):
                         if update_func:
@@ -571,7 +577,9 @@ def report_header(
     """
     Cabecera reutilizable de un reporte: título, descripción, filtros
     server-side (multiselects + filtro avanzado), exportación a Excel y
-    (opcional) carga de CSV.
+    (opcional) carga de CSV. Los controles se disponen en una grilla de
+    columnas de igual peso para que la columna del filtro avanzado calce
+    píxel a píxel con ``text_filters_bar()`` (``st.columns(3)``).
 
     Es un ``@st.fragment``: las interacciones con los filtros, el
     uploader y el botón de exportación se resuelven sin re-ejecutar la
@@ -658,9 +666,21 @@ def report_header(
             st.error(f"Error al exportar: {e}")
 
     # 1. Renderizar Filtros (server-side: afectan los params del fetch)
-    with st.container(horizontal=True, vertical_alignment="bottom"):
-        if filters_config:
-            for filter_conf in filters_config:
+    # Cabecera en grilla de columnas de igual peso: la columna del
+    # "Filtro avanzado" queda con el mismo ancho que cada columna de
+    # text_filters_bar() (st.columns(3)), igual que en report_template.
+    n_columnas: int = (
+        len(filters_config or [])
+        + 1  # filtro avanzado
+        + int(has_upload)
+        + int(has_export)
+    )
+    columnas = st.columns(max(n_columnas, 1), vertical_alignment="bottom")
+    indice = 0
+
+    if filters_config:
+        for filter_conf in filters_config:
+            with columnas[indice]:
                 selected_values = multiselect_filter(
                     label=filter_conf["label"],
                     options=filter_conf["options"],
@@ -669,13 +689,17 @@ def report_header(
                 )
                 # El nombre de la clave debe coincidir con lo que espera la API
                 selections.append((filter_conf["query_param"], selected_values))
+            indice += 1
 
+    with columnas[indice]:
         filtro_avanzado = text_input_advance_filter(
             key="text_input_advance_filter-" + key
         )
+    indice += 1
 
-        uploaded_file = (
-            st.file_uploader(
+    if has_upload:
+        with columnas[indice]:
+            uploaded_file = st.file_uploader(
                 f"Cargar CSV de {title}",
                 type=["csv"],
                 key=f"{key}_upload_file_{st.session_state[data_version_key]}",
@@ -684,26 +708,32 @@ def report_header(
                 accept_multiple_files=False,
                 help=uploader_help,
             )
-            if has_upload
-            else None
-        )
+        indice += 1
+    else:
+        uploaded_file = None
 
-        if has_export:
-            # Aquí podrías integrar tu logic de exportación
-            if f"temp_file_{key}" not in st.session_state:
-                if button_export("Exportar a Excel y GS", key=f"button_export_{key}"):
-                    download_file()
-            else:
-                # Si hay archivo, el botón "Exportar" desaparece y aparece el de "Descargar"
-                st.download_button(
-                    label="📥 GUARDAR EXCEL",
-                    data=st.session_state[f"temp_file_{key}"],
-                    file_name=f"reporte_{key}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    key=f"btn_dl_{key}",
-                    type="primary",  # Lo ponemos en color para que resalte
-                    on_click=lambda: st.session_state.pop(f"temp_file_{key}"),
-                )
+    if has_export:
+        with columnas[indice]:
+            # Botón único (Exportar/Descargar): centrado en su columna
+            # para que no quede esquinado con hueco a su izquierda.
+            with st.container(horizontal=True, horizontal_alignment="center"):
+                # Aquí podrías integrar tu logic de exportación
+                if f"temp_file_{key}" not in st.session_state:
+                    if button_export(
+                        "Exportar a Excel y GS", key=f"button_export_{key}"
+                    ):
+                        download_file()
+                else:
+                    # Si hay archivo, el botón "Exportar" desaparece y aparece el de "Descargar"
+                    st.download_button(
+                        label="📥 GUARDAR EXCEL",
+                        data=st.session_state[f"temp_file_{key}"],
+                        file_name=f"reporte_{key}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        key=f"btn_dl_{key}",
+                        type="primary",  # Lo ponemos en color para que resalte
+                        on_click=lambda: st.session_state.pop(f"temp_file_{key}"),
+                    )
 
     if uploaded_file:
         df = read_csv_file(uploaded_file)
