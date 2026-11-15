@@ -229,6 +229,31 @@ class Rf610Report(BaseModel):
 
 
 # -------------------------------------------------
+# Tablas Auxiliares (SSCC)
+# -------------------------------------------------
+class CtasCtesReport(BaseModel):
+    """Registro del unificador de cuentas corrientes (``sscc_ctas_ctes``).
+
+    Espejo de ``src/sscc/schemas/ctas_ctes.py`` del Back: ``map_to`` es
+    la única cuenta obligatoria; los nexos de cada sistema son
+    opcionales y ``updated_at`` es el cerrojo de concurrencia optimista
+    (``None`` en registros históricos).
+    """
+
+    map_to: str
+    desc_cta_cte: Optional[str] = None
+    sscc_cta_cte: Optional[str] = None
+    real_cta_cte: Optional[str] = None
+    siif_recursos_cta_cte: Optional[str] = None
+    siif_gastos_cta_cte: Optional[str] = None
+    siif_contabilidad_cta_cte: Optional[str] = None
+    sgf_cta_cte: Optional[str] = None
+    siif_cta_cte: Optional[str] = None
+    icaro_cta_cte: Optional[str] = None
+    updated_at: Optional[datetime] = None
+
+
+# -------------------------------------------------
 # Reportes del Planillometro (SGV)
 # -------------------------------------------------
 class ObrasRecuperadasReport(BaseModel):

@@ -1,90 +1,145 @@
+"""Página: Tablas Auxiliares SSCC - Ctas Ctes (CRUD solo admin).
+
+Unificador de Cuentas Corrientes con grilla exportable y, cuando el
+usuario logueado tiene el rol ``admin``, botones de Agregar / Editar /
+Borrar que abren los modales de ``src.views.modals``.
+"""
+
+from datetime import datetime
+from typing import Any
+
 import pandas as pd
 import streamlit as st
 
-from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import get_ctas_ctes, process_listado_ctas_ctes
+from src.services import get_ctas_ctes
 from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
 from src.views import (
-    report_template_with_uploader,
+    ReportState,
+    dataframe_with_buttons,
+    modal_ctas_ctes,
+    modal_delete_registro_gral,
+    report_data_version_key,
+    report_header,
 )
 
 ENDPOINT = Endpoints.CTAS_CTES.value
 REPORTE = "ctas_ctes"
+LEGACY_TRIGGER_KEY = "ctas_ctes_uploader_iteration"
 
-ayuda_uploader = """
-### 📥 Guía de Importación
-Simplemente importe el archivo ctas_ctes.xlsx el cual debe contener las siguientes columnas...
-"""
+# Orden lógico de la grilla: primero la cuenta unificada y la
+# descripción, luego los nexos de cada sistema. ``id`` y ``updated_at``
+# (cerrojo) son técnicos: no se muestran.
+COLUMNAS_VISIBLES: list[str] = [
+    "map_to",
+    "desc_cta_cte",
+    "sscc_cta_cte",
+    "real_cta_cte",
+    "siif_recursos_cta_cte",
+    "siif_gastos_cta_cte",
+    "siif_contabilidad_cta_cte",
+    "sgf_cta_cte",
+    "siif_cta_cte",
+    "icaro_cta_cte",
+]
+COLUMNAS_OCULTAS: list[str] = ["id", "updated_at"]
+
+
+# --------------------------------------------------
+def _es_admin() -> bool:
+    """True si el usuario logueado tiene el rol ``admin``."""
+    usuario = st.session_state.get("user") or {}
+    return "admin" in usuario.get("roles", [])
+
+
+# --------------------------------------------------
+def add_ctas_ctes() -> None:
+    """Abre el modal de alta de cuenta corriente."""
+    modal_ctas_ctes(
+        key_prefix=f"add_ctas_ctes_{datetime.now().strftime('%Y%m%d%H%M%S%f')}",
+    )
+
+
+# --------------------------------------------------
+def edit_ctas_ctes(datos_edicion: dict[str, Any]) -> None:
+    """Abre el modal de edición precargado con la fila seleccionada."""
+    modal_ctas_ctes(
+        key_prefix=f"edit_ctas_ctes_{datetime.now().strftime('%Y%m%d%H%M%S%f')}",
+        datos_carga=datos_edicion,
+        es_edicion=True,
+    )
+
+
+# --------------------------------------------------
+def delete_ctas_ctes(datos_eliminar: dict[str, Any]) -> None:
+    """Abre el modal de confirmación de baja de la cuenta corriente."""
+    modal_delete_registro_gral(
+        endpoint=f"{ENDPOINT}/delete_one/{datos_eliminar['id']}",
+        desc_registro=f"con Cuenta Unificada {datos_eliminar.get('map_to', '')}",
+        session_state_update_key=report_data_version_key(REPORTE),
+        key_prefix=f"delete_ctas_ctes_{datetime.now().strftime('%Y%m%d%H%M%S')}",
+    )
 
 
 # --------------------------------------------------
 def render() -> None:
-
-    report_template_with_uploader(
+    # La cabecera (título, filtro avanzado, export) es un @st.fragment
+    # que retorna el estado del reporte. Sin uploader: el alta/baja se
+    # hace con los botones del CRUD (solo admin).
+    state: ReportState = report_header(
         key=REPORTE,
         title="SSCC - Reporte " + REPORTE,
         description="Unificador de Cuentas Corrientes",
         endpoint=ENDPOINT,
+        filters_config=None,
         has_export=True,
-        has_upload=True,
-        uploader_help=ayuda_uploader,
-        uploader_func=process_listado_ctas_ctes,
-        upload_file_type="xlsx",
     )
 
-    if st.session_state.get(f"{REPORTE}_automation_success"):
-        # Limpiamos el flag para que no entre en bucle infinito
-        st.session_state[f"{REPORTE}_automation_success"] = False
+    # Sincronizamos el trigger legacy ``ctas_ctes_uploader_iteration``
+    # (consumido por ``get_ctas_ctes_list`` y las automatizaciones): el
+    # CRUD incrementa ``data_version`` y esas cachés deben invalidarse
+    # también. Nos quedamos con el máximo para no degradar el trigger.
+    legacy_trigger = int(st.session_state.get(LEGACY_TRIGGER_KEY, 0))
+    if state.data_version > legacy_trigger:
+        legacy_trigger = state.data_version
+    st.session_state[LEGACY_TRIGGER_KEY] = legacy_trigger
 
-        # Incrementamos el trigger de forma síncrona y segura
-        actual = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
-        st.session_state[f"{REPORTE}_uploader_iteration"] = actual + 1
+    es_admin = _es_admin()
 
-        # Forzamos el recálculo total de la página con el nuevo trigger
-        st.rerun()
-
-    # Capturamos el filtro del session_state (que el fragmento actualizó)
-    filtro_actual = st.session_state.get(f"{REPORTE}_advanced_filter", "")
-    trigger = st.session_state.get(f"{REPORTE}_uploader_iteration", 0)
-
-    # 1. Inicializamos df con un DataFrame vacío para evitar el UnboundLocalError
+    # df vacío por defecto para evitar UnboundLocalError si falla la API
     df = pd.DataFrame()
-
     try:
         df = get_ctas_ctes(
-            filtro_avanzado=filtro_actual,
-            update_trigger=trigger,
+            filtro_avanzado=state.filtro_avanzado,
+            update_trigger=state.data_version,
         )
-
         if df.empty:
             st.info("No se encontraron resultados.")
-        # else:
-        #     st.session_state[f"data_{key}_carga"] = df_final
-        #     st.session_state[f"data_{key}_retenciones"] = df_final_ret
-
     except APIConnectionError as e:
         st.error(f"⚠️ Error de conexión: {e}")
     except APIResponseError as e:
         st.error(f"⚠️ Error de API: {e}")
 
-    # 4. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
-        # Definimos las columnas que NO queremos mostrar
-        first_cols = [
-            "map_to",
+        # Orden dinámico: columnas visibles conocidas (las que falten se
+        # omiten) + cualquier otra que traiga la API, excluyendo las
+        # técnicas (id/updated_at) que ``column_order`` oculta.
+        column_order = [col for col in COLUMNAS_VISIBLES if col in df.columns] + [
+            col
+            for col in df.columns
+            if col not in COLUMNAS_VISIBLES and col not in COLUMNAS_OCULTAS
         ]
 
-        # Generamos el orden dinámico: todas las del DF que no estén en la lista negra
-        orden_dinamico = first_cols + [
-            col for col in df.columns if col not in first_cols
-        ]
-
-        dataframe(
+        dataframe_with_buttons(
             df,
             key=f"{REPORTE}_df_ctas_ctes",
-            column_order=orden_dinamico,
+            column_order=column_order,
+            selection_mode="single-row" if es_admin else None,
+            add_func=add_ctas_ctes if es_admin else None,
+            edit_func=edit_ctas_ctes if es_admin else None,
+            delete_func=delete_ctas_ctes if es_admin else None,
+            show_buttons=es_admin,
         )

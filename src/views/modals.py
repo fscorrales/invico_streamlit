@@ -6,6 +6,7 @@ __all__ = [
     "request_siif_and_sgf_credentials_modal",
     "request_siif_sscc_and_sgf_credentials_modal",
     "modal_delete_registro_gral",
+    "modal_ctas_ctes",
     "modal_obras_desactivadas",
     "modal_obras_recuperadas",
     "request_sgv_credentials_modal",
@@ -22,7 +23,11 @@ from pydantic import ValidationError
 
 from src.components import button_cancel, button_robot, button_skip, button_submit
 from src.constants.endpoints import Endpoints
-from src.models.schemas import ObrasDesactivadasReport, ObrasRecuperadasReport
+from src.models.schemas import (
+    CtasCtesReport,
+    ObrasDesactivadasReport,
+    ObrasRecuperadasReport,
+)
 from src.services.api_client import delete_request, post_request, put_request
 from src.services.data_fetcher import (
     get_ejercicios_list,
@@ -1319,6 +1324,225 @@ def modal_obras_desactivadas(
                     f"✅ Obra Desactivada {estructura_limpia} "
                     f"{'editada' if es_edicion else 'agregada'} con éxito",
                     icon="📉",
+                )
+
+                # Invalida el caché de la grilla (@st.cache_data).
+                st.session_state[session_state_update_key] = (
+                    int(st.session_state.get(session_state_update_key, 0)) + 1
+                )
+                time.sleep(2)
+                # Cierra el modal y recarga la página principal.
+                st.rerun()
+
+
+# Campos nexo de Ctas Ctes (además de ``map_to`` y ``desc_cta_cte``):
+# orden y etiquetas de la grilla del modal de alta/edición.
+CTAS_CTES_NEXO_FIELDS: list[str] = [
+    "sscc_cta_cte",
+    "real_cta_cte",
+    "siif_recursos_cta_cte",
+    "siif_gastos_cta_cte",
+    "siif_contabilidad_cta_cte",
+    "sgf_cta_cte",
+    "siif_cta_cte",
+    "icaro_cta_cte",
+]
+CTAS_CTES_NEXO_LABELS: dict[str, str] = {
+    "sscc_cta_cte": "SSCC Cta. Cte.",
+    "real_cta_cte": "Real Cta. Cte.",
+    "siif_recursos_cta_cte": "SIIF Recursos Cta. Cte.",
+    "siif_gastos_cta_cte": "SIIF Gastos Cta. Cte.",
+    "siif_contabilidad_cta_cte": "SIIF Contabilidad Cta. Cte.",
+    "sgf_cta_cte": "SGF Cta. Cte.",
+    "siif_cta_cte": "SIIF Cta. Cte.",
+    "icaro_cta_cte": "Icaro Cta. Cte.",
+}
+
+
+# --- MODAL: AGREGAR / EDITAR CUENTA CORRIENTE (SSCC) ---
+@st.dialog("Agregar / Editar CUENTA CORRIENTE", width="medium")
+def modal_ctas_ctes(
+    key_prefix: str,
+    datos_carga: dict[str, Any] | None = None,
+    es_edicion: bool = False,
+    session_state_update_key: str = report_data_version_key("ctas_ctes"),
+) -> None:
+    """Modal para dar de alta o editar una cuenta corriente (SSCC).
+
+    Opera sobre la colección ``sscc_ctas_ctes`` con los campos de
+    ``models.schemas.CtasCtesReport``:
+
+    - **Alta** (``es_edicion=False``): ``POST .../add_one`` (el Back
+      genera el ``id``).
+    - **Edición** (``es_edicion=True``): ``PUT .../update_one/{id}``.
+
+    ``map_to`` (cuenta unificada destino) es el único campo obligatorio;
+    los nexos de cada sistema son opcionales y se envían ``None`` cuando
+    están vacíos, en línea con el reemplazo ``"NA"`` → ``None`` de la
+    carga masiva.
+
+    Args:
+        key_prefix: Prefijo único para las keys de los widgets (con
+            timestamp con microsegundos, igual que el resto de modales).
+        datos_carga: Fila a editar (``df.iloc[i].to_dict()``); ``None``
+            en modo alta.
+        es_edicion: ``True`` envía ``PUT .../update_one/{id}`` en vez de
+            ``POST .../add_one``.
+        session_state_update_key: Clave de ``st.session_state`` a
+            incrementar tras guardar, para refrescar la grilla.
+    """
+    # ``st.session_state`` es la fuente de verdad del token y SÍ está
+    # disponible dentro de ``@st.dialog``. Lo leemos y lo pasamos
+    # explícitamente a ``post_request``/``put_request``.
+    token = st.session_state.get("token")
+
+    # pandas NaN/NA/NaT -> None (JSON-compliant; igual que los demás modales).
+    form_data: dict[str, Any] = {}
+    if datos_carga:
+        form_data = {
+            campo: (None if pd.isna(valor) else valor)
+            for campo, valor in datos_carga.items()
+        }
+
+    map_to_previo = _a_texto(form_data.get("map_to")).strip()
+
+    # Estado inicial de los widgets ANTES de crearlos (patrón setdefault
+    # recomendado por Streamlit: evita el warning "value + session state").
+    st.session_state.setdefault(f"{key_prefix}_map_to", map_to_previo)
+    st.session_state.setdefault(
+        f"{key_prefix}_desc_cta_cte", _a_texto(form_data.get("desc_cta_cte"))
+    )
+    for nexo in CTAS_CTES_NEXO_FIELDS:
+        st.session_state.setdefault(
+            f"{key_prefix}_{nexo}", _a_texto(form_data.get(nexo))
+        )
+
+    map_to = st.text_input(
+        "Map To (cuenta unificada)",
+        key=f"{key_prefix}_map_to",
+        help="Cuenta corriente unificada destino (obligatoria, ej: BANCO INVICO).",
+    )
+    desc_cta_cte = st.text_area(
+        "Descripción",
+        key=f"{key_prefix}_desc_cta_cte",
+        height=60,
+        help="Descripción de la cuenta corriente (opcional).",
+    )
+
+    # Nexos de cada sistema en grilla de 2 columnas.
+    valores_nexo: dict[str, str] = {}
+    for indice in range(0, len(CTAS_CTES_NEXO_FIELDS), 2):
+        col_izq, col_der = st.columns(2)
+        pareja = CTAS_CTES_NEXO_FIELDS[indice : indice + 2]
+        for contenedor, nexo in zip((col_izq, col_der), pareja, strict=True):
+            valores_nexo[nexo] = contenedor.text_input(
+                CTAS_CTES_NEXO_LABELS[nexo],
+                key=f"{key_prefix}_{nexo}",
+                help="Cuenta corriente del sistema de origen (opcional).",
+            )
+
+    if es_edicion:
+        st.caption(
+            f"Registro ID: `{form_data.get('id')}` | "
+            f"Última actualización: {form_data.get('updated_at') or '—'}"
+        )
+
+    st.markdown("---")
+
+    # BOTONES (Cancelar / Agregar o Editar)
+    with st.container(
+        horizontal=True, border=False, horizontal_alignment="center", gap="large"
+    ):
+        if button_cancel("Cancelar", type="secondary", key=f"{key_prefix}_btn_cancel"):
+            st.rerun()  # Cierra el modal de forma segura
+
+        if button_submit(
+            "Editar" if es_edicion else "Agregar",
+            key=f"{key_prefix}_btn_add",
+        ):
+            # 1. Validación de datos
+            errores: list[str] = []
+            map_to_limpio = map_to.strip()
+            desc_limpia = desc_cta_cte.strip() or None
+
+            if not map_to_limpio:
+                errores.append("Debe indicar la cuenta unificada (Map To).")
+
+            registro_id = _a_texto(form_data.get("id"))
+            if es_edicion and not registro_id:
+                errores.append("El registro a editar no tiene un ID válido.")
+
+            if errores:
+                for err in errores:
+                    st.toast(err, icon="⚠️")
+                return
+
+            # 2. Payload ajustado al esquema de la colección
+            # ``sscc_ctas_ctes`` (models.schemas.CtasCtesReport).
+            payload: dict[str, Any] = {
+                "map_to": map_to_limpio,
+                "desc_cta_cte": desc_limpia,
+            }
+            for nexo in CTAS_CTES_NEXO_FIELDS:
+                valor_nexo = valores_nexo[nexo].strip()
+                payload[nexo] = valor_nexo or None
+
+            # Cerrojo de concurrencia (paridad con
+            # ``modal_obras_recuperadas``):
+            # - Edición: eco LITERAL del ``updated_at`` original que trajo
+            #   el GET. Los registros históricos sin timestamp envían
+            #   ``None`` y el Back omite el control de concurrencia.
+            # - Alta: timestamp de creación (el POST no tiene cerrojo).
+            if es_edicion:
+                payload["updated_at"] = form_data.get("updated_at")
+            else:
+                payload["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            # Validación estricta: si algo falla, NO se envía nada.
+            try:
+                CtasCtesReport(**payload)
+            except ValidationError as exc:
+                st.error(f"⚠️ Los datos no cumplen CtasCtesReport: {exc}")
+                return
+
+            with st.spinner("Guardando cuenta corriente..."):
+                # 3. Alta: POST /add_one - Edición: PUT /update_one/{id}
+                # token explícito leído de ``st.session_state`` al abrir el modal.
+                try:
+                    if es_edicion:
+                        res = put_request(
+                            endpoint=(
+                                f"{Endpoints.CTAS_CTES.value}"
+                                f"/update_one/{registro_id}"
+                            ),
+                            json_body=payload,
+                            token=token,
+                        )
+                    else:
+                        res = post_request(
+                            endpoint=(f"{Endpoints.CTAS_CTES.value}/add_one"),
+                            json_body=payload,
+                            token=token,
+                        )
+                except AppBaseException as exc:
+                    st.error(f"⚠️ {exc}")
+                    return
+                except Exception as exc:
+                    st.error(f"❌ Ocurrió un error inesperado: {exc}")
+                    return
+
+                if not res:
+                    st.error(
+                        "La API no confirmó la operación. "
+                        "Verifique e intente nuevamente."
+                    )
+                    return
+
+                st.snow()
+                st.toast(
+                    f"✅ Cuenta {map_to_limpio} "
+                    f"{'editada' if es_edicion else 'agregada'} con éxito",
+                    icon="🏦",
                 )
 
                 # Invalida el caché de la grilla (@st.cache_data).
