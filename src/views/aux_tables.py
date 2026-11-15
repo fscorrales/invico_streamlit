@@ -80,6 +80,10 @@ def report_template(
         muestra el botón de descarga y confirma vía ``st.toast`` (efímero
         y sin desplazar el layout; el link a la hoja vive en la
         descripción del reporte).
+    Cabecera: grilla de columnas de igual peso (en lugar de un container
+    horizontal con anchos por contenido); con un solo filtro, la columna
+    del filtro avanzado calza píxel a píxel con cada caja de
+    ``text_filters_bar()`` (``st.columns(3)``).
     """
     # Render condicional: con title="" no se emite el <h1> vacío (su
     # contenedor seguiría ocupando margen vertical sin contenido).
@@ -162,8 +166,19 @@ def report_template(
 
     # 1. Renderizar Filtros
     # --- Filtros (Estado local del componente) ---
-    with st.container(horizontal=True, vertical_alignment="bottom"):
-        for i, f_conf in enumerate(filters_config):
+    # Cabecera en grilla de columnas de igual peso (en lugar de un
+    # container horizontal con anchos por contenido): con la misma
+    # matemática de st.columns(3) que usa text_filters_bar(), la columna
+    # del "Filtro avanzado" queda con el mismo ancho exacto que cada
+    # caja de la barra de filtros de la grilla inferior.
+    n_columnas: int = (
+        len(filters_config) + int(has_advanced_filter) + int(has_update or has_export)
+    )
+    columnas = st.columns(max(n_columnas, 1), vertical_alignment="bottom")
+    indice = 0
+
+    for f_conf in filters_config:
+        with columnas[indice]:
             # Guardamos la selección en un diccionario para la API
             val = multiselect_filter(
                 label=f_conf["label"],
@@ -175,19 +190,27 @@ def report_template(
             )
             # El nombre de la clave aquí debe coincidir con lo que espera tu API
             selections.append((f_conf["query_param"], val))
+        indice += 1
 
-        if has_advanced_filter:
+    if has_advanced_filter:
+        with columnas[indice]:
             filtro_avanzado = text_input_advance_filter(
                 key="text_input_advance_filter-" + key
             )
+        indice += 1
 
-        if has_update:
-            if button_update("Actualizar", key=f"button_update_{key}"):
-                if update_func:
-                    update_func()
+    if has_update or has_export:
+        with columnas[indice]:
+            # Los botones quedan juntos y alineados al borde derecho de
+            # su columna (misma posición relativa que antes).
+            with st.container(horizontal=True, horizontal_alignment="right"):
+                if has_update:
+                    if button_update("Actualizar", key=f"button_update_{key}"):
+                        if update_func:
+                            update_func()
 
-        if has_export:
-            render_export_control()
+                if has_export:
+                    render_export_control()
 
     # 2. Validar que no haya filtros vacíos
     if not allow_no_filters:
