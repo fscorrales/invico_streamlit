@@ -5,20 +5,15 @@ import streamlit as st
 
 from src.components import dataframe
 from src.constants.endpoints import Endpoints
-from src.services import fetch_dataframe, process_slave_honorarios
+from src.services import fetch_dataframe
 from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
-from src.views import report_template_with_uploader
+from src.views import report_header
 
 ENDPOINT = Endpoints.SLAVE_HONORARIOS.value
 REPORTE = "slave_honorarios"
-
-ayuda_uploader = """
-### 📥 Guía de Importación
-Simplemente importe el archivo Slave.accdb (es necesario convertirlo desde su versión antigua .mdb a una más moderna .accdb dentro de Access)
-"""
 
 
 # --------------------------------------------------
@@ -47,17 +42,12 @@ def get_slave_honorarios(filtro_avanzado: str = "", update_trigger: int = 0):
 # --------------------------------------------------
 def render() -> None:
 
-    report_template_with_uploader(
+    report_header(
         key=REPORTE,
         title="Slave - Tabla Honorarios",
         description="Tabla Honorarios de Slave",
         endpoint=ENDPOINT,
         has_export=True,
-        has_upload=False,
-        # uploader_help=ayuda_uploader,
-        # uploader_func=process_slave_honorarios,
-        # upload_file_type="accdb",
-        # upload_table_name="LIQUIDACIONHONORARIOS",
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):

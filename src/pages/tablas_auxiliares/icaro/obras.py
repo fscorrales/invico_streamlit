@@ -8,7 +8,7 @@ from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
-from src.views.aux_tables import report_template_with_uploader
+from src.views.aux_tables import report_header
 
 ENDPOINT = Endpoints.ICARO_OBRAS.value
 REPORTE = "icaro_obras"
@@ -36,13 +36,12 @@ def get_icaro_obras(filtro_avanzado: str = "", update_trigger: int = 0):
 # --------------------------------------------------
 def render() -> None:
 
-    report_template_with_uploader(
+    report_header(
         key=REPORTE,
         title="Icaro - Reporte " + REPORTE,
         description="Tabla de Obras de ICARO",
         endpoint=ENDPOINT,
         has_export=True,
-        has_upload=False,
     )
 
     # Capturamos el filtro del session_state (que el fragmento actualizó)
