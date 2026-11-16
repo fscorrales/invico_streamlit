@@ -174,7 +174,7 @@ def request_siif_credentials_modal(
         )
 
 
-@st.dialog("Credenciales SSCC")
+@st.dialog("Credenciales Sist. INVICO (SSCC)")
 # --------------------------------------------------
 def request_sscc_credentials_modal(
     automation_callback: Callable[[str, str], Any],
@@ -183,15 +183,21 @@ def request_sscc_credentials_modal(
 ):
     """
     Modal reutilizable para SSCC usando Pywinauto (Síncrono).
-    automation_callback recibe (username, password) y devuelve la lista de resultados.
+
+    Credenciales del Sist. INVICO (las mismas que SGF y SGV).
+    automation_callback recibe (username, password) y devuelve la lista
+    de resultados.
     """
     st.write(
-        "Ingrese sus credenciales de SSCC para iniciar la automatización de escritorio."
+        "Ingrese sus credenciales del Sist. INVICO (compartidas con SGF y SSCC) "
+        "para iniciar la automatización de escritorio."
     )
 
     # Usamos keys únicas para evitar colisiones con otros modales
-    username = st.text_input("Usuario", key=f"sscc_user_{key}")
-    password = st.text_input("Contraseña", type="password", key=f"sscc_pass_{key}")
+    username = st.text_input("Usuario Sist. INVICO", key=f"invico_user_{key}")
+    password = st.text_input(
+        "Contraseña Sist. INVICO", type="password", key=f"invico_pass_{key}"
+    )
     st.write("**Reportes ha descargar:** " + downloaded_info)
 
     with st.container(
@@ -234,7 +240,7 @@ def request_sscc_credentials_modal(
         )
 
 
-@st.dialog("Credenciales SGF")
+@st.dialog("Credenciales Sist. INVICO (SGF)")
 # --------------------------------------------------
 def request_sgf_credentials_modal(
     automation_callback: Callable[[str, str], Any],
@@ -243,15 +249,21 @@ def request_sgf_credentials_modal(
 ):
     """
     Modal reutilizable para SGF usando Pywinauto (Síncrono).
-    automation_callback recibe (username, password) y devuelve la lista de resultados.
+
+    Credenciales del Sist. INVICO (las mismas que SSCC y SGF).
+    automation_callback recibe (username, password) y devuelve la lista
+    de resultados.
     """
     st.write(
-        "Ingrese sus credenciales de SGF para iniciar la automatización de escritorio."
+        "Ingrese sus credenciales del Sist. INVICO (compartidas con SSCC y SGF) "
+        "para iniciar la automatización de escritorio."
     )
 
     # Usamos keys únicas para evitar colisiones con otros modales
-    username = st.text_input("Usuario", key=f"sgf_user_{key}")
-    password = st.text_input("Contraseña", type="password", key=f"sgf_pass_{key}")
+    username = st.text_input("Usuario Sist. INVICO", key=f"invico_user_{key}")
+    password = st.text_input(
+        "Contraseña Sist. INVICO", type="password", key=f"invico_pass_{key}"
+    )
     st.write("**Reportes ha descargar:** " + downloaded_info)
 
     with st.container(
@@ -294,7 +306,7 @@ def request_sgf_credentials_modal(
         )
 
 
-@st.dialog("Credenciales SIIF y SSCC")
+@st.dialog("Credenciales SIIF y Sist. INVICO (SSCC)")
 # --------------------------------------------------
 def request_siif_and_sscc_credentials_modal(
     automation_callback: Callable[[str, str, str, str, str], Any],
@@ -304,7 +316,18 @@ def request_siif_and_sscc_credentials_modal(
 ):
     """
     Modal reutilizable para SIIF y SSCC usando Pywinauto (Síncrono) y Playwright (Asíncrono).
-    automation_callback recibe (username, password) y devuelve la lista de resultados.
+
+    Solo se piden 2 pares de credenciales:
+
+    - **SIIF**: usuario y contraseña propios del SIIF.
+    - **Sist. INVICO**: usuario y contraseña compartidos por SSCC, SGF y
+      SGV. El callback los recibe como ``sscc_username``/``sscc_password``
+      (misma firma que antes): la misma credencial se reutiliza en los
+      sistemas que la comparten.
+
+    ``automation_callback`` recibe
+    ``(siif_username, siif_password, invico_username, invico_password, key)``
+    y devuelve la lista de resultados.
 
     El botón "Omitir" saltea la descarga de reportes sin requerir
     credenciales:
@@ -317,7 +340,9 @@ def request_siif_and_sscc_credentials_modal(
       :func:`request_siif_credentials_modal`).
     """
     st.write(
-        "Ingrese sus credenciales de SIIF y SSCC para iniciar la automatización de escritorio."
+        "Ingrese sus credenciales de SIIF y del Sist. INVICO "
+        "(esta última compartida con SSCC y SGF) "
+        "para iniciar la automatización de escritorio."
     )
 
     # Usamos keys únicas para evitar colisiones con otros modales
@@ -325,9 +350,9 @@ def request_siif_and_sscc_credentials_modal(
     siif_password = st.text_input(
         "Contraseña SIIF", type="password", key=f"siif_pass_{key}"
     )
-    sscc_username = st.text_input("Usuario SSCC", key=f"sscc_user_{key}")
-    sscc_password = st.text_input(
-        "Contraseña SSCC", type="password", key=f"sscc_pass_{key}"
+    invico_username = st.text_input("Usuario Sist. INVICO", key=f"invico_user_{key}")
+    invico_password = st.text_input(
+        "Contraseña Sist. INVICO", type="password", key=f"invico_pass_{key}"
     )
     st.write("**Reportes ha descargar:** " + downloaded_info)
 
@@ -372,8 +397,8 @@ def request_siif_and_sscc_credentials_modal(
             if (
                 not siif_username
                 or not siif_password
-                or not sscc_username
-                or not sscc_password
+                or not invico_username
+                or not invico_password
             ):
                 st.error("Debe completar todos los campos.")
                 return
@@ -394,11 +419,13 @@ def request_siif_and_sscc_credentials_modal(
                         )
 
                     async def run_automation():
+                        # La credencial del Sist. INVICO se reutiliza como
+                        # credencial de SSCC (mismo usuario y contraseña).
                         return await automation_callback(
                             siif_username,
                             siif_password,
-                            sscc_username,
-                            sscc_password,
+                            invico_username,
+                            invico_password,
                             key,
                         )
 
@@ -430,7 +457,7 @@ def request_siif_and_sscc_credentials_modal(
         )
 
 
-@st.dialog("Credenciales SIIF y SGF")
+@st.dialog("Credenciales SIIF y Sist. INVICO (SGF)")
 # --------------------------------------------------
 def request_siif_and_sgf_credentials_modal(
     automation_callback: Callable[[str, str, str, str, str], Any],
@@ -440,7 +467,18 @@ def request_siif_and_sgf_credentials_modal(
 ):
     """
     Modal reutilizable para SIIF y SGF usando Pywinauto (Síncrono) y Playwright (Asíncrono).
-    automation_callback recibe (username, password) y devuelve la lista de resultados.
+
+    Solo se piden 2 pares de credenciales:
+
+    - **SIIF**: usuario y contraseña propios del SIIF.
+    - **Sist. INVICO**: usuario y contraseña compartidos por SSCC, SGF y
+      SGV. El callback los recibe como ``sgf_username``/``sgf_password``
+      (misma firma que antes): la misma credencial se reutiliza en los
+      sistemas que la comparten.
+
+    ``automation_callback`` recibe
+    ``(siif_username, siif_password, invico_username, invico_password, key)``
+    y devuelve la lista de resultados.
 
     El botón "Omitir" saltea la descarga de reportes sin requerir
     credenciales:
@@ -453,7 +491,9 @@ def request_siif_and_sgf_credentials_modal(
       :func:`request_siif_credentials_modal`).
     """
     st.write(
-        "Ingrese sus credenciales de SIIF y SGF para iniciar la automatización de escritorio."
+        "Ingrese sus credenciales de SIIF y del Sist. INVICO "
+        "(esta última compartida con SSCC y SGF) "
+        "para iniciar la automatización de escritorio."
     )
 
     # Usamos keys únicas para evitar colisiones con otros modales
@@ -461,9 +501,9 @@ def request_siif_and_sgf_credentials_modal(
     siif_password = st.text_input(
         "Contraseña SIIF", type="password", key=f"siif_pass_{key}"
     )
-    sgf_username = st.text_input("Usuario SGF", key=f"sscc_user_{key}")
-    sgf_password = st.text_input(
-        "Contraseña SGF", type="password", key=f"sscc_pass_{key}"
+    invico_username = st.text_input("Usuario Sist. INVICO", key=f"invico_user_{key}")
+    invico_password = st.text_input(
+        "Contraseña Sist. INVICO", type="password", key=f"invico_pass_{key}"
     )
 
     st.write("**Reportes ha descargar:** " + downloaded_info)
@@ -509,8 +549,8 @@ def request_siif_and_sgf_credentials_modal(
             if (
                 not siif_username
                 or not siif_password
-                or not sgf_username
-                or not sgf_password
+                or not invico_username
+                or not invico_password
             ):
                 st.error("Debe completar todos los campos.")
                 return
@@ -531,11 +571,13 @@ def request_siif_and_sgf_credentials_modal(
                         )
 
                     async def run_automation():
+                        # La credencial del Sist. INVICO se reutiliza como
+                        # credencial de SGF (mismo usuario y contraseña).
                         return await automation_callback(
                             siif_username,
                             siif_password,
-                            sgf_username,
-                            sgf_password,
+                            invico_username,
+                            invico_password,
                             key,
                         )
 
@@ -567,7 +609,7 @@ def request_siif_and_sgf_credentials_modal(
         )
 
 
-@st.dialog("Credenciales SIIF, SSCC y SGF")
+@st.dialog("Credenciales SIIF y Sist. INVICO (SSCC/SGF)")
 # --------------------------------------------------
 def request_siif_sscc_and_sgf_credentials_modal(
     automation_callback: Callable[[str, str, str, str, str, str, str], Any],
@@ -576,8 +618,21 @@ def request_siif_sscc_and_sgf_credentials_modal(
     skip_callback: Callable[[], Any] | None = None,
 ):
     """
-    Modal reutilizable para SIIF y SGF usando Pywinauto (Síncrono) y Playwright (Asíncrono).
-    automation_callback recibe (username, password) y devuelve la lista de resultados.
+    Modal reutilizable para SIIF, SSCC y SGF usando Pywinauto
+    (Síncrono) y Playwright (Asíncrono).
+
+    Solo se piden 2 pares de credenciales (antes eran 3):
+
+    - **SIIF**: usuario y contraseña propios del SIIF.
+    - **Sist. INVICO**: usuario y contraseña compartidos por SSCC, SGF y
+      SGV. El callback los recibe como ``sscc_*`` y ``sgf_*`` (misma
+      firma que antes): la misma credencial se reutiliza en ambos
+      sistemas porque son idénticas.
+
+    ``automation_callback`` recibe
+    ``(siif_username, siif_password, invico_username, invico_password,
+    invico_username, invico_password, key)`` y devuelve la lista de
+    resultados.
 
     El botón "Omitir" saltea la descarga de reportes sin requerir
     credenciales:
@@ -590,7 +645,9 @@ def request_siif_sscc_and_sgf_credentials_modal(
       :func:`request_siif_credentials_modal`).
     """
     st.write(
-        "Ingrese sus credenciales de SIIF, SSCC y SGF para iniciar la automatización de escritorio."
+        "Ingrese sus credenciales de SIIF y del Sist. INVICO "
+        "(esta última compartida con SSCC y SGF) "
+        "para iniciar la automatización de escritorio."
     )
 
     # Usamos keys únicas para evitar colisiones con otros modales
@@ -598,13 +655,9 @@ def request_siif_sscc_and_sgf_credentials_modal(
     siif_password = st.text_input(
         "Contraseña SIIF", type="password", key=f"siif_pass_{key}"
     )
-    sscc_username = st.text_input("Usuario SSCC", key=f"sscc_user_{key}")
-    sscc_password = st.text_input(
-        "Contraseña SSCC", type="password", key=f"sscc_pass_{key}"
-    )
-    sgf_username = st.text_input("Usuario SGF", key=f"sgf_user_{key}")
-    sgf_password = st.text_input(
-        "Contraseña SGF", type="password", key=f"sgf_pass_{key}"
+    invico_username = st.text_input("Usuario Sist. INVICO", key=f"invico_user_{key}")
+    invico_password = st.text_input(
+        "Contraseña Sist. INVICO", type="password", key=f"invico_pass_{key}"
     )
 
     st.write("**Reportes ha descargar:** " + downloaded_info)
@@ -650,10 +703,8 @@ def request_siif_sscc_and_sgf_credentials_modal(
             if (
                 not siif_username
                 or not siif_password
-                or not sscc_username
-                or not sscc_password
-                or not sgf_username
-                or not sgf_password
+                or not invico_username
+                or not invico_password
             ):
                 st.error("Debe completar todos los campos.")
                 return
@@ -674,13 +725,15 @@ def request_siif_sscc_and_sgf_credentials_modal(
                         )
 
                     async def run_automation():
+                        # La credencial del Sist. INVICO se reutiliza para
+                        # SSCC y SGF (mismo usuario y contraseña en ambos).
                         return await automation_callback(
                             siif_username,
                             siif_password,
-                            sscc_username,
-                            sscc_password,
-                            sgf_username,
-                            sgf_password,
+                            invico_username,
+                            invico_password,
+                            invico_username,
+                            invico_password,
                             key,
                         )
 
@@ -705,7 +758,7 @@ def request_siif_sscc_and_sgf_credentials_modal(
                 st.rerun()
 
             except Exception as e:
-                st.error(f"❌ Error en la automatización SIIF y SGF: {str(e)}")
+                st.error(f"❌ Error en la automatización SIIF, SSCC y SGF: {str(e)}")
 
         st.write(
             "**Debe esperar a que este MODAL se cierre automáticamente al finalizar la automatización.**"
@@ -1512,8 +1565,7 @@ def modal_ctas_ctes(
                     if es_edicion:
                         res = put_request(
                             endpoint=(
-                                f"{Endpoints.CTAS_CTES.value}"
-                                f"/update_one/{registro_id}"
+                                f"{Endpoints.CTAS_CTES.value}/update_one/{registro_id}"
                             ),
                             json_body=payload,
                             token=token,
@@ -1554,7 +1606,7 @@ def modal_ctas_ctes(
                 st.rerun()
 
 
-@st.dialog("Credenciales SGV")
+@st.dialog("Credenciales Sist. INVICO (SGV)")
 # --------------------------------------------------
 def request_sgv_credentials_modal(
     automation_callback: Callable[[str, str, str], None],
@@ -1563,12 +1615,19 @@ def request_sgv_credentials_modal(
 ):
     """
     Modal reutilizable para solicitar credenciales del SGV.
+
+    Credenciales del Sist. INVICO (las mismas que SSCC y SGF).
     automation_callback recibe (username, password, key).
     Permite omitir la descarga para no ejecutar la automatización.
     """
-    st.write("Ingrese sus credenciales de SGV para iniciar la descarga.")
-    username = st.text_input("Usuario")
-    password = st.text_input("Contraseña", type="password")
+    st.write(
+        "Ingrese sus credenciales del Sist. INVICO (compartidas con SSCC y SGF) "
+        "para iniciar la descarga."
+    )
+    username = st.text_input("Usuario Sist. INVICO", key=f"invico_user_{key}")
+    password = st.text_input(
+        "Contraseña Sist. INVICO", type="password", key=f"invico_pass_{key}"
+    )
     st.write("**Reportes ha descargar:** " + downloaded_info)
 
     with st.container(
