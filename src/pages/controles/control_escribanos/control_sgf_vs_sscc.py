@@ -9,6 +9,7 @@ Google Sheet:
     - https://docs.google.com/spreadsheets/d/1Tz3uvUGBL8ZDSFsYRBP8hgIis-hlhs_sQ6V5bI4LaTg
 """
 
+from collections.abc import Callable
 from typing import Any, Optional
 
 import pandas as pd
@@ -39,7 +40,8 @@ CAMPOS_OCULTOS: tuple[str, ...] = ("id", "_id")
 # --------------------------------------------------
 def _render_totales_sgf_vs_sscc(df: pd.DataFrame) -> None:
     """Franja compacta bajo la grilla con los totales del cruce
-    SGF vs SSCC: importe neto de cada sistema y su diferencia.
+    SGF vs SSCC: importe neto de cada sistema, su diferencia y la
+    cantidad de meses con diferencia material.
 
     Los totales quedan FUERA del dataframe —siempre a la vista— para que
     el usuario no tenga que desplazarse hasta la última fila. Es una
@@ -53,7 +55,11 @@ def _render_totales_sgf_vs_sscc(df: pd.DataFrame) -> None:
     Se suman los valores de las columnas visibles con
     ``parse_moneda_ar`` (acepta tanto el número crudo de la API como una
     cadena ya formateada) y las diferencias se formatean con
-    ``formato_moneda_ar``.
+    ``formato_moneda_ar``. El contador "Meses con dif." informa de un
+    vistazo si el ejercicio sigue abierto: el snapshot congela todos los
+    meses (incluidos los que cuadran con ``dif=0``), por lo que una
+    franja con ``Meses con dif. = 0`` significa cruce perfecto y no
+    ausencia de datos.
 
     Args:
         df: DataFrame del cruce SGF vs SSCC (se espera que tenga las
@@ -71,28 +77,45 @@ def _render_totales_sgf_vs_sscc(df: pd.DataFrame) -> None:
     total_sgf_neto: float = df["sgf_importe_neto"].apply(parse_moneda_ar).sum()
     total_sscc_neto: float = df["sscc_importe_neto"].apply(parse_moneda_ar).sum()
     dif_neto: float = df["dif_importe_neto"].apply(parse_moneda_ar).sum()
+    # Meses con diferencia material (|dif| > 0,01). Como el snapshot
+    # persiste TODOS los meses (aunque cuadren), este contador es el
+    # indicador de un vistazo de si el ejercicio sigue con diferencias.
+    meses_con_dif: int = int(
+        (df["dif_importe_neto"].apply(parse_moneda_ar).abs() > 0.01).sum()
+    )
 
-    metricas: tuple[tuple[str, float, str], ...] = (
+    # (etiqueta, valor, ayuda, formateador): los importes se pintan con
+    # formato_moneda_ar y el contador de meses sin decimales ni "$".
+    metricas: tuple[tuple[str, object, str, Callable[[object], str]], ...] = (
         (
             "Total SGF Neto",
             total_sgf_neto,
             "Suma de la columna sgf_importe_neto de todas las filas visibles",
+            formato_moneda_ar,
         ),
         (
             "Total SSCC Neto",
             total_sscc_neto,
             "Suma de la columna sscc_importe_neto de todas las filas visibles",
+            formato_moneda_ar,
         ),
         (
             "Diferencia Neto",
             dif_neto,
             "Suma de la columna dif_importe_neto de todas las filas visibles",
+            formato_moneda_ar,
+        ),
+        (
+            "Meses con dif.",
+            meses_con_dif,
+            "Meses con |dif_importe_neto| > 0,01 (sin cuadrar)",
+            lambda valor: f"{int(valor)}",
         ),
     )
 
     items: list[str] = []
-    for etiqueta, total, ayuda in metricas:
-        valor = formato_moneda_ar(total)
+    for etiqueta, total, ayuda, formateador in metricas:
+        valor = formateador(total)
         # Dos ítems: etiqueta (línea 1) + valor en negrita (línea 2).
         # Sin nowrap/ellipsis para que el total nunca aparezca cortado.
         items.append(
@@ -169,7 +192,13 @@ def render(
         )
 
         if df.empty:
-            st.info("No se encontraron resultados.")
+            # Mensaje accionable: "sin resultados" confundía cuando el
+            # snapshot simplemente no existía para el ejercicio elegido.
+            st.info(
+                "Sin datos persistidos para el ejercicio/filtro seleccionado. "
+                "Use el botón 'Actualizar' (Ejecutar u Omitir) para "
+                "recalcular y congelar el cruce SGF vs SSCC."
+            )
 
     except APIConnectionError as e:
         st.error(f"⚠️ Error de conexión: {e}")
