@@ -89,6 +89,7 @@ def render(
             skip_callback=(lambda: skip_func(REPORTE)) if skip_func else None,
         ),
         export_endpoint=Endpoints.CONTROL_ICARO.value + "/export",
+        export_mode="sheet",
         max_selections=1,
     )
 
