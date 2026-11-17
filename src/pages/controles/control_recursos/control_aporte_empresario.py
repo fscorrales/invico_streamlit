@@ -201,6 +201,8 @@ def render() -> None:
             skip_callback=(lambda: run_skip(REPORTE)) if run_skip else None,
         ),
         max_selections=1,
+        export_endpoint=ENDPOINT + "/export",
+        export_mode="sheet",
     )
 
     if st.session_state.get(f"{REPORTE}_automation_success"):
