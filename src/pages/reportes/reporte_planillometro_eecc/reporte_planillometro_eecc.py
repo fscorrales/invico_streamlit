@@ -17,7 +17,7 @@ import streamlit as st
 from src.automation.analysis.reporte_planillometro import (
     sync_reporte_planillometro_from_siif,
 )
-from src.components import dataframe
+from src.components import dataframe, text_filters_bar
 from src.constants.endpoints import Endpoints
 from src.pages.reportes.reporte_planillometro_eecc.obras_desactivadas import (
     add_obras_desactivadas,
@@ -32,6 +32,7 @@ from src.pages.reportes.reporte_planillometro_eecc.obras_recuperadas import (
     get_obras_recuperadas,
 )
 from src.services import (
+    apply_text_filters,
     fetch_dataframe,
     get_ejercicios_list,
     post_request,
@@ -61,13 +62,37 @@ CAMPOS_OCULTOS_OBRAS: tuple[str, ...] = (
     "updated_at",
     "estructura",
 )
-# Altura de las subgrillas en píxeles (~3 filas visibles) para que
+# Filtros particulares de la grilla (frontend puro): se renderizan con
+# text_filters_bar() y se aplican en cascada con apply_text_filters()
+# sobre el DataFrame ya obtenido de la API, sin volver a tocar la API.
+# Ocupa ~80 px verticales (1 fila de 3 st.text_input etiquetados),
+# espacio que se compensa reduciendo ALTURA_SUBGRILLA_OBRAS (40 px) y
+# ALTURA_GRILLA_PRINCIPAL (40 px).
+FILTROS_TABLA: list[dict[str, str]] = [
+    {
+        "label": "Estructura",
+        "column": "estructura",
+        "placeholder": "Ej: 11-00-02-79-421",
+    },
+    {
+        "label": "Desc. proyecto",
+        "column": "desc_proyecto",
+        "placeholder": "Ej: Capital",
+    },
+    {
+        "label": "Desc. actividad",
+        "column": "desc_actividad",
+        "placeholder": "Ej: Const. ...",
+    },
+]
+# Altura de las subgrillas en píxeles (~2 filas visibles) para que
 # quepan en pantallas de 19 pulgadas sin desplazamiento vertical.
 ALTURA_SUBGRILLA_OBRAS: int = 130
-# Altura del cuadro principal en píxeles (~7 filas visibles) para que
+# Altura del cuadro principal en píxeles (~6 filas visibles) para que
 # quepa en pantallas de 19 pulgadas sin desplazamiento vertical.
-# (Default del componente: 300 px ≈ 9 filas.)
-ALTURA_GRILLA_PRINCIPAL: int = 220
+# (Default del componente: 300 px ≈ 9 filas. Bajada de 220 px: completa
+# la compensación de FILTROS_TABLA con otros 40 px.)
+ALTURA_GRILLA_PRINCIPAL: int = 180
 # Columnas del df principal del planillómetro que NO se muestran.
 CAMPOS_OCULTOS_PRINCIPAL: tuple[str, ...] = ("id", "_id")
 # Columnas derivadas cuyos totales se muestran como mini-métricas bajo la
@@ -421,7 +446,8 @@ def _render_totales_planillometro(df: pd.DataFrame) -> None:
     ``Σ(acum) − Σ(Recupero Acum.) − Σ(Otros Motivos Acum.)``.
 
     Args:
-        df: Reporte ya procesado por :func:`_agregar_columnas_obra`.
+        df: Vista del reporte ya procesado por
+            :func:`_agregar_columnas_obra` y filtrada con ``FILTROS_TABLA``.
     """
     columnas_totales = [
         columna for columna in COLUMNAS_TOTALES_PRINCIPAL if columna in df.columns
@@ -501,18 +527,22 @@ def _render_obras_asociadas(df_planillometro: pd.DataFrame, event: Any) -> None:
     ``obras_recuperadas.py`` y ``obras_desactivadas.py``.
 
     Args:
-        df_planillometro: DataFrame del reporte planillómetro principal.
+        df_planillometro: Vista del reporte planillómetro principal —
+            la grilla ya filtrada con ``FILTROS_TABLA``.
         event: Evento de selección (``on_select="rerun"``) de la grilla
             principal; se espera ``selection_mode="single-row"``.
     """
-    if len(event.selection.rows) == 0:
+    filas_seleccionadas: list[int] = list(event.selection.rows)
+    # Se valida contra el largo de la vista porque la grilla puede
+    # haberse reducido (FILTROS_TABLA) después de la última selección.
+    if not filas_seleccionadas or filas_seleccionadas[0] >= len(df_planillometro):
         st.info(
             "Seleccione una fila del planillómetro para ver sus obras "
             "recuperadas y desactivadas asociadas."
         )
         return
 
-    fila_seleccionada = df_planillometro.iloc[event.selection.rows[0]]
+    fila_seleccionada = df_planillometro.iloc[filas_seleccionadas[0]]
     estructura = fila_seleccionada.get("estructura")
     ejercicio = fila_seleccionada.get("ejercicio")
 
@@ -664,13 +694,23 @@ def render(
         # instante en el reporte.
         df = _agregar_columnas_obra(df)
 
+        # Filtros particulares de la grilla (frontend puro, sin llamadas
+        # a la API): declarativos en FILTROS_TABLA y aplicados en cascada
+        # sobre la vista que consumen grilla, totales y subgrillas.
+        valores_filtro = text_filters_bar(FILTROS_TABLA, key_prefix=REPORTE)
+        df_vista = apply_text_filters(df, valores_filtro)
+        if df_vista.empty:
+            st.info("No se encontraron resultados con los filtros de la barra.")
+
         # Columnas fijas (pinned): siempre visibles al desplazar a la derecha
-        first_cols = [col for col in ("ejercicio", "estructura") if col in df.columns]
+        first_cols = [
+            col for col in ("ejercicio", "estructura") if col in df_vista.columns
+        ]
 
         # Orden dinámico: primeras las fijas y sin id/_id (ocultas)
         orden_dinamico = first_cols + [
             col
-            for col in df.columns
+            for col in df_vista.columns
             if col not in first_cols and col not in CAMPOS_OCULTOS_PRINCIPAL
         ]
 
@@ -688,7 +728,7 @@ def render(
             )
 
         event = dataframe(
-            df,
+            df_vista,
             key=f"{REPORTE}_df_planillometro_eecc",
             height=ALTURA_GRILLA_PRINCIPAL,
             column_order=orden_dinamico,
@@ -699,11 +739,13 @@ def render(
 
         # Totales de las columnas derivadas: mini-métricas SIEMPRE
         # visibles fuera de la grilla (sin scroll hasta la última fila).
-        _render_totales_planillometro(df)
+        # Se totaliza sobre la vista filtrada (mismas filas que la grilla).
+        if not df_vista.empty:
+            _render_totales_planillometro(df_vista)
 
-        # Subgrillas de obras recuperadas / desactivadas según la fila
-        # seleccionada (con sus modales de Agregar/Editar/Borrar).
-        _render_obras_asociadas(df, event)
+            # Subgrillas de obras recuperadas / desactivadas según la fila
+            # seleccionada (con sus modales de Agregar/Editar/Borrar).
+            _render_obras_asociadas(df_vista, event)
 
         # 5. Resumen de la última sincronización (RouteReturnSchema)
         resultado_post = st.session_state.get(f"{REPORTE}_post_result")
