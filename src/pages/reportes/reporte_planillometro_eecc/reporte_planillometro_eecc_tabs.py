@@ -4,6 +4,7 @@ from src.pages.reportes.reporte_planillometro_eecc import (
     obras_desactivadas,
     obras_recuperadas,
     reporte_planillometro_eecc,
+    reporte_planillometro_eecc_subtotales,
 )
 
 
@@ -12,8 +13,14 @@ def main() -> None:
         tab_reporte_planillometro_eecc,
         tab_obras_recuperadas,
         tab_obras_desactivadas,
+        tab_subtotales,
     ) = st.tabs(
-        ["Planillometro EECC", "Obras Recuperadas", "Obras Desactivadas"],
+        [
+            "Planillometro EECC",
+            "Obras Recuperadas",
+            "Obras Desactivadas",
+            "Planillometro Obras Disc.",
+        ],
         on_change="rerun",
     )
 
@@ -25,6 +32,9 @@ def main() -> None:
 
     if tab_obras_desactivadas.open:
         obras_desactivadas.render()
+
+    if tab_subtotales.open:
+        reporte_planillometro_eecc_subtotales.render()
 
 
 if __name__ == "__main__":
