@@ -15,6 +15,8 @@ __all__ = [
     "patch_request",
     "delete_request",
     "fetch_dataframe",
+    "fetch_dataframe_paged",
+    "MAX_PAGED_ROWS",
 ]
 
 import json
@@ -111,6 +113,63 @@ def fetch_dataframe(
     if not data:
         return pd.DataFrame()
     return pd.DataFrame(data)
+
+
+# Límite de seguridad del paginado: evita bucles infinitos si el backend
+# ignorara el parámetro ``offset``.
+MAX_PAGED_ROWS = 200_000
+
+
+# --------------------------------------------------
+def fetch_dataframe_paged(
+    endpoint: str,
+    params: Optional[dict[str, Any]] = None,
+    token: Optional[str] = None,
+    page_size: int = 2000,
+) -> pd.DataFrame:
+    """
+    GET paginado para endpoints con payloads grandes.
+
+    ``limit=0`` obliga al backend a cargar y serializar todos los documentos
+    de una sola vez. Con colecciones grandes —``/siif/rcocc31`` supera los
+    47.000 registros en un ejercicio— la respuesta tarda más de
+    ``DEFAULT_TIMEOUT`` (90s) en llegar y httpx lanza ``ReadTimeout``:
+    ``generate_banco_siif`` aborta antes del POST y el snapshot queda
+    desactualizado sin aviso visible.
+
+    Paginando, cada request es pequeña y el conjunto total se obtiene en
+    pocos segundos (≈27s para 47.000 registros).
+
+    Args:
+        endpoint: Ruta relativa del endpoint.
+        params: Filtros de query. Los campos ``limit`` y ``offset`` se
+            ignoran: los controla esta función.
+        token: Token de autenticación.
+        page_size: Tamaño de cada página.
+
+    Returns:
+        DataFrame con todos los registros. Vacío si la API no retorna datos.
+    """
+    base = {k: v for k, v in (params or {}).items() if v is not None}
+    base.pop("limit", None)
+    base.pop("offset", None)
+
+    rows: list[dict[str, Any]] = []
+    offset = 0
+    while True:
+        page = fetch_data(
+            endpoint, {**base, "limit": page_size, "offset": offset}, token=token
+        )
+        rows.extend(page)
+        if len(page) < page_size:
+            break
+        offset += page_size
+        if offset >= MAX_PAGED_ROWS:
+            break
+
+    if not rows:
+        return pd.DataFrame()
+    return pd.DataFrame(rows)
 
 
 # --------------------------------------------------

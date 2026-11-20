@@ -15,7 +15,7 @@ import streamlit as st
 
 from src.constants.endpoints import Endpoints
 from src.models.schemas import GrupoPartidaSIIF
-from src.services import fetch_dataframe, get_ctas_ctes
+from src.services import fetch_dataframe, fetch_dataframe_paged, get_ctas_ctes
 
 # CUIT de INVICO (beneficiario de los comprobantes de honorarios)
 CUIT_INVICO = "30632351514"
@@ -140,7 +140,10 @@ def get_siif_comprobantes_gtos_joined(
     """
     params = {"limit": 0}
     if ejercicio is None:
-        docs_gtos_gpo_part = fetch_dataframe(
+        # Se pagina: con limit=0 la respuesta única crece con el año y puede
+        # exceder DEFAULT_TIMEOUT (90s), dejando la clasificación de
+        # factureros sin datos sin que salte una excepción visible.
+        docs_gtos_gpo_part = fetch_dataframe_paged(
             Endpoints.SIIF_GTO_RPA03G.value, params=params
         )
         docs_gtos = fetch_dataframe(Endpoints.SIIF_RCG01_UEJP.value, params=params)
@@ -155,7 +158,7 @@ def get_siif_comprobantes_gtos_joined(
             #         "queryFilter": f"partidas={','.join(partidas)}",
             #     }
             # )
-        docs_gtos_gpo_part = fetch_dataframe(
+        docs_gtos_gpo_part = fetch_dataframe_paged(
             Endpoints.SIIF_GTO_RPA03G.value, params=params
         )
     df_gtos_gpo_part = pd.DataFrame(docs_gtos_gpo_part)

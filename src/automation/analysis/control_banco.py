@@ -33,7 +33,7 @@ from src.automation.siif import (
     logout,
 )
 from src.constants.endpoints import Endpoints
-from src.services import fetch_dataframe, post_request
+from src.services import fetch_dataframe, fetch_dataframe_paged, post_request
 from src.utils import sanitize_dataframe_for_json
 
 
@@ -207,7 +207,10 @@ def generate_banco_siif(
     netear_dev_haberes_erroneos: bool = True,
 ) -> pd.DataFrame:
     params = {"limit": 0, "ejercicio": ejercicio}
-    df = fetch_dataframe(Endpoints.SIIF_RCOCC31.value, params=params)
+    # rcocc31 supera los 47.000 registros por ejercicio: con limit=0 la
+    # respuesta única excede DEFAULT_TIMEOUT (90s) y httpx lanza ReadTimeout
+    # antes del POST, dejando el snapshot desactualizado. Se pagina.
+    df = fetch_dataframe_paged(Endpoints.SIIF_RCOCC31.value, params=params)
     # if df.empty:
     #     raise HTTPException(status_code=404, detail="No se encontraron registros")
 
@@ -426,6 +429,7 @@ def generate_banco_siif(
 
     json_data = sanitize_dataframe_for_json(df).to_dict(orient="records")
     response = post_request(Endpoints.CONTROL_BANCO_SIIF.value, json_body=json_data)
+    print(f"✅ Snapshot Banco SIIF ejercicio {ejercicio}: {response}")
 
     return df
 
@@ -437,7 +441,9 @@ def generate_banco_sscc(
     netear_reingresos: bool = True,
 ) -> pd.DataFrame:
     params = {"limit": 0, "ejercicio": ejercicio}
-    df = fetch_dataframe(Endpoints.SSCC_BANCO_INVICO.value, params=params)
+    # 13.000+ movimientos por ejercicio: se pagina por la misma razón que
+    # rcocc31 en generate_banco_siif (evita ReadTimeout en la respuesta única).
+    df = fetch_dataframe_paged(Endpoints.SSCC_BANCO_INVICO.value, params=params)
 
     # Neteamos las transferencias internas
     if netear_transf_internas:
@@ -552,12 +558,29 @@ def generate_banco_sscc(
 
     json_data = sanitize_dataframe_for_json(df).to_dict(orient="records")
     response = post_request(Endpoints.CONTROL_BANCO_SSCC.value, json_body=json_data)
+    print(f"✅ Snapshot Banco SSCC ejercicio {ejercicio}: {response}")
 
     return df
 
 
 # --------------------------------------------------
 def compute_control_cruzado(ejercicios: List[int]) -> None:
+    """
+    Recalcula y persiste los 3 subreportes (SIIF, SSCC y Cruzado).
+
+    Los errores de cada ejercicio se acumulan y se **propagan al final**
+    (AGENTS.md §3): no basta con imprimirlos en consola, porque si el POST
+    no se ejecuta el snapshot queda desactualizado y la UI sigue mostrando
+    importes en $0 sin ningún aviso.
+
+    Args:
+        ejercicios: Ejercicios a recalcular.
+
+    Raises:
+        RuntimeError: Si al menos un ejercicio no pudo recalcularse. El
+            modal lo captura y lo muestra con ``st.error``.
+    """
+    errores: List[str] = []
     for ejercicio in ejercicios:
         try:
             groupby_cols = ["ejercicio", "mes", "fecha", "clase", "cta_cte"]
@@ -579,5 +602,14 @@ def compute_control_cruzado(ejercicios: List[int]) -> None:
             response = post_request(
                 Endpoints.CONTROL_BANCO_CRUZADO.value, json_body=json_data
             )
+            print(f"✅ Control banco ejercicio {ejercicio}: {response}")
         except Exception as e:
-            print(f"Error in compute_control_anual for ejercicio {ejercicio}: {e}")
+            # Se registra y se re-propaga al final: no se silencia el error.
+            print(f"❌ Error en compute_control_cruzado, ejercicio {ejercicio}: {e}")
+            errores.append(f"ejercicio {ejercicio}: {e}")
+
+    if errores:
+        raise RuntimeError(
+            "No se pudieron recalcular los controles de banco (el snapshot "
+            "NO se actualizó): " + " | ".join(errores)
+        )
