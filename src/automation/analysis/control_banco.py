@@ -485,6 +485,8 @@ def generate_banco_sscc(
         "012": Categoria.fondos_provinciales.value,
         "002": Categoria.recuperos.value,
         "043": Categoria.factureros_funcionamiento.value,
+        # Comisiones (viáticos prestadores de servicios), siempre en 130832-05
+        "234": Categoria.factureros_funcionamiento.value,
         "021": Categoria.factureros_epam.value,
         "024": Categoria.haberes.value,
         "059": Categoria.haberes.value,  # Pago Mutual de la Movilidad
