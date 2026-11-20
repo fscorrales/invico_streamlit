@@ -3,6 +3,7 @@ __all__ = [
     "get_siif_desc_pres",
     "get_siif_comprobantes_gtos_joined",
     "get_siif_comprobantes_gtos_unified_cta_cte",
+    "filtrar_comprobantes_honorarios",
     "get_siif_comprobantes_honorarios",
 ]
 
@@ -13,7 +14,20 @@ import pandas as pd
 import streamlit as st
 
 from src.constants.endpoints import Endpoints
+from src.models.schemas import GrupoPartidaSIIF
 from src.services import fetch_dataframe, get_ctas_ctes
+
+# CUIT de INVICO (beneficiario de los comprobantes de honorarios)
+CUIT_INVICO = "30632351514"
+
+# Cuentas corrientes unificadas de factureros (funcionamiento y EPAM)
+CTAS_CTES_FACTUREROS = ["130832-05", "130832-07"]
+
+# Partida excluida de la clasificación de factureros
+PARTIDA_EXCLUIDA_FACTUREROS = "384"
+
+# Glosas que identifican un comprobante de honorarios
+GLOSAS_HONORARIOS = ["HONOR", "RECON", "LOC"]
 
 
 # --------------------------------------------------
@@ -196,6 +210,37 @@ def get_siif_comprobantes_gtos_unified_cta_cte(
 
 
 # --------------------------------------------------
+def filtrar_comprobantes_honorarios(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Filtra los comprobantes de gastos que corresponden a factureros de
+    honorarios. Función pura (DataFrame -> DataFrame), sin I/O.
+
+    Args:
+        df: Comprobantes de gastos con ``cta_cte`` ya unificada
+            (resultado de ``get_siif_comprobantes_gtos_unified_cta_cte``).
+
+    Returns:
+        DataFrame con los comprobantes de honorarios filtrados.
+    """
+    # ``gto_rpa03g`` guarda ``grupo`` como el primer dígito de la partida
+    # ("1"-"4"). Se compara por primer dígito para aceptar tanto el formato
+    # actual ("3") como registros legados ("300") previos al commit
+    # c76b9f6, que dejó de concatenar el "00".
+    grupo_honorarios = str(GrupoPartidaSIIF.servicios.value)  # "3"
+
+    df = df.loc[df["cuit"] == CUIT_INVICO]
+    df = df.loc[df["grupo"].astype(str).str.strip().str[0] == grupo_honorarios]
+    df = df.loc[df["partida"] != PARTIDA_EXCLUIDA_FACTUREROS]
+    df = df.loc[df["cta_cte"].isin(CTAS_CTES_FACTUREROS)]
+    # na=False: ``glosa`` puede ser None (gto_rpa03g reemplaza "" por None)
+    # y sin ese flag ``str.contains`` devuelve NaN y ``df.loc`` lanza
+    # "Cannot mask with non-boolean array containing NA / NaN values".
+    df = df.loc[df["glosa"].str.contains("|".join(GLOSAS_HONORARIOS), na=False)]
+    df = df.reset_index(drop=True)
+    return df
+
+
+# --------------------------------------------------
 def get_siif_comprobantes_honorarios(
     ejercicio: str = None,
 ) -> pd.DataFrame:
@@ -203,11 +248,4 @@ def get_siif_comprobantes_honorarios(
     Get comprobantes honorarios factureros data from the repository.
     """
     df = get_siif_comprobantes_gtos_unified_cta_cte(ejercicio=ejercicio)
-    df = df.loc[df["cuit"] == "30632351514"]
-    df = df.loc[df["grupo"] == "300"]
-    df = df.loc[df["partida"] != "384"]
-    df = df.loc[df["cta_cte"].isin(["130832-05", "130832-07"])]
-    keep = ["HONOR", "RECON", "LOC"]
-    df = df.loc[df.glosa.str.contains("|".join(keep))]
-    df = df.reset_index(drop=True)
-    return df
+    return filtrar_comprobantes_honorarios(df)

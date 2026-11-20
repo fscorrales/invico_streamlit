@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "invico-streamlit"
-version = "2.21.1"
+version = "2.22.0"
 description = "Dashboard de Control Presupuestario"
 authors = ["Fernando Corrales <fscpython@gmail.com>"]
 readme = "README.md"
@@ -29,6 +29,18 @@ typer = "^0.24.1"
 rich = "^14.3.3"
 ptpython = "^3.0.32"
 gspread = "^6.2.1"
+pytest = "^9.2.0"
+
+[tool.pytest.ini_options]
+# ``pythonpath`` es obligatorio: ``.vscode/settings.json`` ejecuta pytest con
+# cwd en ``tests/``, por lo que sin la raíz del proyecto en sys.path fallarían
+# los ``import src...``. Las rutas se resuelven relativas al rootdir (este
+# archivo), no al cwd.
+pythonpath = ["."]
+testpaths = ["tests"]
+# Los tests son unitarios y puros (DataFrame -> DataFrame): sin red, sin
+# Streamlit. Cualquier test que necesite I/O debe marcarse explícitamente.
+addopts = "-ra"
 
 [build-system]
 requires = ["poetry-core"]
