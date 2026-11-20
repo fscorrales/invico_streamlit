@@ -26,8 +26,7 @@ from src.constants.endpoints import Endpoints
 from src.pages.reportes.reporte_planillometro_eecc.reporte_planillometro_eecc import (
     get_reporte_planillometro_eecc,
 )
-from src.pages.tablas_auxiliares.icaro.carga import get_icaro_carga
-from src.services import apply_text_filters, get_ejercicios_list
+from src.services import apply_text_filters, fetch_dataframe, get_ejercicios_list
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -68,19 +67,10 @@ FILTROS_TABLA: list[dict[str, str]] = [
         "placeholder": "Ej: Const. ...",
     },
 ]
-# Altura del cuadro principal en píxeles (~6 filas visibles).
-ALTURA_GRILLA_PRINCIPAL: int = 180
-# Altura de la subgrilla de Carga ICARO agrupada (~7 filas visibles).
-ALTURA_GRILLA_ICARO: int = 220
-# Columnas mínimas de Carga ICARO necesarias para agrupar por obra.
-COLUMNAS_REQUERIDAS_CARGA: tuple[str, ...] = (
-    "actividad",
-    "partida",
-    "ejercicio",
-    "desc_obra",
-    "importe",
-    "avance",
-)
+# Altura del cuadro principal en píxeles (~7 filas visibles).
+ALTURA_GRILLA_PRINCIPAL: int = 220
+# Altura de la subgrilla de Carga ICARO agrupada (~6 filas visibles).
+ALTURA_GRILLA_ICARO: int = 180
 
 
 # --------------------------------------------------
@@ -178,108 +168,96 @@ def _render_subtotales_planillometro(df: pd.DataFrame) -> None:
 
 
 # --------------------------------------------------
-def _estructuras_de_carga(df_carga: pd.DataFrame) -> pd.Series:
-    """Deriva la estructura del planillómetro para cada fila de Carga.
+@st.cache_data(show_spinner="Consultando Carga ICARO...", ttl=3600)
+def get_carga_acum_obra(actividad: str, partida: str, ejercicio: int) -> pd.DataFrame:
+    """Acumulado por obra de la Carga ICARO para una estructura.
 
-    La colección CARGA ICARO no tiene el campo ``estructura``: lo
-    reconstruye como ``actividad + "-" + partida`` (e.g. la actividad
-    ``11-00-02-79`` con partida ``421`` produce ``11-00-02-79-421``),
-    que es exactamente el formato del campo ``estructura`` del
-    planillómetro.
-
-    Args:
-        df_carga: Documentos de la colección CARGA ICARO.
-
-    Returns:
-        Series con la estructura derivada (str). Las filas con
-        ``actividad``/``partida`` nulos quedan vacías y no matchean.
-    """
-    actividad = df_carga["actividad"].fillna("").astype(str).str.strip()
-    partida = (
-        df_carga["partida"]
-        .fillna("")
-        .astype(str)
-        .str.strip()
-        .str.replace(r"\.0$", "", regex=True)
-    )
-    # Sin actividad/partida no hay estructura posible: se devuelve una
-    # cadena que nunca matchea (en lugar de "-").
-    derivada = actividad + "-" + partida
-    return derivada.where((actividad != "") & (partida != ""), "")
-
-
-# --------------------------------------------------
-def _carga_icaro_agrupada(
-    df_carga: pd.DataFrame, estructura: Any, ejercicio: int
-) -> pd.DataFrame:
-    """Carga ICARO de una estructura, hasta un ejercicio, por obra.
-
-    Filtra la colección CARGA por la estructura de la fila seleccionada
-    (derivada con :func:`_estructuras_de_carga`) y por el ejercicio de
-    dicha fila (inclusive), y agrupa por ``desc_obra``.
+    Consulta ``GET /icaro/carga/acumObra`` (sin ``limit``: sin límite
+    de grupos), que agrupa en el backend por
+    ``actividad``/``partida``/``desc_obra`` —importe (suma), ejercicio
+    (mínimo) y avance (máximo)— filtrando hasta ``ejercicio``
+    inclusive. Evita descargar la colección completa, que provocaba
+    el timeout de lectura de 90 s.
 
     Args:
-        df_carga: Documentos completos de la colección CARGA ICARO.
-        estructura: Estructura de la fila seleccionada (e.g.
-            ``11-00-02-79-421``).
+        actividad: Actividad de la estructura (e.g. ``11-00-02-79``).
+        partida: Partida de la estructura (e.g. ``421``).
         ejercicio: Ejercicio máximo (inclusive) a considerar.
 
     Returns:
-        DataFrame con ``desc_obra``, ``Ejercicio Alta`` (ejercicio
-        mínimo), ``Total Ejecutado`` (suma de importes, formateada),
-        ``Máximo Avance`` (máximo avance, en %) y ``Comprobantes``
-        (cantidad de registros). Vacío si no hay datos o faltan
-        columnas requeridas.
+        DataFrame crudo con ``actividad``, ``partida``, ``desc_obra``,
+        ``importe``, ``ejercicio`` y ``avance``. Vacío si no hay datos.
     """
-    requeridas = set(COLUMNAS_REQUERIDAS_CARGA)
-    if df_carga.empty or not requeridas.issubset(df_carga.columns):
+    params = {
+        "actividad": actividad,
+        "partida": partida,
+        "ejercicioHasta": int(ejercicio),
+    }
+    endpoint = Endpoints.ICARO_CARGA.value + "/acumObra"
+    return fetch_dataframe(endpoint, params=params)
+
+
+# --------------------------------------------------
+def _acum_obra_formateado(df_acum: pd.DataFrame) -> pd.DataFrame:
+    """Convierte la respuesta de ``acumObra`` en la grilla de detalle.
+
+    Mapea ``ejercicio`` (mínimo del grupo) a ``Ejercicio Alta``,
+    ``importe`` (suma) a ``Total Ejecutado`` formateado con
+    ``formato_moneda_ar`` y ``avance`` (máximo) a ``Máximo Avance``
+    en porcentaje.
+
+    Args:
+        df_acum: Respuesta cruda de ``GET /icaro/carga/acumObra``.
+
+    Returns:
+        DataFrame con ``desc_obra``, ``Ejercicio Alta``,
+        ``Total Ejecutado`` y ``Máximo Avance``, ordenado por
+        ``ejercicio`` de mayor a menor y, dentro del mismo ejercicio,
+        por ``avance`` de menor a mayor. Vacío si no hay datos o
+        faltan columnas.
+    """
+    requeridas = {"desc_obra", "ejercicio", "importe", "avance"}
+    if df_acum.empty or not requeridas.issubset(df_acum.columns):
         return pd.DataFrame()
 
-    claves = _estructuras_de_carga(df_carga)
-    ejercicios = pd.to_numeric(df_carga["ejercicio"], errors="coerce")
-    # NaN (sin coincidencia) da False en ambas comparaciones.
-    df_filtrado = df_carga[
-        (claves == str(estructura).strip()) & (ejercicios <= ejercicio)
-    ].copy()
-    if df_filtrado.empty:
-        return pd.DataFrame()
-
-    df_filtrado["ejercicio"] = pd.to_numeric(
-        df_filtrado["ejercicio"], errors="coerce"
+    # Orden sobre los valores CRUDOS y antes de formatear: "Máximo
+    # Avance" queda como cadena ("76.14%") y no se puede ordenar
+    # numéricamente. Los nulos van al final (na_position="last") y el
+    # sort estable mantiene el orden de `desc_obra` ante empates.
+    df_ordenado = df_acum.copy()
+    df_ordenado["ejercicio"] = pd.to_numeric(
+        df_ordenado["ejercicio"], errors="coerce"
     )
-    df_filtrado["importe"] = pd.to_numeric(
-        df_filtrado["importe"], errors="coerce"
-    ).fillna(0.0)
-    df_filtrado["avance"] = pd.to_numeric(df_filtrado["avance"], errors="coerce")
-
-    agrupado = df_filtrado.groupby("desc_obra", as_index=False).agg(
-        ejercicio_alta=("ejercicio", "min"),
-        total_ejecutado=("importe", "sum"),
-        max_avance=("avance", "max"),
-        comprobantes=("importe", "size"),
+    df_ordenado["avance"] = pd.to_numeric(df_ordenado["avance"], errors="coerce")
+    df_ordenado = df_ordenado.sort_values(
+        by=["ejercicio", "avance"],
+        ascending=[False, True],
+        kind="stable",
+        na_position="last",
     )
 
     resultado = pd.DataFrame(
         {
-            "desc_obra": agrupado["desc_obra"],
-            "Ejercicio Alta": agrupado["ejercicio_alta"].round().astype("Int64"),
-            "Total Ejecutado": agrupado["total_ejecutado"].apply(formato_moneda_ar),
-            "Máximo Avance": agrupado["max_avance"].apply(_formato_avance),
-            "Comprobantes": agrupado["comprobantes"].astype(int),
+            "desc_obra": df_ordenado["desc_obra"],
+            "Ejercicio Alta": df_ordenado["ejercicio"].round().astype("Int64"),
+            "Total Ejecutado": pd.to_numeric(df_ordenado["importe"], errors="coerce")
+            .fillna(0.0)
+            .apply(formato_moneda_ar),
+            "Máximo Avance": df_ordenado["avance"].apply(_formato_avance),
         }
     )
-    return resultado.sort_values("desc_obra", kind="stable").reset_index(drop=True)
+    return resultado.reset_index(drop=True)
 
 
 # --------------------------------------------------
 def _render_detalle_icaro(df_planillometro: pd.DataFrame, event: Any) -> None:
     """Renderiza debajo de la grilla la Carga ICARO de la fila elegida.
 
-    Reutiliza el ``@st.cache_data`` de la página auxiliar
-    ``tablas_auxiliares/icaro/carga.py`` (TTL de 1 hora) con
-    ``limit=0``: trae la colección completa una sola vez y el filtrado
-    por estructura/ejercicio y la agrupación por ``desc_obra`` ocurren
-    en el frontend, sin llamadas extra a la API.
+    Consulta ``GET /icaro/carga/acumObra`` con
+    ``@st.cache_data`` propio (TTL de 1 hora por
+    actividad/partida/ejercicio): el backend agrupa por ``desc_obra``
+    y filtra hasta el ejercicio de la fila, sin descargar la
+    colección completa de Carga ICARO.
 
     Args:
         df_planillometro: Vista del reporte planillómetro principal —
@@ -314,8 +292,19 @@ def _render_detalle_icaro(df_planillometro: pd.DataFrame, event: Any) -> None:
         return
     ejercicio = int(ejercicio)
 
+    # Estructura "11-00-02-79-421" → actividad "11-00-02-79" y
+    # partida "421": el último guión separa la partida del resto.
+    estructura_limpia = str(estructura).strip()
+    actividad, separador, partida = estructura_limpia.rpartition("-")
+    if not separador or not actividad or not partida:
+        st.warning(
+            f"⚠️ La estructura '{estructura_limpia}' no tiene formato "
+            "'actividad-partida' para vincular la Carga ICARO."
+        )
+        return
+
     try:
-        df_carga = get_icaro_carga(params={"limit": 0})
+        df_acum = get_carga_acum_obra(actividad, partida, ejercicio)
     except APIConnectionError as e:
         st.error(f"🌐 {e}")
         return
@@ -325,7 +314,7 @@ def _render_detalle_icaro(df_planillometro: pd.DataFrame, event: Any) -> None:
 
     st.markdown(f"#### 📋 Carga ICARO - {estructura} (hasta {ejercicio})")
 
-    df_detalle = _carga_icaro_agrupada(df_carga, estructura, ejercicio)
+    df_detalle = _acum_obra_formateado(df_acum)
     if df_detalle.empty:
         st.info(
             "Sin registros de Carga ICARO para esta estructura "
@@ -342,7 +331,6 @@ def _render_detalle_icaro(df_planillometro: pd.DataFrame, event: Any) -> None:
             "Ejercicio Alta",
             "Total Ejecutado",
             "Máximo Avance",
-            "Comprobantes",
         ],
     )
 
@@ -414,9 +402,7 @@ def render() -> None:
         return
 
     # Columnas fijas (pinned): siempre visibles al desplazar a la derecha
-    first_cols = [
-        col for col in ("ejercicio", "estructura") if col in df_vista.columns
-    ]
+    first_cols = [col for col in ("ejercicio", "estructura") if col in df_vista.columns]
 
     # Orden dinámico: primeras las fijas y sin id/_id (ocultas)
     orden_dinamico = first_cols + [
@@ -434,9 +420,7 @@ def render() -> None:
             format="%d",
         )
     if "estructura" in first_cols:
-        column_config_principal["estructura"] = st.column_config.TextColumn(
-            pinned=True
-        )
+        column_config_principal["estructura"] = st.column_config.TextColumn(pinned=True)
 
     event = dataframe(
         _formatear_importes(df_vista),
