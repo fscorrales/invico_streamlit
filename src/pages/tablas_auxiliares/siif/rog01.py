@@ -5,9 +5,10 @@ import streamlit as st
 from playwright.async_api import async_playwright
 
 from src.automation.siif.rog01 import Rog01
-from src.components import dataframe
+from src.components import dataframe, text_filters_bar
 from src.constants.endpoints import Endpoints
 from src.services import (
+    apply_text_filters,
     fetch_dataframe,
     get_grupos_partidas_str_siif_list,
     post_request,
@@ -23,6 +24,27 @@ from src.views import (
 
 ENDPOINT = Endpoints.SIIF_ROG01.value
 REPORTE = "rog01"
+# Columnas del DataFrame que NO se muestran en la grilla (id interno de
+# Mongo). Se excluyen de ``column_order``, lo que hace que Streamlit las
+# oculte sin perderlas del DataFrame.
+CAMPOS_OCULTOS: tuple[str, ...] = ("id", "_id")
+# Filtros particulares de la grilla (frontend puro): se renderizan con
+# text_filters_bar() y se aplican en cascada con apply_text_filters()
+# sobre el DataFrame ya obtenido de la API, sin volver a tocar la API.
+FILTROS_TABLA: list[dict[str, str]] = [
+    {
+        "label": "Partida",
+        "column": "partida",
+        "placeholder": "Ej: 1311",
+        "help": "Búsqueda parcial de la partida, sin distinguir mayúsculas.",
+    },
+    {
+        "label": "Desc. partida",
+        "column": "desc_partida",
+        "placeholder": "Ej: SUELDOS",
+        "help": "Búsqueda parcial de la descripción de la partida.",
+    },
+]
 
 # 1. Obtenemos el DataFrame de la función
 df_grupos = get_grupos_partidas_str_siif_list(
@@ -138,16 +160,28 @@ def render() -> None:
 
     # 4. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
+        # Filtros particulares de la grilla (frontend puro, sin llamadas
+        # a la API): declarativos en FILTROS_TABLA y aplicados en cascada.
+        valores_filtro = text_filters_bar(FILTROS_TABLA, key_prefix=REPORTE)
+        df_vista = apply_text_filters(df, valores_filtro)
+
+        if df_vista.empty:
+            st.info("No se encontraron resultados con los filtros de la barra.")
+
         # Definimos las columnas que NO queremos mostrar
         first_cols = ["grupo", "part_parcial", "partida"]
 
-        # Generamos el orden dinámico: todas las del DF que no estén en la lista negra
+        # Generamos el orden dinámico: todas las de la vista que no estén
+        # en la lista negra ni en CAMPOS_OCULTOS (id/_id se ocultan en la
+        # grilla)
         orden_dinamico = first_cols + [
-            col for col in df.columns if col not in first_cols
+            col
+            for col in df_vista.columns
+            if col not in first_cols and col not in CAMPOS_OCULTOS
         ]
 
         dataframe(
-            df,
+            df_vista,
             key=f"{REPORTE}_df_rog01",
             column_order=orden_dinamico,
         )
