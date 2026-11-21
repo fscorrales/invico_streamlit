@@ -17,9 +17,14 @@ from typing import Any, Optional
 import pandas as pd
 import streamlit as st
 
-from src.components import dataframe
+from src.components import dataframe, text_filters_bar
 from src.constants.endpoints import Endpoints
-from src.services import get_control_sgf_vs_slave, get_ejercicios_list
+from src.services import (
+    apply_mes_hasta_filter,
+    apply_text_filters,
+    get_control_sgf_vs_slave,
+    get_ejercicios_list,
+)
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -37,6 +42,36 @@ URL_SHEET = "https://docs.google.com/spreadsheets/d/1fQhp1CdESnvqzrp3QMV5bFSHmGd
 # Mongo). Se excluyen de ``column_order``, lo que hace que Streamlit las
 # oculte sin perderlas del DataFrame.
 CAMPOS_OCULTOS: tuple[str, ...] = ("id", "_id")
+# Filtros particulares de la grilla (frontend puro): se renderizan con
+# text_filters_bar() y se aplican en cascada con apply_text_filters()
+# sobre el DataFrame ya obtenido de la API, sin volver a tocar la API.
+# "mes" es especial: se resuelve con apply_mes_hasta_filter() porque
+# tiene semántica de "mes hasta" (ej: "05" -> meses 01..05 del ejercicio
+# en trabajo; "05/2026" -> meses 01/2026..05/2026).
+FILTROS_TABLA: list[dict[str, str]] = [
+    {
+        "label": "Cta. cte.",
+        "column": "cta_cte",
+        "placeholder": "Ej: 130101-01",
+        "help": "Búsqueda parcial de la cuenta corriente, sin distinguir mayúsculas.",
+    },
+    {
+        "label": "Beneficiario",
+        "column": "beneficiario",
+        "placeholder": "Ej: GONZALEZ",
+        "help": "Búsqueda parcial del beneficiario, sin distinguir mayúsculas.",
+    },
+    {
+        "label": "Mes hasta",
+        "column": "mes",
+        "placeholder": "Ej: 05, 5 o 05/2026",
+        "help": (
+            "Trae todos los meses del año hasta el indicado (inclusive). "
+            "Formato: MM o MM/AAAA. Sin año explícito se usa el ejercicio "
+            "seleccionado arriba."
+        ),
+    },
+]
 
 
 # --------------------------------------------------
@@ -60,8 +95,9 @@ def _render_totales_sgf_vs_slave(df: pd.DataFrame) -> None:
     ``formato_moneda_ar``.
 
     Args:
-        df: DataFrame del cruce SGF vs Slave (se espera que tenga las
-            columnas ``sgf_importe_bruto``, ``slave_importe_bruto``,
+        df: Vista del cruce SGF vs Slave —la grilla ya filtrada por
+            ``text_filters_bar()``— (se espera que tenga las columnas
+            ``sgf_importe_bruto``, ``slave_importe_bruto``,
             ``dif_importe_bruto`` y ``dif_importe_neto``).
     """
     columnas_requeridas = {
@@ -216,28 +252,57 @@ def render(
                     )
                 )
 
+        # Filtros particulares de la grilla (frontend puro, sin llamadas
+        # a la API): declarativos en FILTROS_TABLA y aplicados en cascada.
+        valores_filtro = text_filters_bar(FILTROS_TABLA, key_prefix=REPORTE)
+        # "mes" no es un contains simple: se resuelve con semántica de
+        # "mes hasta" ("05"/"5" -> meses 01..05 del ejercicio en trabajo;
+        # "05/2026" -> meses 01/2026..05/2026).
+        valor_mes: str = valores_filtro.pop("mes", "").strip()
+        df_vista = apply_text_filters(df, valores_filtro)
+
+        ejercicios_trabajo: list[int] = st.session_state.get(
+            f"ejercicios_{REPORTE}", []
+        )
+        if isinstance(ejercicios_trabajo, int):
+            ejercicios_trabajo = [ejercicios_trabajo]
+        try:
+            df_vista = apply_mes_hasta_filter(
+                df_vista,
+                valor_mes,
+                ejercicios_trabajo,
+            )
+        except ValueError as exc:
+            st.warning(f"⚠️ Filtro 'Mes hasta' no aplicado: {exc}")
+
+        if df_vista.empty:
+            st.info("No se encontraron resultados con los filtros de la barra.")
+
         # Definimos las columnas que NO queremos mostrar
         first_cols = [
             "ejercicio",
         ]
 
-        # Generamos el orden dinámico: todas las del DF que no estén en la
-        # lista negra ni en CAMPOS_OCULTOS (id/_id se ocultan en la grilla)
+        # Generamos el orden dinámico: todas las de la vista que no estén
+        # en la lista negra ni en CAMPOS_OCULTOS (id/_id se ocultan en la
+        # grilla)
         orden_dinamico = first_cols + [
             col
-            for col in df.columns
+            for col in df_vista.columns
             if col not in first_cols and col not in CAMPOS_OCULTOS
         ]
 
         dataframe(
-            df,
+            df_vista,
             key=f"{REPORTE}_df_control_sgf_vs_slave",
             column_order=orden_dinamico,
         )
 
-        # Franja de totales: bruto SGF vs Slave y diferencias bruta/neta,
-        # siempre visible fuera de la grilla.
-        _render_totales_sgf_vs_slave(df)
+        # Franja de totales: bruto SGF vs Slave y diferencias bruta/neta
+        # de las filas visibles (tras los filtros de la barra), siempre
+        # fuera de la grilla.
+        if not df_vista.empty:
+            _render_totales_sgf_vs_slave(df_vista)
 
 
 if __name__ == "__main__":
