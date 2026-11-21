@@ -40,30 +40,27 @@ def _read_ejercicios(clave: str) -> list[int]:
 
 
 # --------------------------------------------------
-def _compute_snapshot(clave: str) -> list[str]:
-    """Compute (GET /computeControl...) + POST del snapshot de una pestaña.
-
-    Las pestañas sin ejercicios (p.ej. nunca abiertas) devuelven un
-    mensaje: invocar el compute emitiría un st.error engañoso para una
-    pestaña que el usuario nunca configuró.
-    """
-    ejercicios = _read_ejercicios(clave)
-    if not ejercicios:
-        return [f"{clave}: sin ejercicios seleccionados; snapshot omitido."]
-    return COMPUTE_FUNCTIONS[clave](ejercicios=ejercicios)
-
-
-# --------------------------------------------------
-def _compute_all_snapshots() -> list[str]:
+def _compute_all_snapshots(ejercicios: list[int]) -> list[str]:
     """Recalcula y persiste los snapshots de las 3 pestañas.
 
-    Tanto la automatización (Ejecutar) como el skip (Omitir) impactan a
-    los 3 subreportes, en coherencia con la descripción de las páginas
-    ("la automatización y la exportación impactan en los 3 subreportes").
+    Los 3 cómputos se realizan con el MISMO rango de ejercicios: el de
+    la pestaña que abrió el modal (el filtro de las demás pestañas se
+    ignora para el cómputo, incluso si nunca se abrieron). Los POST son
+    idempotentes por ejercicio, por lo que solo se reemplazan las filas
+    de ese rango en cada colección. Tanto la automatización (Ejecutar)
+    como el skip (Omitir) impactan en los 3 subreportes, en coherencia
+    con la descripción de las páginas ("la automatización y la
+    exportación impactan en los 3 subreportes").
+
+    Args:
+        ejercicios: Rango que gobierna los 3 computes.
+
+    Returns:
+        Lista de mensajes con el resultado de cada pestaña/ejercicio.
     """
     results: list[str] = []
-    for clave in COMPUTE_FUNCTIONS:
-        results.extend(_compute_snapshot(clave))
+    for compute in COMPUTE_FUNCTIONS.values():
+        results.extend(compute(ejercicios=ejercicios))
     return results
 
 
@@ -75,16 +72,18 @@ def run_skip(reporte: str) -> list[str]:
     (simétrico con run_automation, que congela los 3 tras el sync).
 
     Args:
-        reporte: Clave de la pestaña que disparó el modal; se valida que
-            tenga ejercicios seleccionados antes de recalcular.
+        reporte: Clave de la pestaña que disparó el modal; el rango de
+            ejercicios de ESTA pestaña es el que gobierna el cómputo de
+            las 3.
 
     Returns:
         Lista de mensajes con el resultado de cada pestaña/ejercicio.
     """
-    if not _read_ejercicios(reporte):
+    ejercicios = _read_ejercicios(reporte)
+    if not ejercicios:
         st.error("No hay ejercicios seleccionados.")
         return []
-    return _compute_all_snapshots()
+    return _compute_all_snapshots(ejercicios)
 
 
 # --------------------------------------------------
@@ -109,15 +108,51 @@ async def run_automation(
 
     # 3. El sync refresca las colecciones SIIF que alimentan a los 3
     #    subreportes, así que congelamos los snapshots de las 3
-    #    colecciones con los ejercicios seleccionados en cada pestaña
-    #    (mismo alcance que run_skip / botón Omitir).
-    results.extend(_compute_all_snapshots())
+    #    colecciones con el MISMO rango de ejercicios (el de la pestaña
+    #    que abrió el modal; mismo alcance que run_skip / Omitir).
+    results.extend(_compute_all_snapshots(ejercicios))
 
     return results
 
 
 # --------------------------------------------------
+def _refresh_family_after_update() -> None:
+    """Refresco conjunto de la familia tras una actualización.
+
+    El modal solo setea ``{clave}_automation_success`` en la pestaña que
+    lo disparó; sin esta pasada, las demás pestañas servirían su cache de
+    ``@st.cache_data`` (mismo ``update_trigger``) con datos viejos hasta
+    el TTL. Al detectar el flag: se limpian los flags de la familia y se
+    incrementa el trigger de LAS 3 pestañas para que sus grillas hagan
+    cache-miss y muestren los snapshots recién persistidos. Las
+    pestañas nunca abiertas también reciben el trigger, de modo que al
+    abrirse muestran datos frescos.
+
+    Se ejecuta al inicio de ``main()``, ANTES de que las pestañas
+    instancien sus widgets, por lo que no entra en conflicto con la
+    restricción de Streamlit de no modificar ``st.session_state`` de un
+    widget clave ya instanciado.
+    """
+    if not any(
+        st.session_state.get(f"{clave}_automation_success")
+        for clave in COMPUTE_FUNCTIONS
+    ):
+        return
+
+    for clave in COMPUTE_FUNCTIONS:
+        st.session_state[f"{clave}_automation_success"] = False
+        st.session_state[f"{clave}_uploader_iteration"] = (
+            st.session_state.get(f"{clave}_uploader_iteration", 0) + 1
+        )
+    st.rerun()
+
+
+# --------------------------------------------------
 def main() -> None:
+    # Si alguna pestaña terminó una actualización (flag de éxito),
+    # refrescamos el trigger de TODAS antes de renderizar los widgets.
+    _refresh_family_after_update()
+
     tab_anual, tab_comprobantes, tab_pa6 = st.tabs(
         ["Control Anual", "Control Comprobantes", "Control PA6"], on_change="rerun"
     )
