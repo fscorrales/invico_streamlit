@@ -6,13 +6,18 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
-from src.components import dataframe
+from src.components import dataframe, text_filters_bar
 from src.constants.endpoints import Endpoints
-from src.services import fetch_dataframe, get_ejercicios_list
+from src.services import (
+    apply_text_filters,
+    fetch_dataframe,
+    get_ejercicios_list,
+)
 from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
+from src.utils.transform_data import formato_moneda_ar, parse_moneda_ar
 from src.views import (
     report_template,
     request_sgf_credentials_modal,
@@ -20,6 +25,76 @@ from src.views import (
 
 ENDPOINT = Endpoints.SGF_RESUMEN_REND_OBRAS.value
 REPORTE = "sgf_resumen_rend_obras"
+# Columnas del DataFrame que NO se muestran en la grilla (id interno de
+# Mongo). Se excluyen de ``column_order``, lo que hace que Streamlit las
+# oculte sin perderlas del DataFrame.
+CAMPOS_OCULTOS: tuple[str, ...] = ("id", "_id")
+# Filtros particulares de la grilla (frontend puro): se renderizan con
+# text_filters_bar() y se aplican en cascada con apply_text_filters()
+# sobre el DataFrame ya obtenido de la API, sin volver a tocar la API.
+FILTROS_TABLA: list[dict[str, str]] = [
+    {
+        "label": "Desc. obra",
+        "column": "desc_obra",
+        "placeholder": "Ej: 54 VIVIENDAS",
+        "help": "Búsqueda parcial de la descripción de la obra.",
+    },
+    {
+        "label": "Destino",
+        "column": "destino",
+        "placeholder": "Ej: ADM CENTRAL",
+        "help": "Búsqueda parcial del destino, sin distinguir mayúsculas.",
+    },
+    {
+        "label": "CUIT",
+        "column": "cuit",
+        "placeholder": "Ej: 30111222333",
+        "help": "Búsqueda parcial del CUIT del proveedor, sin distinguir mayúsculas.",
+    },
+    {
+        "label": "Libramiento",
+        "column": "libramiento",
+        "placeholder": "Ej: 00123",
+        "help": "Búsqueda parcial del libramiento, sin distinguir mayúsculas.",
+    },
+]
+# Columnas con importes: se formatean como moneda AR en la grilla y son
+# las que alimentan la franja de subtotales. Los 11 valores son
+# numéricos crudos de la API (``process_dataframe`` los pasa por
+# ``astype(float)`` y ``retenciones`` es la suma de gcias..mutual).
+COLUMNAS_IMPORTE: tuple[str, ...] = (
+    "importe_bruto",
+    "gcias",
+    "sellos",
+    "lp",
+    "iibb",
+    "suss",
+    "seguro",
+    "salud",
+    "mutual",
+    "retenciones",
+    "importe_neto",
+)
+# Subtotales de la franja bajo la grilla, en DOS filas:
+#   * 1ª fila: los 3 totales clave (importe bruto, retenciones e
+#     importe neto).
+#   * 2ª fila: el detalle de las retenciones (gcias, sellos + LP, IIBB,
+#     SUSS y "otros" = seguro + salud + mutual).
+# Cada ítem es (etiqueta visible, columnas que se suman).
+FILAS_SUBTOTALES: tuple[tuple[tuple[str, tuple[str, ...]], ...], ...] = (
+    (
+        ("Importe Bruto", ("importe_bruto",)),
+        ("Retenciones", ("retenciones",)),
+        ("Importe Neto", ("importe_neto",)),
+    ),
+    (
+        ("Gcias", ("gcias",)),
+        ("Sellos + LP", ("sellos", "lp")),
+        ("IIBB", ("iibb",)),
+        ("SUSS", ("suss",)),
+        ("Otros", ("seguro", "salud", "mutual")),
+    ),
+)
 # ORIGENES = get_sgf_origenes()
 ORIGENES = ["EPAM"]
 
@@ -108,6 +183,80 @@ def run_automation(username: str, password: str) -> None:
 
 
 # --------------------------------------------------
+def _render_subtotales_sgf_resumen_rend_obras(df: pd.DataFrame) -> None:
+    """Franja compacta bajo la grilla con los subtotales, en DOS filas.
+
+    Primera fila (:data:`FILAS_SUBTOTALES`[0]): los 3 totales clave —
+    importe bruto, retenciones e importe neto—. Segunda fila
+    (:data:`FILAS_SUBTOTALES`[1]): el detalle de las retenciones —
+    gcias, sellos + LP, IIBB, SUSS y "otros" (seguro + salud +
+    mutual).
+
+    Los subtotales quedan FUERA del dataframe —siempre a la vista— para
+    que el usuario no tenga que desplazarse hasta la última fila. Cada
+    fila es una franja HTML flex de dos líneas por ítem (etiqueta
+    arriba, valor en negrita abajo) y ambas se apilan en un contenedor
+    flex vertical, idéntico en estilo al del resumen de rendiciones por
+    proveedor. Sin ``nowrap`` ni ellipsis: el texto nunca se recorta.
+    Hereda los colores del tema (no se fijan colores en el markup) y los
+    ``title`` nativos del HTML muestran el tooltip al hacer hover, sin
+    JS.
+
+    Cada ítem suma sus columnas con ``parse_moneda_ar`` (acepta tanto
+    el número crudo de la API como la cadena ya formateada) y el
+    resultado se vuelve a formatear con ``formato_moneda_ar``, de modo
+    que el subtotal coincide con lo que muestra la grilla. Las columnas
+    ausentes se ignoran; si ningún ítem de una fila tiene columnas, esa
+    fila no se dibuja.
+
+    Args:
+        df: Vista del reporte —la grilla ya filtrada por
+            ``text_filters_bar()``.
+    """
+    filas_html: list[str] = []
+    for fila in FILAS_SUBTOTALES:
+        items: list[str] = []
+        for etiqueta, columnas in fila:
+            columnas_presentes = [col for col in columnas if col in df.columns]
+            if not columnas_presentes:
+                continue
+            total: float = sum(
+                df[col].apply(parse_moneda_ar).sum()
+                for col in columnas_presentes
+            )
+            valor = formato_moneda_ar(total)
+            ayuda = "Subtotal de la vista filtrada: " + " + ".join(
+                columnas_presentes
+            )
+            # Dos ítems: etiqueta (línea 1) + valor en negrita (línea 2).
+            # Sin nowrap/ellipsis para que el subtotal nunca aparezca cortado.
+            items.append(
+                f'<div title="{ayuda}" '
+                f'style="flex:1 1 0; min-width:0; text-align:center;">'
+                f'<div style="font-size:11px; opacity:0.75; '
+                f'white-space:normal;">{etiqueta}</div>'
+                f'<div style="font-size:13px; font-weight:600;">'
+                f"{valor}</div></div>"
+            )
+        if not items:
+            continue
+        # Una fila = un div flex horizontal; las filas se apilan abajo.
+        filas_html.append(
+            '<div style="display:flex; gap:0.75rem; font-size:13px; '
+            'align-items:flex-start;">' + "".join(items) + "</div>"
+        )
+
+    if not filas_html:
+        return
+
+    st.markdown(
+        '<div style="display:flex; flex-direction:column; '
+        'gap:0.35rem;">' + "".join(filas_html) + "</div>",
+        unsafe_allow_html=True,
+    )
+
+
+# --------------------------------------------------
 def render() -> None:
 
     mis_filtros = [
@@ -173,16 +322,58 @@ def render() -> None:
 
     # 4. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
+        # Formato moneda AR ($ 1.234,56) para los importes numéricos de
+        # la grilla. ``parse_moneda_ar`` (franja de subtotales) es el
+        # inverso de ``formato_moneda_ar`` y acepta tanto el número crudo
+        # de la API como la cadena ya formateada, por lo que los
+        # subtotales siguen cuadrando con lo que muestra la grilla. El df
+        # proviene de ``@st.cache_data`` (copia deserializada por
+        # llamada), por lo que mutarlo en el lugar es seguro. Los nulos
+        # quedan en blanco y la pasada extra por ``parse_moneda_ar`` hace
+        # el formateo idempotente ante cadenas ya formateadas.
+        for columna_moneda in COLUMNAS_IMPORTE:
+            if columna_moneda in df.columns:
+                df[columna_moneda] = df[columna_moneda].apply(
+                    lambda valor: (
+                        formato_moneda_ar(parse_moneda_ar(valor))
+                        if pd.notna(valor)
+                        else ""
+                    )
+                )
+
+        # Filtros particulares de la grilla (frontend puro, sin llamadas
+        # a la API): declarativos en FILTROS_TABLA y aplicados en cascada.
+        # ``columns=len(FILTROS_TABLA)`` mantiene los 4 filtros en una
+        # sola fila y solo afecta a ESTA página: el resto de los reportes
+        # sigue usando el default ``columns=3`` de ``text_filters_bar()``.
+        valores_filtro = text_filters_bar(
+            FILTROS_TABLA, key_prefix=REPORTE, columns=len(FILTROS_TABLA)
+        )
+        df_vista = apply_text_filters(df, valores_filtro)
+
+        if df_vista.empty:
+            st.info("No se encontraron resultados con los filtros de la barra.")
+
         # Definimos las columnas que NO queremos mostrar
         first_cols = ["ejercicio", "mes", "fecha"]
 
-        # Generamos el orden dinámico: todas las del DF que no estén en la lista negra
+        # Generamos el orden dinámico: todas las de la vista que no estén
+        # en la lista negra ni en CAMPOS_OCULTOS (id/_id se ocultan en la
+        # grilla)
         orden_dinamico = first_cols + [
-            col for col in df.columns if col not in first_cols
+            col
+            for col in df_vista.columns
+            if col not in first_cols and col not in CAMPOS_OCULTOS
         ]
 
         dataframe(
-            df,
+            df_vista,
             key=f"{REPORTE}_df_sgf_resumen_rend_obras",
             column_order=orden_dinamico,
         )
+
+        # Franja de subtotales en 2 filas: bruto/retenciones/neto y el
+        # detalle de retenciones, de las filas visibles (tras los filtros
+        # de la barra), siempre fuera de la grilla.
+        if not df_vista.empty:
+            _render_subtotales_sgf_resumen_rend_obras(df_vista)
