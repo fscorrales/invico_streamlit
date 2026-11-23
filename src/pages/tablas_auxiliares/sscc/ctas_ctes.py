@@ -11,8 +11,9 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
+from src.components import text_filters_bar
 from src.constants.endpoints import Endpoints
-from src.services import get_ctas_ctes
+from src.services import apply_text_filters, get_ctas_ctes
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -29,6 +30,23 @@ from src.views import (
 ENDPOINT = Endpoints.CTAS_CTES.value
 REPORTE = "ctas_ctes"
 LEGACY_TRIGGER_KEY = "ctas_ctes_uploader_iteration"
+# Filtros particulares de la grilla (frontend puro): se renderizan con
+# text_filters_bar() y se aplican en cascada con apply_text_filters()
+# sobre el DataFrame ya obtenido de la API, sin volver a tocar la API.
+FILTROS_TABLA: list[dict[str, str]] = [
+    {
+        "label": "Cuenta unificada",
+        "column": "map_to",
+        "placeholder": "Ej: 130101-01",
+        "help": "Búsqueda parcial de la cuenta unificada (map_to), sin distinguir mayúsculas.",
+    },
+    {
+        "label": "Desc. cta. cte.",
+        "column": "desc_cta_cte",
+        "placeholder": "Ej: BANCO",
+        "help": "Búsqueda parcial de la descripción de la cuenta corriente.",
+    },
+]
 
 # Orden lógico de la grilla: primero la cuenta unificada y la
 # descripción, luego los nexos de cada sistema. ``id`` y ``updated_at``
@@ -124,17 +142,32 @@ def render() -> None:
         st.error(f"⚠️ Error de API: {e}")
 
     if not df.empty:
+        # Filtros particulares de la grilla (frontend puro, sin llamadas
+        # a la API): declarativos en FILTROS_TABLA y aplicados en cascada.
+        # ``columns=len(FILTROS_TABLA)`` (= 2) deja las 2 cajas en una
+        # sola fila con el mismo ancho que las columnas de la cabecera
+        # (filtro avanzado + export), y solo afecta a ESTA página.
+        valores_filtro = text_filters_bar(
+            FILTROS_TABLA, key_prefix=REPORTE, columns=len(FILTROS_TABLA)
+        )
+        df_vista = apply_text_filters(df, valores_filtro)
+
+        if df_vista.empty:
+            st.info("No se encontraron resultados con los filtros de la barra.")
+
         # Orden dinámico: columnas visibles conocidas (las que falten se
         # omiten) + cualquier otra que traiga la API, excluyendo las
         # técnicas (id/updated_at) que ``column_order`` oculta.
-        column_order = [col for col in COLUMNAS_VISIBLES if col in df.columns] + [
+        column_order = [
+            col for col in COLUMNAS_VISIBLES if col in df_vista.columns
+        ] + [
             col
-            for col in df.columns
+            for col in df_vista.columns
             if col not in COLUMNAS_VISIBLES and col not in COLUMNAS_OCULTAS
         ]
 
         dataframe_with_buttons(
-            df,
+            df_vista,
             key=f"{REPORTE}_df_ctas_ctes",
             column_order=column_order,
             selection_mode="single-row" if es_admin else None,
