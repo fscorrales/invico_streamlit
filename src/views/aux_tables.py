@@ -270,6 +270,7 @@ def dataframe_with_buttons(
     edit_func=None,
     delete_func=None,
     show_buttons: bool = True,
+    columnas_importe: tuple[str, ...] | list[str] | None = None,
     **kwargs,
 ):
 
@@ -279,6 +280,7 @@ def dataframe_with_buttons(
             key=f"{key}",
             height=height,
             column_order=column_order,
+            columnas_importe=columnas_importe,
             on_select="rerun" if selection_mode else "ignore",
             selection_mode=selection_mode or "multi-row",
         )

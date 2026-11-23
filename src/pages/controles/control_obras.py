@@ -27,7 +27,7 @@ from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
-from src.utils.transform_data import formato_moneda_ar, parse_moneda_ar
+from src.utils.transform_data import formato_moneda_us, parse_moneda_ar
 from src.views import report_template, request_siif_and_sgf_credentials_modal
 
 ENDPOINT = Endpoints.CONTROL_OBRAS.value
@@ -161,7 +161,7 @@ def _render_totales_control_obras(df: pd.DataFrame) -> None:
     Se suman los valores de las columnas visibles ``ejecutado_icaro`` y
     ``bruto_sgf`` (con ``parse_moneda_ar``, que acepta tanto el número
     crudo de la API como una cadena ya formateada) y la resta se
-    formatea con ``formato_moneda_ar``.
+    formatea con ``formato_moneda_us``.
 
     Args:
         df: Vista del control de obras —la grilla ya filtrada por
@@ -196,7 +196,7 @@ def _render_totales_control_obras(df: pd.DataFrame) -> None:
 
     items: list[str] = []
     for etiqueta, total, ayuda in metricas:
-        valor = formato_moneda_ar(total)
+        valor = formato_moneda_us(total)
         # Dos ítems: etiqueta (línea 1) + valor en negrita (línea 2).
         # Sin nowrap/ellipsis para que el total nunca aparezca cortado.
         items.append(
@@ -282,25 +282,6 @@ def render() -> None:
 
     # 2. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
-        # Formato moneda AR ($ 1.234,56) para los importes visibles de la
-        # grilla. ``parse_moneda_ar`` (franja de totales) es el inverso de
-        # ``formato_moneda_ar`` y acepta tanto el número crudo de la API
-        # como la cadena ya formateada, por lo que los totales siguen
-        # cuadrando con lo que muestra la grilla. El df proviene de
-        # ``@st.cache_data`` (copia deserializada por llamada), por lo que
-        # mutarlo en el lugar es seguro. Los nulos quedan en blanco y la
-        # pasada extra por ``parse_moneda_ar`` hace el formateo idempotente
-        # ante cadenas ya formateadas.
-        for columna_moneda in ("ejecutado_icaro", "bruto_sgf", "diferencia"):
-            if columna_moneda in df.columns:
-                df[columna_moneda] = df[columna_moneda].apply(
-                    lambda valor: (
-                        formato_moneda_ar(parse_moneda_ar(valor))
-                        if pd.notna(valor)
-                        else ""
-                    )
-                )
-
         # Filtros particulares de la grilla (frontend puro, sin llamadas
         # a la API): declarativos en FILTROS_TABLA y aplicados en cascada.
         valores_filtro = text_filters_bar(FILTROS_TABLA, key_prefix=REPORTE)
@@ -345,6 +326,7 @@ def render() -> None:
             df_vista,
             key=f"{REPORTE}_df_control_obras",
             column_order=orden_dinamico,
+            columnas_importe=("ejecutado_icaro", "bruto_sgf", "diferencia"),
         )
 
         # Franja de totales: ejecutado ICARO vs bruto SGF de las filas

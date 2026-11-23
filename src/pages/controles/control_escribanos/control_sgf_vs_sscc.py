@@ -22,7 +22,7 @@ from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
-from src.utils.transform_data import formato_moneda_ar, parse_moneda_ar
+from src.utils.transform_data import formato_moneda_us, parse_moneda_ar
 from src.views import (
     report_template,
     request_siif_sscc_and_sgf_credentials_modal,
@@ -55,7 +55,7 @@ def _render_totales_sgf_vs_sscc(df: pd.DataFrame) -> None:
     Se suman los valores de las columnas visibles con
     ``parse_moneda_ar`` (acepta tanto el número crudo de la API como una
     cadena ya formateada) y las diferencias se formatean con
-    ``formato_moneda_ar``. El contador "Meses con dif." informa de un
+    ``formato_moneda_us``. El contador "Meses con dif." informa de un
     vistazo si el ejercicio sigue abierto: el snapshot congela todos los
     meses (incluidos los que cuadran con ``dif=0``), por lo que una
     franja con ``Meses con dif. = 0`` significa cruce perfecto y no
@@ -85,25 +85,25 @@ def _render_totales_sgf_vs_sscc(df: pd.DataFrame) -> None:
     )
 
     # (etiqueta, valor, ayuda, formateador): los importes se pintan con
-    # formato_moneda_ar y el contador de meses sin decimales ni "$".
+    # formato_moneda_us y el contador de meses sin decimales ni "$".
     metricas: tuple[tuple[str, object, str, Callable[[object], str]], ...] = (
         (
             "Total SGF Neto",
             total_sgf_neto,
             "Suma de la columna sgf_importe_neto de todas las filas visibles",
-            formato_moneda_ar,
+            formato_moneda_us,
         ),
         (
             "Total SSCC Neto",
             total_sscc_neto,
             "Suma de la columna sscc_importe_neto de todas las filas visibles",
-            formato_moneda_ar,
+            formato_moneda_us,
         ),
         (
             "Diferencia Neto",
             dif_neto,
             "Suma de la columna dif_importe_neto de todas las filas visibles",
-            formato_moneda_ar,
+            formato_moneda_us,
         ),
         (
             "Meses con dif.",
@@ -207,30 +207,11 @@ def render(
 
     # 2. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
-        # Formato moneda AR ($ 1.234,56) para los importes visibles de la
-        # grilla. ``parse_moneda_ar`` (franja de totales) es el inverso de
-        # ``formato_moneda_ar`` y acepta tanto el número crudo de la API
-        # como la cadena ya formateada, por lo que los totales siguen
-        # cuadrando con lo que muestra la grilla. El df proviene de
-        # ``@st.cache_data`` (copia deserializada por llamada), por lo que
-        # mutarlo en el lugar es seguro. Los nulos quedan en blanco y la
-        # pasada extra por ``parse_moneda_ar`` hace el formateo idempotente
-        # ante cadenas ya formateadas.
         columnas_moneda = (
             "sgf_importe_neto",
             "sscc_importe_neto",
             "dif_importe_neto",
         )
-        for columna_moneda in columnas_moneda:
-            if columna_moneda in df.columns:
-                df[columna_moneda] = df[columna_moneda].apply(
-                    lambda valor: (
-                        formato_moneda_ar(parse_moneda_ar(valor))
-                        if pd.notna(valor)
-                        else ""
-                    )
-                )
-
         # Definimos las columnas que NO queremos mostrar
         first_cols = [
             "ejercicio",
@@ -248,6 +229,7 @@ def render(
             df,
             key=f"{REPORTE}_df_control_sgf_vs_sscc",
             column_order=orden_dinamico,
+            columnas_importe=columnas_moneda,
         )
 
         # Franja de totales: neto SGF vs SSCC y diferencia, siempre

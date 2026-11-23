@@ -18,7 +18,7 @@ from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
-from src.utils.transform_data import formato_moneda_ar, parse_moneda_ar
+from src.utils.transform_data import formato_moneda_us, parse_moneda_ar
 from src.views import (
     report_template,
     request_siif_credentials_modal,
@@ -55,7 +55,7 @@ FILTROS_TABLA: list[dict[str, str]] = [
         "help": "Búsqueda parcial del número de fondo, sin distinguir mayúsculas.",
     },
 ]
-# Columnas con importes: se formatean como moneda AR en la grilla y son
+# Columnas con importes: se formatean como moneda (estilo US) en la grilla y son
 # las que alimentan la franja de subtotales. Los 3 valores son numéricos
 # crudos de la API (``process_dataframe`` los pasa por ``pd.to_numeric``).
 COLUMNAS_IMPORTE: tuple[str, ...] = ("importe", "saldo_c01", "saldo_asiento")
@@ -149,7 +149,7 @@ def _render_subtotales_rfondos04(df: pd.DataFrame) -> None:
     Cada ítem suma sus :data:`COLUMNAS_SUBTOTALES` con
     ``parse_moneda_ar`` (acepta tanto el número crudo de la API como la
     cadena ya formateada) y el resultado se vuelve a formatear con
-    ``formato_moneda_ar``, de modo que el subtotal coincide con lo que
+    ``formato_moneda_us``, de modo que el subtotal coincide con lo que
     muestra la grilla. Las columnas ausentes se ignoran; si ningún ítem
     tiene columnas, no se dibuja nada.
 
@@ -165,7 +165,7 @@ def _render_subtotales_rfondos04(df: pd.DataFrame) -> None:
         total: float = sum(
             df[col].apply(parse_moneda_ar).sum() for col in columnas_presentes
         )
-        valor = formato_moneda_ar(total)
+        valor = formato_moneda_us(total)
         ayuda = "Subtotal de la vista filtrada: " + " + ".join(
             columnas_presentes
         )
@@ -257,25 +257,6 @@ def render() -> None:
 
     # 4. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
-        # Formato moneda AR ($ 1.234,56) para los importes numéricos de
-        # la grilla. ``parse_moneda_ar`` (franja de subtotales) es el
-        # inverso de ``formato_moneda_ar`` y acepta tanto el número crudo
-        # de la API como la cadena ya formateada, por lo que los
-        # subtotales siguen cuadrando con lo que muestra la grilla. El df
-        # proviene de ``@st.cache_data`` (copia deserializada por
-        # llamada), por lo que mutarlo en el lugar es seguro. Los nulos
-        # quedan en blanco y la pasada extra por ``parse_moneda_ar`` hace
-        # el formateo idempotente ante cadenas ya formateadas.
-        for columna_moneda in COLUMNAS_IMPORTE:
-            if columna_moneda in df.columns:
-                df[columna_moneda] = df[columna_moneda].apply(
-                    lambda valor: (
-                        formato_moneda_ar(parse_moneda_ar(valor))
-                        if pd.notna(valor)
-                        else ""
-                    )
-                )
-
         # Filtros particulares de la grilla (frontend puro, sin llamadas
         # a la API): declarativos en FILTROS_TABLA y aplicados en cascada.
         valores_filtro = text_filters_bar(FILTROS_TABLA, key_prefix=REPORTE)
@@ -309,6 +290,7 @@ def render() -> None:
             df_vista,
             key=f"{REPORTE}_df_rfondos04",
             column_order=orden_dinamico,
+            columnas_importe=COLUMNAS_IMPORTE,
         )
 
         # Franja de subtotales: importe, saldo C01 y saldo de asiento de

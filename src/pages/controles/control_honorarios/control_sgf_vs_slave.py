@@ -29,7 +29,7 @@ from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
-from src.utils.transform_data import formato_moneda_ar, parse_moneda_ar
+from src.utils.transform_data import formato_moneda_us, parse_moneda_ar
 from src.views import (
     report_template,
     request_siif_sscc_and_sgf_credentials_modal,
@@ -92,7 +92,7 @@ def _render_totales_sgf_vs_slave(df: pd.DataFrame) -> None:
     Se suman los valores de las columnas visibles con
     ``parse_moneda_ar`` (acepta tanto el número crudo de la API como una
     cadena ya formateada) y las diferencias se formatean con
-    ``formato_moneda_ar``.
+    ``formato_moneda_us``.
 
     Args:
         df: Vista del cruce SGF vs Slave —la grilla ya filtrada por
@@ -139,7 +139,7 @@ def _render_totales_sgf_vs_slave(df: pd.DataFrame) -> None:
 
     items: list[str] = []
     for etiqueta, total, ayuda in metricas:
-        valor = formato_moneda_ar(total)
+        valor = formato_moneda_us(total)
         # Dos ítems: etiqueta (línea 1) + valor en negrita (línea 2).
         # Sin nowrap/ellipsis para que el total nunca aparezca cortado.
         items.append(
@@ -225,15 +225,6 @@ def render(
 
     # 2. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
-        # Formato moneda AR ($ 1.234,56) para los importes visibles de la
-        # grilla. ``parse_moneda_ar`` (franja de totales) es el inverso de
-        # ``formato_moneda_ar`` y acepta tanto el número crudo de la API
-        # como la cadena ya formateada, por lo que los totales siguen
-        # cuadrando con lo que muestra la grilla. El df proviene de
-        # ``@st.cache_data`` (copia deserializada por llamada), por lo que
-        # mutarlo en el lugar es seguro. Los nulos quedan en blanco y la
-        # pasada extra por ``parse_moneda_ar`` hace el formateo idempotente
-        # ante cadenas ya formateadas.
         columnas_moneda = (
             "sgf_importe_bruto",
             "slave_importe_bruto",
@@ -242,16 +233,6 @@ def render(
             "slave_importe_neto",
             "dif_importe_neto",
         )
-        for columna_moneda in columnas_moneda:
-            if columna_moneda in df.columns:
-                df[columna_moneda] = df[columna_moneda].apply(
-                    lambda valor: (
-                        formato_moneda_ar(parse_moneda_ar(valor))
-                        if pd.notna(valor)
-                        else ""
-                    )
-                )
-
         # Filtros particulares de la grilla (frontend puro, sin llamadas
         # a la API): declarativos en FILTROS_TABLA y aplicados en cascada.
         valores_filtro = text_filters_bar(FILTROS_TABLA, key_prefix=REPORTE)
@@ -296,6 +277,7 @@ def render(
             df_vista,
             key=f"{REPORTE}_df_control_sgf_vs_slave",
             column_order=orden_dinamico,
+            columnas_importe=columnas_moneda,
         )
 
         # Franja de totales: bruto SGF vs Slave y diferencias bruta/neta

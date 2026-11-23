@@ -14,7 +14,6 @@ from src.components import text_filters_bar
 from src.constants.endpoints import Endpoints
 from src.services import fetch_dataframe, get_ejercicios_list
 from src.services.process_df import apply_text_filters
-from src.utils.transform_data import formato_moneda_ar
 from src.views import (
     ReportState,
     dataframe_with_buttons,
@@ -173,9 +172,8 @@ def render() -> None:
 
     # Mostrar resultados (usando session_state para que no desaparezcan)
     if not df_obras_desactivadas.empty:
-        df_obras_desactivadas["importe"] = df_obras_desactivadas["importe"].apply(
-            formato_moneda_ar
-        )
+        # ``importe`` queda numérico: la grilla lo formatea como moneda
+        # US vía column_config (NumberColumn) y por eso ordena numérico.
         # Filtros particulares de la grilla (frontend puro, sin llamadas
         # a la API): declarativos en FILTROS_TABLA y aplicados en cascada.
         valores_filtro = text_filters_bar(FILTROS_TABLA, key_prefix=REPORTE)
@@ -192,6 +190,7 @@ def render() -> None:
                 "importe",
                 "notas",
             ],
+            columnas_importe=("importe",),
             selection_mode="single-row",
             add_func=add_obras_desactivadas,
             edit_func=edit_obras_desactivadas,

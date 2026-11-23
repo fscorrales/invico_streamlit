@@ -10,7 +10,7 @@ from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
-from src.utils.transform_data import formato_moneda_ar, parse_moneda_ar
+from src.utils.transform_data import formato_moneda_us, parse_moneda_ar
 from src.views import report_header
 
 ENDPOINT = Endpoints.SLAVE_HONORARIOS.value
@@ -51,7 +51,7 @@ FILTROS_TABLA: list[dict[str, str]] = [
         "help": "Búsqueda parcial del mes de liquidación (formato MM/AAAA).",
     },
 ]
-# Columnas con importes: se formatean como moneda AR en la grilla y son
+# Columnas con importes: se formatean como moneda (estilo US) en la grilla y son
 # las que alimentan la franja de subtotales. Los 10 valores son
 # numéricos crudos de la API (la migración de SLAVE los guarda como
 # números y ``mutual``/``embargo`` arrancan en 0).
@@ -155,7 +155,7 @@ def _render_subtotales_slave_honorarios(df: pd.DataFrame) -> None:
     Cada ítem suma sus columnas a sumar y resta las a restar con
     ``parse_moneda_ar`` (acepta tanto el número crudo de la API como la
     cadena ya formateada) y el resultado se vuelve a formatear con
-    ``formato_moneda_ar``, de modo que el subtotal coincide con lo que
+    ``formato_moneda_us``, de modo que el subtotal coincide con lo que
     muestra la grilla. Las columnas ausentes se ignoran; si ningún ítem
     de una fila tiene columnas, esa fila no se dibuja.
 
@@ -178,7 +178,7 @@ def _render_subtotales_slave_honorarios(df: pd.DataFrame) -> None:
                 df[col].apply(parse_moneda_ar).sum()
                 for col in restar_presentes
             )
-            valor = formato_moneda_ar(total)
+            valor = formato_moneda_us(total)
             ayuda = "Subtotal de la vista filtrada: " + " + ".join(
                 sumar_presentes
             )
@@ -260,25 +260,6 @@ def render() -> None:
 
     # 4. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
-        # Formato moneda AR ($ 1.234,56) para los importes numéricos de
-        # la grilla. ``parse_moneda_ar`` (franja de subtotales) es el
-        # inverso de ``formato_moneda_ar`` y acepta tanto el número crudo
-        # de la API como la cadena ya formateada, por lo que los
-        # subtotales siguen cuadrando con lo que muestra la grilla. El df
-        # proviene de ``@st.cache_data`` (copia deserializada por
-        # llamada), por lo que mutarlo en el lugar es seguro. Los nulos
-        # quedan en blanco y la pasada extra por ``parse_moneda_ar`` hace
-        # el formateo idempotente ante cadenas ya formateadas.
-        for columna_moneda in COLUMNAS_IMPORTE:
-            if columna_moneda in df.columns:
-                df[columna_moneda] = df[columna_moneda].apply(
-                    lambda valor: (
-                        formato_moneda_ar(parse_moneda_ar(valor))
-                        if pd.notna(valor)
-                        else ""
-                    )
-                )
-
         # Filtros particulares de la grilla (frontend puro, sin llamadas
         # a la API): declarativos en FILTROS_TABLA y aplicados en cascada.
         # ``columns=len(FILTROS_TABLA)`` (= 4) deja los 4 filtros en una
@@ -308,6 +289,7 @@ def render() -> None:
             df_vista,
             key=f"{REPORTE}_df_slave_honorarios",
             column_order=orden_dinamico,
+            columnas_importe=COLUMNAS_IMPORTE,
         )
 
         # Franja de subtotales: importe bruto, retenciones e importe

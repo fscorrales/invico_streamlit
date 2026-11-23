@@ -41,7 +41,7 @@ from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
-from src.utils.transform_data import formato_moneda_ar, parse_moneda_ar
+from src.utils.transform_data import formato_moneda_us, parse_moneda_ar
 from src.views import (
     dataframe_with_buttons,
     report_data_version_key,
@@ -99,6 +99,23 @@ CAMPOS_OCULTOS_PRINCIPAL: tuple[str, ...] = ("id", "_id")
 # grilla principal (fuera del dataframe, siempre a la vista: el usuario
 # no tiene que desplazarse hasta la última fila para verlos).
 COLUMNAS_TOTALES_PRINCIPAL: tuple[str, ...] = (
+    "Recupero Actual",
+    "Recupero Acum.",
+    "Otros Motivos Actual",
+    "Otros Motivos Acum.",
+    "Saldo",
+)
+# Columnas con importes de la grilla principal: la grilla las muestra
+# como moneda US (NumberColumn) y por eso se ordenan numéricamente.
+# Incluye las 5 derivadas (COLUMNAS_TOTALES_PRINCIPAL) y las 5 base del
+# planillómetro; las ausentes en el df las ignora el componente
+# (valida ``col in data.columns``).
+COLUMNAS_IMPORTE_PRINCIPAL: tuple[str, ...] = (
+    "ejecucion",
+    "acum",
+    "en_curso",
+    "terminadas_ant",
+    "terminadas_actual",
     "Recupero Actual",
     "Recupero Acum.",
     "Otros Motivos Actual",
@@ -384,9 +401,10 @@ def _agregar_columnas_obra(df_planillometro: pd.DataFrame) -> pd.DataFrame:
         df_planillometro: Reporte ya obtenido de la API.
 
     Returns:
-        Copia del reporte con las 5 columnas nuevas (importes con
-        ``formato_moneda_ar``). Si los padrónes no se pudieron cargar,
-        devuelve el df sin modificar (el error ya se notificó).
+        Copia del reporte con las 5 columnas nuevas (importes NUMÉRICOS:
+        la grilla los formatea como moneda US vía ``column_config``). Si
+        los padrónes no se pudieron cargar, devuelve el df sin modificar
+        (el error ya se notificó).
     """
     obras = _obras_cacheadas()
     if obras is None:
@@ -410,13 +428,14 @@ def _agregar_columnas_obra(df_planillometro: pd.DataFrame) -> pd.DataFrame:
         )
         saldo = pd.Series(float("nan"), index=df.index)
 
-    df["Recupero Actual"] = rec_actual.apply(formato_moneda_ar)
-    df["Recupero Acum."] = rec_acum.apply(formato_moneda_ar)
-    df["Otros Motivos Actual"] = otr_actual.apply(formato_moneda_ar)
-    df["Otros Motivos Acum."] = otr_acum.apply(formato_moneda_ar)
-    df["Saldo"] = saldo.apply(
-        lambda valor: formato_moneda_ar(valor) if pd.notna(valor) else ""
-    )
+    # Importes numéricos: el formato de grilla (moneda US) lo aplica
+    # column_config en el render; los nulos (NaN de Saldo) quedan en
+    # blanco sin convertir a cadena.
+    df["Recupero Actual"] = rec_actual
+    df["Recupero Acum."] = rec_acum
+    df["Otros Motivos Actual"] = otr_actual
+    df["Otros Motivos Acum."] = otr_acum
+    df["Saldo"] = saldo
     return df
 
 
@@ -435,10 +454,10 @@ def _render_totales_planillometro(df: pd.DataFrame) -> None:
     markup) y los ``title`` nativos del HTML muestran el tooltip al
     hacer hover, sin JS.
 
-    Se suman los valores ya formateados de la columna visible
-    (``parse_moneda_ar`` invierte ``formato_moneda_ar``) y el resultado
-    se vuelve a formatear, de modo que el total coincide exactamente con
-    lo que muestra la grilla.
+    Se suman los valores de la columna visible (crudos: la grilla ya no
+    convierte a cadena; ``parse_moneda_ar`` acepta números y cadenas) y
+    el resultado se formatea con ``formato_moneda_us``, de modo que el
+    total coincide exactamente con lo que muestra la grilla.
 
     Nota: con ``max_selections=1`` cada estructura aparece en una sola
     fila, por lo que sumar las columnas ``Acum.`` no produce doble
@@ -459,7 +478,7 @@ def _render_totales_planillometro(df: pd.DataFrame) -> None:
     items: list[str] = []
     for nombre_columna in columnas_totales:
         total: float = df[nombre_columna].apply(parse_moneda_ar).sum()
-        valor = formato_moneda_ar(total)
+        valor = formato_moneda_us(total)
         # Dos lítems: etiqueta (línea 1) + valor en negrita (línea 2).
         # Sin nowrap/ellipsis para que el total nunca aparezca cortado.
         items.append(
@@ -493,9 +512,9 @@ def _filtrar_obras_de_la_fila(
     seleccionada en el planillómetro y con ejercicios iguales o inferiores
     al de dicha fila (frontend puro, sin llamadas a la API).
 
-    El campo importe se formatea con ``formato_moneda_ar``; el modal de
-    edición lo revierte con ``parse_moneda_ar`` (igual que las páginas
-    obras_recuperadas / obras_desactivadas).
+    El campo importe queda NUMÉRICO: la subgrilla lo formatea como
+    moneda US vía ``column_config`` y el modal de edición lo recibe
+    como número (``parse_moneda_ar`` acepta números y cadenas).
     """
     if (
         df_obras.empty
@@ -509,8 +528,8 @@ def _filtrar_obras_de_la_fila(
         (df_obras["estructura"] == estructura) & (ejercicios <= ejercicio)
     ].copy()
 
-    if not df_filtrado.empty and "importe" in df_filtrado.columns:
-        df_filtrado["importe"] = df_filtrado["importe"].apply(formato_moneda_ar)
+    # ``importe`` queda numérico: la subgrilla lo formatea con
+    # column_config (moneda US) y el modal lo recibe como número.
     return df_filtrado
 
 
@@ -582,6 +601,7 @@ def _render_obras_asociadas(df_planillometro: pd.DataFrame, event: Any) -> None:
             key=f"{REPORTE}_df_obras_recuperadas",
             height=ALTURA_SUBGRILLA_OBRAS,
             column_order=_columnas_visibles_obras(df_recuperadas_filtrado),
+            columnas_importe=("importe",),
             selection_mode="single-row",
             add_func=lambda: add_obras_recuperadas(estructura=str(estructura)),
             edit_func=edit_obras_recuperadas,
@@ -597,6 +617,7 @@ def _render_obras_asociadas(df_planillometro: pd.DataFrame, event: Any) -> None:
             key=f"{REPORTE}_df_obras_desactivadas",
             height=ALTURA_SUBGRILLA_OBRAS,
             column_order=_columnas_visibles_obras(df_desactivadas_filtrado),
+            columnas_importe=("importe",),
             selection_mode="single-row",
             add_func=lambda: add_obras_desactivadas(estructura=str(estructura)),
             edit_func=edit_obras_desactivadas,
@@ -733,6 +754,7 @@ def render(
             height=ALTURA_GRILLA_PRINCIPAL,
             column_order=orden_dinamico,
             column_config=column_config_principal,
+            columnas_importe=COLUMNAS_IMPORTE_PRINCIPAL,
             on_select="rerun",
             selection_mode="single-row",
         )

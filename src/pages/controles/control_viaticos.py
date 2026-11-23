@@ -25,7 +25,7 @@ from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
-from src.utils.transform_data import formato_moneda_ar, parse_moneda_ar
+from src.utils.transform_data import formato_moneda_us, parse_moneda_ar
 from src.views import (
     report_template,
     request_siif_and_sscc_credentials_modal,
@@ -38,7 +38,7 @@ URL_SHEET = "https://docs.google.com/spreadsheets/d/1alo5UBd7YRIBhSXqfo_c5Lz8JBf
 # Mongo). Se excluyen de ``column_order``, lo que hace que Streamlit las
 # oculte sin perderlas del DataFrame.
 CAMPOS_OCULTOS: tuple[str, ...] = ("id", "_id")
-# Columnas monetarias del cruce (formato moneda AR en la grilla).
+# Columnas monetarias del cruce (formato moneda (estilo US) en la grilla).
 COLUMNAS_MONEDA: tuple[str, ...] = (
     "siif_anticipo",
     "siif_rendicion",
@@ -146,7 +146,7 @@ def _render_totales_control_viaticos(df: pd.DataFrame) -> None:
     Se suman los valores de las columnas visibles ``siif_gasto_total``
     y ``sscc_gasto_total`` (con ``parse_moneda_ar``, que acepta tanto el
     número crudo de la API como una cadena ya formateada) y la resta se
-    formatea con ``formato_moneda_ar``.
+    formatea con ``formato_moneda_us``.
 
     Args:
         df: DataFrame del control de viáticos (se espera que tenga las
@@ -180,7 +180,7 @@ def _render_totales_control_viaticos(df: pd.DataFrame) -> None:
 
     items: list[str] = []
     for etiqueta, total, ayuda in metricas:
-        valor = formato_moneda_ar(total)
+        valor = formato_moneda_us(total)
         # Dos ítems: etiqueta (línea 1) + valor en negrita (línea 2).
         # Sin nowrap/ellipsis para que el total nunca aparezca cortado.
         items.append(
@@ -263,25 +263,6 @@ def render() -> None:
 
     # 2. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
-        # Formato moneda AR ($ 1.234,56) para los importes visibles de la
-        # grilla. ``parse_moneda_ar`` (franja de totales) es el inverso de
-        # ``formato_moneda_ar`` y acepta tanto el número crudo de la API
-        # como la cadena ya formateada, por lo que los totales siguen
-        # cuadrando con lo que muestra la grilla. El df proviene de
-        # ``@st.cache_data`` (copia deserializada por llamada), por lo que
-        # mutarlo en el lugar es seguro. Los nulos quedan en blanco y la
-        # pasada extra por ``parse_moneda_ar`` hace el formateo idempotente
-        # ante cadenas ya formateadas.
-        for columna_moneda in COLUMNAS_MONEDA:
-            if columna_moneda in df.columns:
-                df[columna_moneda] = df[columna_moneda].apply(
-                    lambda valor: (
-                        formato_moneda_ar(parse_moneda_ar(valor))
-                        if pd.notna(valor)
-                        else ""
-                    )
-                )
-
         # Definimos las columnas que NO queremos mostrar
         first_cols = [
             "ejercicio",
@@ -299,6 +280,7 @@ def render() -> None:
             df,
             key=f"{REPORTE}_df_control_viaticos",
             column_order=orden_dinamico,
+            columnas_importe=COLUMNAS_MONEDA,
         )
 
         # Franja de totales: gasto total SIIF vs SSCC y diferencia,

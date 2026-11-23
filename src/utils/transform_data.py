@@ -2,6 +2,7 @@ __all__ = [
     "build_retenciones_payload",
     "format_cod_barrio",
     "formato_moneda_ar",
+    "formato_moneda_us",
     "parse_moneda_ar",
     "normalize_name_for_match",
 ]
@@ -75,6 +76,24 @@ def build_retenciones_payload(data: dict) -> dict:
 def formato_moneda_ar(valor: object) -> str:
     # Formato inicial: 1,234.56 -> X para no solapar reemplazos
     return f"$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+# --------------------------------------------------
+def formato_moneda_us(valor: float) -> str:
+    """Formatea un importe en estilo US: ``$ 1,234.57``.
+
+    Equivalente Python del ``FORMATO_MONEDA_GRID`` de
+    ``components/dataframes.py`` (``"$ %,.2f"`` de sprintf.js): con él
+    la franja de subtotales y la grilla quedan con el mismo estilo. El
+    resultado es invertible por :func:`parse_moneda_ar`.
+
+    Args:
+        valor: Importe numérico (entero o float).
+
+    Returns:
+        Cadena tipo ``"$ 1,234.57"`` (negativos: ``"$ -1,234.57"``).
+    """
+    return f"$ {valor:,.2f}"
 
 
 # --------------------------------------------------

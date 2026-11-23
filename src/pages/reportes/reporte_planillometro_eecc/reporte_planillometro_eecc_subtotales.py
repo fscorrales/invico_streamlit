@@ -31,7 +31,7 @@ from src.utils import (
     APIConnectionError,
     APIResponseError,
 )
-from src.utils.transform_data import formato_moneda_ar, parse_moneda_ar
+from src.utils.transform_data import formato_moneda_us, parse_moneda_ar
 from src.views import report_template
 
 ENDPOINT = Endpoints.REPORTE_PLANILLOMETRO.value
@@ -89,33 +89,6 @@ def _formato_avance(valor: Any) -> str:
 
 
 # --------------------------------------------------
-def _formatear_importes(df: pd.DataFrame) -> pd.DataFrame:
-    """Copia del reporte con las 5 columnas de importes formateadas.
-
-    El formato argentino (``formato_moneda_ar``) se aplica solo en la
-    vista que consume la grilla; los subtotales se calculan sobre los
-    valores crudos con ``parse_moneda_ar`` (inverso compatible con
-    ambos formatos), de modo que el total coincide con lo visible.
-
-    Args:
-        df: Vista del reporte ya filtrada con ``FILTROS_TABLA``.
-
-    Returns:
-        Copia del df con las columnas de :data:`COLUMNAS_SUBTOTALES`
-        como cadena formateada (las ausentes se ignoran).
-    """
-    df_formateado = df.copy()
-    for columna, _etiqueta in COLUMNAS_SUBTOTALES:
-        if columna in df_formateado.columns:
-            df_formateado[columna] = (
-                pd.to_numeric(df_formateado[columna], errors="coerce")
-                .fillna(0.0)
-                .apply(formato_moneda_ar)
-            )
-    return df_formateado
-
-
-# --------------------------------------------------
 def _render_subtotales_planillometro(df: pd.DataFrame) -> None:
     """Franja compacta bajo la grilla principal con el subtotal de cada
     una de las 5 columnas de importes del planillómetro.
@@ -148,7 +121,7 @@ def _render_subtotales_planillometro(df: pd.DataFrame) -> None:
     items: list[str] = []
     for columna, etiqueta in columnas_subtotales:
         total: float = df[columna].apply(parse_moneda_ar).sum()
-        valor = formato_moneda_ar(total)
+        valor = formato_moneda_us(total)
         # Dos lítems: etiqueta (línea 1) + valor en negrita (línea 2).
         # Sin nowrap/ellipsis para que el subtotal nunca aparezca cortado.
         items.append(
@@ -202,9 +175,9 @@ def _acum_obra_formateado(df_acum: pd.DataFrame) -> pd.DataFrame:
     """Convierte la respuesta de ``acumObra`` en la grilla de detalle.
 
     Mapea ``ejercicio`` (mínimo del grupo) a ``Ejercicio Alta``,
-    ``importe`` (suma) a ``Total Ejecutado`` formateado con
-    ``formato_moneda_ar`` y ``avance`` (máximo) a ``Máximo Avance``
-    en porcentaje.
+    ``importe`` (suma) a ``Total Ejecutado`` NUMÉRICO —la grilla lo
+    formatea como moneda US vía ``column_config``— y ``avance``
+    (máximo) a ``Máximo Avance`` en porcentaje.
 
     Args:
         df_acum: Respuesta cruda de ``GET /icaro/carga/acumObra``.
@@ -220,7 +193,7 @@ def _acum_obra_formateado(df_acum: pd.DataFrame) -> pd.DataFrame:
     if df_acum.empty or not requeridas.issubset(df_acum.columns):
         return pd.DataFrame()
 
-    # Orden sobre los valores CRUDOS y antes de formatear: "Máximo
+    # Orden sobre los valores CRUDOS y antes del render: "Máximo
     # Avance" queda como cadena ("76.14%") y no se puede ordenar
     # numéricamente. Los nulos van al final (na_position="last") y el
     # sort estable mantiene el orden de `desc_obra` ante empates.
@@ -240,9 +213,9 @@ def _acum_obra_formateado(df_acum: pd.DataFrame) -> pd.DataFrame:
         {
             "desc_obra": df_ordenado["desc_obra"],
             "Ejercicio Alta": df_ordenado["ejercicio"].round().astype("Int64"),
-            "Total Ejecutado": pd.to_numeric(df_ordenado["importe"], errors="coerce")
-            .fillna(0.0)
-            .apply(formato_moneda_ar),
+            "Total Ejecutado": pd.to_numeric(
+                df_ordenado["importe"], errors="coerce"
+            ).fillna(0.0),
             "Máximo Avance": df_ordenado["avance"].apply(_formato_avance),
         }
     )
@@ -332,6 +305,7 @@ def _render_detalle_icaro(df_planillometro: pd.DataFrame, event: Any) -> None:
             "Total Ejecutado",
             "Máximo Avance",
         ],
+        columnas_importe=("Total Ejecutado",),
     )
 
 
@@ -423,11 +397,12 @@ def render() -> None:
         column_config_principal["estructura"] = st.column_config.TextColumn(pinned=True)
 
     event = dataframe(
-        _formatear_importes(df_vista),
+        df_vista,
         key=f"{REPORTE}_df_planillometro",
         height=ALTURA_GRILLA_PRINCIPAL,
         column_order=orden_dinamico,
         column_config=column_config_principal,
+        columnas_importe=tuple(col for col, _ in COLUMNAS_SUBTOTALES),
         on_select="rerun",
         selection_mode="single-row",
     )
