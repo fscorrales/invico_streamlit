@@ -1,9 +1,9 @@
 import pandas as pd
 import streamlit as st
 
-from src.components import dataframe
+from src.components import dataframe, text_filters_bar
 from src.constants.endpoints import Endpoints
-from src.services import fetch_dataframe
+from src.services import apply_text_filters, fetch_dataframe
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -12,6 +12,37 @@ from src.views import report_header
 
 ENDPOINT = Endpoints.SLAVE_FACTUREROS.value
 REPORTE = "slave_factureros"
+# Columnas del DataFrame que NO se muestran en la grilla: id/_id son el
+# interno de Mongo y updated_at la marca técnica de la migración de
+# SLAVE. Se excluyen de ``column_order``, lo que hace que Streamlit las
+# oculte sin perderlas del DataFrame.
+CAMPOS_OCULTOS: tuple[str, ...] = ("id", "_id", "updated_at")
+# Filtros particulares de la grilla (frontend puro): se renderizan con
+# text_filters_bar() y se aplican en cascada con apply_text_filters()
+# sobre el DataFrame ya obtenido de la API, sin volver a tocar la API.
+# Nota: esta tabla NO tiene columnas de importe (solo beneficiario,
+# actividad y partida), por lo que no formatea moneda ni dibuja
+# subtotales.
+FILTROS_TABLA: list[dict[str, str]] = [
+    {
+        "label": "Beneficiario",
+        "column": "beneficiario",
+        "placeholder": "Ej: GOMEZ",
+        "help": "Búsqueda parcial del nombre del facturero, sin distinguir mayúsculas.",
+    },
+    {
+        "label": "Actividad",
+        "column": "actividad",
+        "placeholder": "Ej: 11-00-02",
+        "help": "Búsqueda parcial de la actividad (imputación).",
+    },
+    {
+        "label": "Partida",
+        "column": "partida",
+        "placeholder": "Ej: 1311",
+        "help": "Búsqueda parcial de la partida presupuestaria.",
+    },
+]
 
 
 # --------------------------------------------------
@@ -27,7 +58,7 @@ def get_slave_factureros(filtro_avanzado: str = "", update_trigger: int = 0):
     df = fetch_dataframe(ENDPOINT, params=params_peticion)
     if not df.empty:
         df = df.sort_values(
-            ["beneficiario", "actividad", "partida"],
+            ["nombre_completo", "actividad", "partida"],
         )
 
     return df
@@ -81,16 +112,30 @@ def render() -> None:
 
     # 4. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
+        # Filtros particulares de la grilla (frontend puro, sin llamadas
+        # a la API): declarativos en FILTROS_TABLA y aplicados en cascada.
+        # Son 3 filtros: se usa el default ``columns=3`` de
+        # ``text_filters_bar()`` (una sola fila).
+        valores_filtro = text_filters_bar(FILTROS_TABLA, key_prefix=REPORTE)
+        df_vista = apply_text_filters(df, valores_filtro)
+
+        if df_vista.empty:
+            st.info("No se encontraron resultados con los filtros de la barra.")
+
         # Definimos las columnas que NO queremos mostrar
         first_cols = ["beneficiario"]
 
-        # Generamos el orden dinámico: todas las del DF que no estén en la lista negra
+        # Generamos el orden dinámico: todas las de la vista que no estén
+        # en la lista negra ni en CAMPOS_OCULTOS (id/_id/updated_at se
+        # ocultan en la grilla)
         orden_dinamico = first_cols + [
-            col for col in df.columns if col not in first_cols
+            col
+            for col in df_vista.columns
+            if col not in first_cols and col not in CAMPOS_OCULTOS
         ]
 
         dataframe(
-            df,
+            df_vista,
             key=f"{REPORTE}_df_slave_factureros",
             column_order=orden_dinamico,
         )
