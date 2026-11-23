@@ -1,9 +1,9 @@
 import pandas as pd
 import streamlit as st
 
-from src.components import dataframe
+from src.components import dataframe, text_filters_bar
 from src.constants.endpoints import Endpoints
-from src.services import fetch_dataframe
+from src.services import apply_text_filters, fetch_dataframe
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -12,6 +12,34 @@ from src.views.aux_tables import report_header
 
 ENDPOINT = Endpoints.ICARO_OBRAS.value
 REPORTE = "icaro_obras"
+# Columnas del DataFrame que NO se muestran en la grilla: id/_id son el
+# interno de Mongo y updated_at la marca técnica de la migración
+# ICARO. Se excluyen de ``column_order``, lo que hace que Streamlit las
+# oculte sin perderlas del DataFrame.
+CAMPOS_OCULTOS: tuple[str, ...] = ("id", "_id", "updated_at")
+# Filtros particulares de la grilla (frontend puro): se renderizan con
+# text_filters_bar() y se aplican en cascada con apply_text_filters()
+# sobre el DataFrame ya obtenido de la API, sin volver a tocar la API.
+FILTROS_TABLA: list[dict[str, str]] = [
+    {
+        "label": "Actividad",
+        "column": "actividad",
+        "placeholder": "Ej: 11-00-02",
+        "help": "Búsqueda parcial de la actividad (imputación) de ICARO.",
+    },
+    {
+        "label": "Desc. obra",
+        "column": "desc_obra",
+        "placeholder": "Ej: 54 VIVIENDAS",
+        "help": "Búsqueda parcial de la descripción de la obra.",
+    },
+    {
+        "label": "CUIT",
+        "column": "cuit",
+        "placeholder": "Ej: 20223334445",
+        "help": "Búsqueda parcial del CUIT, sin distinguir mayúsculas.",
+    },
+]
 
 
 # --------------------------------------------------
@@ -70,6 +98,18 @@ def render() -> None:
 
     # 4. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
+        # Filtros particulares de la grilla (frontend puro, sin llamadas
+        # a la API): declarativos en FILTROS_TABLA y aplicados en cascada.
+        # ``columns=len(FILTROS_TABLA)`` (= 3) deja las 3 cajas en una
+        # sola fila y solo afecta a ESTA página.
+        valores_filtro = text_filters_bar(
+            FILTROS_TABLA, key_prefix=REPORTE, columns=len(FILTROS_TABLA)
+        )
+        df_vista = apply_text_filters(df, valores_filtro)
+
+        if df_vista.empty:
+            st.info("No se encontraron resultados con los filtros de la barra.")
+
         # Definimos las columnas que NO queremos mostrar
         first_cols = [
             "actividad",
@@ -83,13 +123,17 @@ def render() -> None:
             "info_adicional",
         ]
 
-        # Generamos el orden dinámico: todas las del DF que no estén en la lista negra
+        # Generamos el orden dinámico: todas las de la vista que no estén
+        # en la lista negra ni en CAMPOS_OCULTOS (id/_id/updated_at se
+        # ocultan en la grilla)
         orden_dinamico = first_cols + [
-            col for col in df.columns if col not in first_cols
+            col
+            for col in df_vista.columns
+            if col not in first_cols and col not in CAMPOS_OCULTOS
         ]
 
         dataframe(
-            df,
+            df_vista,
             key=f"{REPORTE}_df_icaro_obras",
             column_order=orden_dinamico,
         )

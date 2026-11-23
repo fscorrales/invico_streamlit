@@ -1,9 +1,9 @@
 import pandas as pd
 import streamlit as st
 
-from src.components import dataframe
+from src.components import dataframe, text_filters_bar
 from src.constants.endpoints import Endpoints
-from src.services import fetch_dataframe
+from src.services import apply_text_filters, fetch_dataframe
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -12,6 +12,23 @@ from src.views.aux_tables import report_header
 
 ENDPOINT = Endpoints.ICARO_ESTRUCTURAS.value
 REPORTE = "icaro_estructuras"
+# Filtros particulares de la grilla (frontend puro): se renderizan con
+# text_filters_bar() y se aplican en cascada con apply_text_filters()
+# sobre el DataFrame ya obtenido de la API, sin volver a tocar la API.
+FILTROS_TABLA: list[dict[str, str]] = [
+    {
+        "label": "Estructura",
+        "column": "estructura",
+        "placeholder": "Ej: 1-1-01",
+        "help": "Búsqueda parcial de la estructura presupuestaria de ICARO.",
+    },
+    {
+        "label": "Desc. estructura",
+        "column": "desc_estructura",
+        "placeholder": "Ej: GASTOS",
+        "help": "Búsqueda parcial de la descripción de la estructura.",
+    },
+]
 
 
 # --------------------------------------------------
@@ -72,6 +89,18 @@ def render() -> None:
 
     # 4. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
+        # Filtros particulares de la grilla (frontend puro, sin llamadas
+        # a la API): declarativos en FILTROS_TABLA y aplicados en cascada.
+        # ``columns=len(FILTROS_TABLA)`` (= 2) deja las 2 cajas en una
+        # sola fila y solo afecta a ESTA página.
+        valores_filtro = text_filters_bar(
+            FILTROS_TABLA, key_prefix=REPORTE, columns=len(FILTROS_TABLA)
+        )
+        df_vista = apply_text_filters(df, valores_filtro)
+
+        if df_vista.empty:
+            st.info("No se encontraron resultados con los filtros de la barra.")
+
         # Definimos las columnas que NO queremos mostrar
         first_cols = [
             "estructura",
@@ -79,11 +108,11 @@ def render() -> None:
 
         # Generamos el orden dinámico: todas las del DF que no estén en la lista negra
         orden_dinamico = first_cols + [
-            col for col in df.columns if col not in first_cols
+            col for col in df_vista.columns if col not in first_cols
         ]
 
         dataframe(
-            df,
+            df_vista,
             key=f"{REPORTE}_df_icaro_estructuras",
             column_order=orden_dinamico,
         )
