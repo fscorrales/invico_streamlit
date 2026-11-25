@@ -259,7 +259,8 @@ def compute_control_otros_gastos_cruce(ejercicios: List[int]) -> List[str]:
     Por cada ejercicio:
 
     1. ``GET /control/otrosGastos/cruce/generate?ejercicio=X``: el
-       backend devuelve ``{pareos, mensual}`` (pareo 1:1 del resto +
+       backend devuelve ``{pareos, mensual}`` (pareo 1:1 del resto, con
+       pre-paso de pagos agrupados por día para el cuit 30500049460, +
        control mensual de fondos permanentes).
     2. ``POST /control/otrosGastos/cruce``: congela las 2 tablas en un
        solo envío (colecciones ``control_otros_gastos_cruce`` y
