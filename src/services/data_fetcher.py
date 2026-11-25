@@ -20,6 +20,10 @@ __all__ = [
     "get_control_banco_cruzado",
     "get_control_banco_siif",
     "get_control_banco_sscc",
+    "get_control_otros_gastos_siif",
+    "get_control_otros_gastos_sgf",
+    "get_control_otros_gastos_cruce_resto",
+    "get_control_otros_gastos_cruce_mensual",
     "get_referencias_obras_recuperadas",
     "get_referencias_obras_desactivadas",
 ]
@@ -32,7 +36,7 @@ import pandas as pd
 import streamlit as st
 
 from src.constants import Endpoints
-from src.services.api_client import fetch_data, fetch_dataframe
+from src.services.api_client import fetch_data, fetch_dataframe, fetch_json
 from src.utils import get_cache_path
 
 
@@ -477,6 +481,77 @@ def get_control_debitos_bancarios(
         )
 
     return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_control_otros_gastos_siif(
+    params: dict[str, Any] | None = None, update_trigger: int = 0
+):
+    """Snapshot de la tabla SIIF depurada (POST posterior a /siif/generate)."""
+    df = fetch_dataframe(
+        f"{Endpoints.CONTROL_OTROS_GASTOS.value}/siif", params=params
+    )
+    if not df.empty:
+        df = df.sort_values(
+            ["ejercicio", "mes", "nro_comprobante"],
+            ascending=[True, True, True],
+        )
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_control_otros_gastos_sgf(
+    params: dict[str, Any] | None = None, update_trigger: int = 0
+):
+    """Snapshot de la tabla SGF depurada (POST posterior a /sgf/generate)."""
+    df = fetch_dataframe(
+        f"{Endpoints.CONTROL_OTROS_GASTOS.value}/sgf", params=params
+    )
+    if not df.empty:
+        df = df.sort_values(
+            ["ejercicio", "mes", "libramiento"],
+            ascending=[True, True, True],
+        )
+    return df
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_control_otros_gastos_cruce_resto(
+    params: dict[str, Any] | None = None, update_trigger: int = 0
+):
+    """Capa 1 del cruce: pareo 1:1 del resto (no fondos permanentes).
+
+    ``GET /cruce`` devuelve el bloque ``{ejercicio, pareos, mensual}``;
+    acá se extrae ``pareos`` (se conserva el orden de la API: filas
+    SIIF en orden de fecha/comprobante y las huérfanas SGF al final).
+    """
+    bloque = fetch_json(
+        f"{Endpoints.CONTROL_OTROS_GASTOS.value}/cruce", params=params
+    )
+    if not isinstance(bloque, dict):
+        return pd.DataFrame()
+    return pd.DataFrame(bloque.get("pareos") or [])
+
+
+# --------------------------------------------------
+@st.cache_data(show_spinner="Consultando base de datos...", ttl="1d")
+def get_control_otros_gastos_cruce_mensual(
+    params: dict[str, Any] | None = None, update_trigger: int = 0
+):
+    """Capa 2 del cruce: control mensual de fondos permanentes.
+
+    Extrae ``mensual`` del bloque de ``GET /cruce`` (el backend ya lo
+    devuelve ordenado cronológicamente por mes).
+    """
+    bloque = fetch_json(
+        f"{Endpoints.CONTROL_OTROS_GASTOS.value}/cruce", params=params
+    )
+    if not isinstance(bloque, dict):
+        return pd.DataFrame()
+    return pd.DataFrame(bloque.get("mensual") or [])
 
 
 # --------------------------------------------------

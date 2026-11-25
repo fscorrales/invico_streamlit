@@ -8,6 +8,7 @@ directamente.
 
 __all__ = [
     "fetch_data",
+    "fetch_json",
     "fetch_excel_stream",
     "export_to_sheet",
     "post_request",
@@ -113,6 +114,49 @@ def fetch_dataframe(
     if not data:
         return pd.DataFrame()
     return pd.DataFrame(data)
+
+
+# --------------------------------------------------
+def fetch_json(
+    endpoint: str, params: Optional[dict[str, Any]] = None, token: Optional[str] = None
+) -> Any:
+    """
+    Realiza un GET y retorna la respuesta JSON cruda (dict u objeto).
+
+    A diferencia de :func:`fetch_dataframe` —que asume una lista de
+    registros— esta función sirve para endpoints que devuelven un
+    payload compuesto (p.ej. ``/control/otrosGastos/cruce`` devuelve
+    ``{ejercicio, pareos, mensual}``).
+
+    Args:
+        endpoint: Ruta relativa del endpoint.
+        params: Parámetros de query opcionales.
+        token: Token de autenticación.
+
+    Returns:
+        Payload JSON (dict, lista u objeto) tal como lo devuelve la API.
+
+    Raises:
+        APIConnectionError: Si no hay conexión.
+        APIResponseError: Si la API retorna un error.
+    """
+    headers = _get_headers(token=token)
+    clean_params = (
+        {k: v for k, v in params.items() if v is not None} if params else None
+    )
+
+    try:
+        response = httpx.get(
+            f"{BASE_URL}{endpoint}",
+            headers=headers,
+            params=clean_params,
+            timeout=settings.DEFAULT_TIMEOUT,
+            follow_redirects=True,
+        )
+        return _handle_response(response)
+
+    except httpx.RequestError as e:
+        raise APIConnectionError(f"Error de conexión (GET): {e}") from e
 
 
 # Límite de seguridad del paginado: evita bucles infinitos si el backend

@@ -130,6 +130,11 @@ def build_navigation() -> None:
                 icon="💳",
             ),
             st.Page(
+                "src/pages/controles/control_otros_gastos/control_otros_gastos.py",
+                title="Control Otros Gastos",
+                icon="🧾",
+            ),
+            st.Page(
                 "src/pages/controles/control_banco/control_banco.py",
                 title="Control Banco",
                 icon="🏦",
