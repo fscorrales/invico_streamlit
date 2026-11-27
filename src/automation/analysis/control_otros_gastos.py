@@ -199,8 +199,10 @@ def compute_control_otros_gastos_siif(ejercicios: List[int]) -> List[str]:
     1. ``GET /control/otrosGastos/siif/generate?ejercicio=X``: el
        backend depura con sus propias colecciones (es_aprobado, MAP,
        PA6, obras Icaro, haberes, honorarios, viáticos y débitos;
-       cajas chicas NO se depuran: SÍ están en SGF y se cruzan 1:1),
-       sin descargar los crudos al cliente.
+       cajas chicas NO se depuran: SÍ están en SGF y se cruzan 1:1) y
+       AGREGA las aperturas de caja chica FAP de rfondos04 (sin el
+       fondo permanente, con clase_reg="FAP"), sin descargar los
+       crudos al cliente.
     2. ``POST /control/otrosGastos/siif``: congela el snapshot del
        ejercicio en la colección ``control_otros_gastos_siif`` (borrado
        idempotente por ejercicio).
@@ -260,8 +262,9 @@ def compute_control_otros_gastos_cruce(ejercicios: List[int]) -> List[str]:
 
     1. ``GET /control/otrosGastos/cruce/generate?ejercicio=X``: el
        backend devuelve ``{pareos, mensual}`` (pareo 1:1 del resto, con
-       pre-paso de pagos agrupados por día para el cuit 30500049460, +
-       control mensual de fondos permanentes).
+       pre-pasos de agrupación —día para el cuit 30500049460,
+       comprobantes multi-imputación y varios comprobantes del mismo
+       cuit y día—, + control mensual de fondos permanentes).
     2. ``POST /control/otrosGastos/cruce``: congela las 2 tablas en un
        solo envío (colecciones ``control_otros_gastos_cruce`` y
        ``control_otros_gastos_cruce_mensual``, borrado idempotente por
