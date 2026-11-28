@@ -11,10 +11,14 @@ from typing import Any, Optional
 import pandas as pd
 import streamlit as st
 
-from src.components import dataframe
+from src.components import dataframe, text_filters_bar
 from src.constants.endpoints import Endpoints
 from src.pages.controles.control_otros_gastos.subtotales import render_subtotales
-from src.services import get_control_otros_gastos_siif, get_ejercicios_list
+from src.services import (
+    apply_text_filters,
+    get_control_otros_gastos_siif,
+    get_ejercicios_list,
+)
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -32,6 +36,35 @@ URL_SHEET = "https://docs.google.com/spreadsheets/d/1EBzBz17mtVzBmpAFznDyJf2RAJN
 # Mongo). Se excluyen de ``column_order``, lo que hace que Streamlit las
 # oculte sin perderlas del DataFrame.
 CAMPOS_OCULTOS: tuple[str, ...] = ("id", "_id")
+# Filtros particulares de la grilla (frontend puro): se renderizan con
+# text_filters_bar() y se aplican en cascada con apply_text_filters()
+# sobre el DataFrame ya obtenido de la API, sin volver a tocar la API.
+FILTROS_TABLA: list[dict[str, str]] = [
+    {
+        "label": "CUIT",
+        "column": "cuit",
+        "placeholder": "Ej: 20111222333",
+        "help": "Búsqueda parcial del CUIT del beneficiario, sin distinguir mayúsculas.",
+    },
+    {
+        "label": "Nro. de fondo",
+        "column": "nro_fondo",
+        "placeholder": "Ej: 123",
+        "help": "Búsqueda parcial del número de fondo (rfondo07tp / PA6).",
+    },
+    {
+        "label": "Nro. de entrada",
+        "column": "nro_entrada",
+        "placeholder": "Ej: 45",
+        "help": "Búsqueda parcial del número de entrada.",
+    },
+    {
+        "label": "Partida",
+        "column": "partida",
+        "placeholder": "Ej: 412",
+        "help": "Búsqueda parcial del código de partida presupuestaria.",
+    },
+]
 
 
 # --------------------------------------------------
@@ -142,6 +175,18 @@ def render(
 
     # 2. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
+        # Filtros particulares de la grilla (frontend puro, sin llamadas
+        # a la API): declarativos en FILTROS_TABLA y aplicados en cascada.
+        # ``columns=len(FILTROS_TABLA)`` (= 4) deja las 4 cajas en una
+        # sola fila y solo afecta a ESTA página.
+        valores_filtro = text_filters_bar(
+            FILTROS_TABLA, key_prefix=REPORTE, columns=len(FILTROS_TABLA)
+        )
+        df_vista = apply_text_filters(df, valores_filtro)
+
+        if df_vista.empty:
+            st.info("No se encontraron resultados con los filtros de la barra.")
+
         # Definimos las columnas que NO queremos mostrar
         first_cols = [
             "ejercicio",
@@ -155,19 +200,21 @@ def render(
         # grilla)
         orden_dinamico = first_cols + [
             col
-            for col in df.columns
+            for col in df_vista.columns
             if col not in first_cols and col not in CAMPOS_OCULTOS
         ]
 
         dataframe(
-            df,
+            df_vista,
             key=f"{REPORTE}_df_control_otros_gastos_siif",
             column_order=orden_dinamico,
             columnas_importe=("importe",),
         )
 
-        # Franja de subtotales: siempre visible fuera de la grilla.
-        _render_subtotales_siif(df)
+        # Franja de subtotales: siempre visible fuera de la grilla, y
+        # calculada sobre la vista filtrada para que registros y total
+        # coincidan con lo que muestra la grilla.
+        _render_subtotales_siif(df_vista)
 
 
 if __name__ == "__main__":

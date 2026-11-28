@@ -10,10 +10,14 @@ from typing import Any, Optional
 import pandas as pd
 import streamlit as st
 
-from src.components import dataframe
+from src.components import dataframe, text_filters_bar
 from src.constants.endpoints import Endpoints
 from src.pages.controles.control_otros_gastos.subtotales import render_subtotales
-from src.services import get_control_otros_gastos_cruce_resto, get_ejercicios_list
+from src.services import (
+    apply_text_filters,
+    get_control_otros_gastos_cruce_resto,
+    get_ejercicios_list,
+)
 from src.utils import (
     APIConnectionError,
     APIResponseError,
@@ -32,6 +36,35 @@ CAMPOS_OCULTOS: tuple[str, ...] = ("id", "_id")
 ESTADO_PAREADO = "PAREADO"
 ESTADO_SIIF_SIN_SGF = "SIIF_SIN_SGF"
 ESTADO_SGF_SIN_SIIF = "SGF_SIN_SIIF"
+# Filtros particulares de la grilla (frontend puro): se renderizan con
+# text_filters_bar() y se aplican en cascada con apply_text_filters()
+# sobre el DataFrame ya obtenido de la API, sin volver a tocar la API.
+# Ojo con "estado": el contains es búsqueda parcial, p.ej. "SIIF" trae
+# tanto SIIF_SIN_SGF como SGF_SIN_SIIF (este último termina en "SIIF").
+FILTROS_TABLA: list[dict[str, str]] = [
+    {
+        "label": "Estado",
+        "column": "estado",
+        "placeholder": "Ej: PAREADO",
+        "help": (
+            "Búsqueda parcial del estado del pareo. Use el valor "
+            "completo (PAREADO / SIIF_SIN_SGF / SGF_SIN_SIIF) para "
+            "aislar un estado exacto."
+        ),
+    },
+    {
+        "label": "Beneficiario SIIF",
+        "column": "siif_beneficiario",
+        "placeholder": "Ej: GOMEZ",
+        "help": "Búsqueda parcial del beneficiario en SIIF, sin distinguir mayúsculas.",
+    },
+    {
+        "label": "Beneficiario SGF",
+        "column": "sgf_beneficiario",
+        "placeholder": "Ej: GOMEZ",
+        "help": "Búsqueda parcial del beneficiario en SGF, sin distinguir mayúsculas.",
+    },
+]
 
 
 # --------------------------------------------------
@@ -172,6 +205,18 @@ def render(
 
     # 2. Mostrar resultados (usando session_state para que no desaparezcan)
     if not df.empty:
+        # Filtros particulares de la grilla (frontend puro, sin llamadas
+        # a la API): declarativos en FILTROS_TABLA y aplicados en cascada.
+        # ``columns=len(FILTROS_TABLA)`` (= 3) deja las 3 cajas en una
+        # sola fila y solo afecta a ESTA página.
+        valores_filtro = text_filters_bar(
+            FILTROS_TABLA, key_prefix=REPORTE, columns=len(FILTROS_TABLA)
+        )
+        df_vista = apply_text_filters(df, valores_filtro)
+
+        if df_vista.empty:
+            st.info("No se encontraron resultados con los filtros de la barra.")
+
         # Definimos las columnas que NO queremos mostrar
         first_cols = [
             "estado",
@@ -184,19 +229,21 @@ def render(
         # grilla)
         orden_dinamico = first_cols + [
             col
-            for col in df.columns
+            for col in df_vista.columns
             if col not in first_cols and col not in CAMPOS_OCULTOS
         ]
 
         dataframe(
-            df,
+            df_vista,
             key=f"{REPORTE}_df_control_otros_gastos_cruce_resto",
             column_order=orden_dinamico,
             columnas_importe=("siif_importe", "sgf_importe_bruto", "dif"),
         )
 
-        # Franja de subtotales: siempre visible fuera de la grilla.
-        _render_subtotales_cruce_resto(df)
+        # Franja de subtotales: siempre visible fuera de la grilla, y
+        # calculada sobre la vista filtrada para que los conteos por
+        # estado coincidan con lo que muestra la grilla.
+        _render_subtotales_cruce_resto(df_vista)
 
 
 if __name__ == "__main__":
